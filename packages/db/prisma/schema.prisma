@@ -4,8 +4,14 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // DATABASE_URL: pooled (Supabase transaction pooler) — used by Prisma
+  // Client at runtime, safe for many concurrent serverless invocations.
+  url       = env("DATABASE_URL")
+  // DIRECT_URL: unpooled/session connection — used only by `prisma migrate
+  // deploy`. The transaction pooler doesn't support the session state
+  // schema migrations need, so migrations must bypass it.
+  directUrl = env("DIRECT_URL")
 }
 
 enum UserRole {
