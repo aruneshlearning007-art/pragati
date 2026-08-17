@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens taken directly from the Claude Design prototype (.dc.html) */
+:root {
+  --color-bg: oklch(97% 0.016 85);
+  --color-surface: oklch(99% 0.008 85);
+  --color-primary: oklch(52% 0.16 145);
+  --color-primary-dark: oklch(40% 0.14 145);
+  --color-text: oklch(22% 0.02 85);
+  --color-text-muted: oklch(46% 0.02 85);
+  --color-border: oklch(88% 0.016 85);
+
+  --color-mastered-bg: oklch(93% 0.06 145);
+  --color-mastered-fg: oklch(35% 0.1 145);
+  --color-mastered-dot: oklch(55% 0.15 145);
+
+  --color-revision-bg: oklch(94% 0.08 60);
+  --color-revision-fg: oklch(40% 0.13 60);
+  --color-revision-dot: oklch(65% 0.15 70);
+
+  --color-notstarted-bg: oklch(93% 0.04 240);
+  --color-notstarted-fg: oklch(40% 0.1 240);
+  --color-notstarted-dot: oklch(55% 0.13 240);
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+}

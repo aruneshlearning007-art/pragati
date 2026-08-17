@@ -1,0 +1,356 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  student
+  parent
+  teacher
+}
+
+enum ContentStatus {
+  draft
+  awaiting_review
+  published
+  needs_changes
+}
+
+enum QuestionKind {
+  mcq
+  assertion_reason
+  picture
+}
+
+enum ExplainMode {
+  story
+  picture
+  realworld
+  gofurther
+}
+
+enum DoubtRole {
+  user
+  assistant
+}
+
+// A school's own identity — class 3-5 content is scoped to a School (different
+// schools use different books); class 6-12 content is scoped to board/NCERT
+// instead and is shared across schools. See getContentScopeKey in @pragati/shared.
+model School {
+  id        String   @id @default(cuid())
+  name      String
+  state     String
+  city      String
+  board     String?
+  createdAt DateTime @default(now())
+
+  users           User[]
+  uploadedSources UploadedSource[]
+  notes           Notes[]
+  explanations    Explanation[]
+  quizQuestions   QuizQuestion[]
+
+  @@index([state, city])
+}
+
+model User {
+  id                 String   @id @default(cuid())
+  role               UserRole
+  name               String
+  email              String   @unique
+  class              String?
+  board              String?
+  language           String   @default("en")
+  schoolId           String?
+  subscriptionStatus String   @default("free")
+  createdAt          DateTime @default(now())
+
+  school School? @relation(fields: [schoolId], references: [id])
+
+  parentLinks  ParentStudentLink[] @relation("ParentLinks")
+  studentLinks ParentStudentLink[] @relation("StudentLinks")
+
+  uploadedSources   UploadedSource[]
+  quizAttempts      QuizAttempt[]
+  masteryScores     MasteryScore[]
+  misconceptionTags MisconceptionTag[]
+  pedagogyPrefs     PedagogyPreference[]
+  doubtMessages     DoubtMessage[]
+  safetyIncidents   SafetyIncident[]
+
+  @@index([schoolId])
+}
+
+model ParentStudentLink {
+  id        String @id @default(cuid())
+  parentId  String
+  studentId String
+
+  parent  User @relation("ParentLinks", fields: [parentId], references: [id])
+  student User @relation("StudentLinks", fields: [studentId], references: [id])
+
+  @@unique([parentId, studentId])
+}
+
+// Any subject a teacher creates — never hardcoded to Science.
+model Subject {
+  id        String   @id @default(cuid())
+  nameEn    String
+  nameHi    String?
+  createdAt DateTime @default(now())
+
+  chapters Chapter[]
+
+  @@unique([nameEn])
+}
+
+model Chapter {
+  id        String   @id @default(cuid())
+  subjectId String
+  titleEn   String
+  titleHi   String?
+  class     String
+  board     String
+  createdAt DateTime @default(now())
+
+  subject Subject @relation(fields: [subjectId], references: [id])
+  topics  Topic[]
+
+  @@index([subjectId, class, board])
+}
+
+model Topic {
+  id        String   @id @default(cuid())
+  chapterId String
+  titleEn   String
+  titleHi   String?
+  createdAt DateTime @default(now())
+
+  chapter Chapter @relation(fields: [chapterId], references: [id])
+
+  subConcepts     SubConcept[]
+  notes           Notes[]
+  explanations    Explanation[]
+  quizQuestions   QuizQuestion[]
+  videos          Video[]
+  doubtMessages   DoubtMessage[]
+  uploadedSources UploadedSource[]
+
+  @@index([chapterId])
+}
+
+// The unit the Diagnostic Engine actually tracks mastery/misconceptions against.
+model SubConcept {
+  id      String @id @default(cuid())
+  topicId String
+  name    String
+
+  topic Topic @relation(fields: [topicId], references: [id])
+
+  masteryScores     MasteryScore[]
+  misconceptionTags MisconceptionTag[]
+
+  @@index([topicId])
+}
+
+model UploadedSource {
+  id         String   @id @default(cuid())
+  teacherId  String
+  schoolId   String?
+  subjectId  String
+  topicId    String?
+  class      String
+  board      String
+  title      String
+  sourceText String
+  createdAt  DateTime @default(now())
+
+  teacher User    @relation(fields: [teacherId], references: [id])
+  school  School? @relation(fields: [schoolId], references: [id])
+  topic   Topic?  @relation(fields: [topicId], references: [id])
+
+  notes Notes[]
+
+  @@index([teacherId])
+  @@index([schoolId])
+}
+
+// Cached per scope (see getContentScopeKey): schoolId+class+subject+topic+language
+// for class 3-5, board+class+subject+topic+language for class 6-12. Never per student.
+model Notes {
+  id        String        @id @default(cuid())
+  topicId   String
+  sourceId  String?
+  schoolId  String?
+  board     String
+  class     String
+  language  String
+  sections  Json
+  status    ContentStatus @default(draft)
+  version   Int           @default(1)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  topic  Topic           @relation(fields: [topicId], references: [id])
+  source UploadedSource? @relation(fields: [sourceId], references: [id])
+  school School?         @relation(fields: [schoolId], references: [id])
+
+  flags VerifierFlag[]
+
+  @@index([topicId, board, class, schoolId, language])
+}
+
+model VerifierFlag {
+  id      String @id @default(cuid())
+  notesId String
+  quote   String
+  reason  String
+
+  notes Notes @relation(fields: [notesId], references: [id])
+
+  @@index([notesId])
+}
+
+model Explanation {
+  id         String      @id @default(cuid())
+  topicId    String
+  schoolId   String?
+  board      String
+  class      String
+  language   String
+  mode       ExplainMode
+  body       String
+  imageLabel String?
+  createdAt  DateTime    @default(now())
+
+  topic  Topic   @relation(fields: [topicId], references: [id])
+  school School? @relation(fields: [schoolId], references: [id])
+
+  @@index([topicId, board, class, schoolId, language, mode])
+}
+
+model QuizQuestion {
+  id           String       @id @default(cuid())
+  topicId      String
+  schoolId     String?
+  board        String
+  class        String
+  kind         QuestionKind
+  text         String
+  options      Json
+  correctIndex Int
+  imageLabel   String?
+  createdAt    DateTime     @default(now())
+
+  topic  Topic   @relation(fields: [topicId], references: [id])
+  school School? @relation(fields: [schoolId], references: [id])
+
+  attempts QuizAttempt[]
+
+  @@index([topicId, board, class, schoolId])
+}
+
+model QuizAttempt {
+  id            String   @id @default(cuid())
+  studentId     String
+  topicId       String
+  questionId    String
+  selectedIndex Int
+  correct       Boolean
+  timestamp     DateTime @default(now())
+
+  student  User         @relation(fields: [studentId], references: [id])
+  question QuizQuestion @relation(fields: [questionId], references: [id])
+
+  @@index([studentId, topicId])
+}
+
+// Sole source of truth for "how well does this student understand X".
+model MasteryScore {
+  id           String   @id @default(cuid())
+  studentId    String
+  subConceptId String
+  score        Int      @default(0)
+  lastUpdated  DateTime @updatedAt
+
+  student    User       @relation(fields: [studentId], references: [id])
+  subConcept SubConcept @relation(fields: [subConceptId], references: [id])
+
+  @@unique([studentId, subConceptId])
+}
+
+// Written by the Diagnostic Engine from wrong-answer patterns and doubt-chat
+// signals — feeds the personalized nudge layer on Explain.
+model MisconceptionTag {
+  id           String   @id @default(cuid())
+  studentId    String
+  subConceptId String
+  type         String
+  lastSeen     DateTime @default(now())
+
+  student    User       @relation(fields: [studentId], references: [id])
+  subConcept SubConcept @relation(fields: [subConceptId], references: [id])
+
+  @@index([studentId, subConceptId])
+}
+
+model PedagogyPreference {
+  id          String      @id @default(cuid())
+  studentId   String
+  mode        ExplainMode
+  successRate Float       @default(0)
+
+  student User @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, mode])
+}
+
+model Video {
+  id       String @id @default(cuid())
+  topicId  String
+  title    String
+  url      String
+  duration String
+  order    Int    @default(0)
+
+  topic Topic @relation(fields: [topicId], references: [id])
+
+  @@index([topicId])
+}
+
+model DoubtMessage {
+  id        String    @id @default(cuid())
+  studentId String
+  topicId   String
+  role      DoubtRole
+  text      String
+  flagged   Boolean   @default(false)
+  timestamp DateTime  @default(now())
+
+  student User  @relation(fields: [studentId], references: [id])
+  topic   Topic @relation(fields: [topicId], references: [id])
+
+  @@index([studentId, topicId])
+}
+
+// Written by the child-safety moderation check before a doubt-chat reply is
+// generated. Surfaced as in-app dashboard alerts to the linked teacher/parent.
+model SafetyIncident {
+  id                String   @id @default(cuid())
+  studentId         String
+  messageText       String
+  category          String
+  timestamp         DateTime @default(now())
+  resolvedByTeacher Boolean  @default(false)
+  resolvedByParent  Boolean  @default(false)
+
+  student User @relation(fields: [studentId], references: [id])
+
+  @@index([studentId])
+}

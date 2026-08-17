@@ -1,0 +1,71 @@
+// Single LLM provider entry point for every agent in the app. Today this
+// calls the Gemini API (free tier for the pilot). Swapping providers later
+// (e.g. to Claude) means rewriting only this file's body — no call site
+// anywhere else in the app needs to change. Prompts will likely need
+// re-tuning for a new provider's behavior at that point; that is expected,
+// not hidden.
+
+export interface LlmMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface GenerateOptions {
+  system: string;
+  messages: LlmMessage[];
+  /** Ask the provider to constrain output to valid JSON. */
+  json?: boolean;
+}
+
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+
+export async function generate(options: GenerateOptions): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is not set");
+  }
+
+  const contents = options.messages.map((m) => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }],
+  }));
+
+  const body: Record<string, unknown> = {
+    contents,
+    systemInstruction: { parts: [{ text: options.system }] },
+  };
+
+  if (options.json) {
+    body.generationConfig = { responseMimeType: "application/json" };
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Gemini API error ${response.status}: ${errText}`);
+  }
+
+  const data = (await response.json()) as {
+    candidates?: { content?: { parts?: { text?: string }[] } }[];
+  };
+  const parts = data.candidates?.[0]?.content?.parts ?? [];
+  return parts.map((p) => p.text ?? "").join("");
+}
+
+/** Pull the first {...} JSON object out of a raw model response and parse it. */
+export function extractJson<T>(raw: string): T {
+  let jsonStr = raw.trim();
+  const start = jsonStr.indexOf("{");
+  const end = jsonStr.lastIndexOf("}");
+  if (start >= 0 && end > start) {
+    jsonStr = jsonStr.slice(start, end + 1);
+  }
+  return JSON.parse(jsonStr) as T;
+}
