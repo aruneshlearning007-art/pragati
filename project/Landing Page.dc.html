@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Karla:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body{margin:0;font-family:'Karla',sans-serif;}
+    a{color:oklch(52% 0.16 145);text-decoration:none;}
+    a:hover{color:oklch(40% 0.14 145);text-decoration:underline;}
+    .heading{font-family:'Fredoka',sans-serif;font-weight:600;}
+    #hero-app-shot::part(ring),#explain-modes-shot::part(ring),#doubt-chat-shot::part(ring){display:none!important}
+    @media (max-width:880px){
+      .pg-nav-links{display:none!important}
+      .pg-hero-grid{grid-template-columns:minmax(0,1fr)!important}
+      .pg-split-grid{grid-template-columns:minmax(0,1fr)!important}
+      .pg-feature-grid{grid-template-columns:repeat(2,1fr)!important}
+      .pg-audience-grid{grid-template-columns:1fr!important}
+      .pg-section{padding-left:24px!important;padding-right:24px!important}
+      .pg-stat-row{flex-wrap:wrap;gap:20px!important}
+    }
+    @media (max-width:560px){
+      .pg-feature-grid{grid-template-columns:1fr!important}
+      .pg-hero-h1{font-size:32px!important}
+    }
+  </style>
+  <script src="image-slot.js"></script>
+</helmet>
+
+<div style="background:oklch(97% 0.016 85);color:oklch(22% 0.02 85);">
+
+  <div class="pg-section" style="display:flex;align-items:center;justify-content:space-between;padding:22px 60px;max-width:1280px;margin:0 auto;box-sizing:border-box;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:36px;height:36px;border-radius:11px;background:oklch(52% 0.16 145);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;" class="heading">P</div>
+      <span style="font-size:19px;" class="heading">Pragati</span>
+    </div>
+    <div class="pg-nav-links" style="display:flex;align-items:center;gap:32px;">
+      <a href="#features" style="font-size:14px;font-weight:600;color:oklch(28% 0.025 85);">Features</a>
+      <a href="#subjects" style="font-size:14px;font-weight:600;color:oklch(28% 0.025 85);">Subjects</a>
+      <a href="#parents" style="font-size:14px;font-weight:600;color:oklch(28% 0.025 85);">For Parents &amp; Teachers</a>
+      <button onClick="{{ onGetStarted }}" style="padding:11px 22px;border:none;border-radius:11px;background:oklch(52% 0.16 145);color:white;font-family:'Fredoka',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">Get Started Free</button>
+    </div>
+  </div>
+
+  <div class="pg-section pg-hero-grid" style="max-width:1280px;margin:0 auto;padding:60px 60px 90px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:60px;align-items:center;box-sizing:border-box;">
+    <div>
+      <div style="display:inline-block;padding:6px 14px;border-radius:999px;background:oklch(92% 0.06 145);color:oklch(38% 0.13 145);font-size:13px;font-weight:700;margin-bottom:20px;">CBSE · Class 3&ndash;8</div>
+      <h1 class="heading pg-hero-h1" style="font-size:48px;line-height:1.15;margin:0 0 20px;">Learning that meets every child where they are</h1>
+      <p style="font-size:17px;line-height:1.6;color:oklch(38% 0.025 85);margin:0 0 32px;max-width:480px;">Notes, stories, videos and practice for every chapter &mdash; in English or Hindi, at the pace that works for your child. Built for CBSE, class 3 to 8.</p>
+      <div style="display:flex;gap:14px;align-items:center;">
+        <button onClick="{{ onGetStarted }}" style="padding:15px 28px;border:none;border-radius:13px;background:oklch(52% 0.16 145);color:white;font-family:'Fredoka',sans-serif;font-size:16px;font-weight:600;cursor:pointer;">Start Learning Free</button>
+        <a href="#features" style="font-size:14px;font-weight:700;color:oklch(38% 0.13 145);">See how it works &rarr;</a>
+      </div>
+      <div class="pg-stat-row" style="display:flex;gap:28px;margin-top:40px;">
+        <div>
+          <div style="font-size:24px;font-weight:700;" class="heading">3 languages</div>
+          <div style="font-size:12.5px;color:oklch(46% 0.02 85);">English &amp; Hindi content</div>
+        </div>
+        <div>
+          <div style="font-size:24px;font-weight:700;" class="heading">1-on-1 AI tutor</div>
+          <div style="font-size:12.5px;color:oklch(46% 0.02 85);">Doubts answered instantly</div>
+        </div>
+        <div>
+          <div style="font-size:24px;font-weight:700;" class="heading">Teacher-verified</div>
+          <div style="font-size:12.5px;color:oklch(46% 0.02 85);">Every chapter reviewed</div>
+        </div>
+      </div>
+    </div>
+    <image-slot id="hero-app-shot" src="assets/hero-app-shot.png" shape="rect" fit="contain" placeholder="screenshot: student home screen with chapter cards" style="display:block;width:100%;height:auto;aspect-ratio:2752/1536;"></image-slot>
+  </div>
+
+  <div id="features" class="pg-section" style="background:white;padding:80px 60px;">
+    <div style="max-width:1280px;margin:0 auto;">
+      <div style="text-align:center;margin-bottom:56px;">
+        <h2 style="font-size:34px;margin:0 0 12px;" class="heading">Everything a chapter needs, in one place</h2>
+        <p style="font-size:15px;color:oklch(46% 0.02 85);margin:0;">From first read to exam-ready, structured the way kids actually learn.</p>
+      </div>
+      <div class="pg-feature-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:24px;">
+        <sc-for list="{{ featureCards }}" as="f" hint-placeholder-count="4">
+          <div style="border:1px solid oklch(88% 0.016 85);border-radius:20px;padding:26px;">
+            <div style="width:46px;height:46px;border-radius:13px;background:{{ f.bg }};display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:16px;">{{ f.emoji }}</div>
+            <div style="font-size:16px;font-weight:700;margin-bottom:8px;" class="heading">{{ f.title }}</div>
+            <div style="font-size:13.5px;line-height:1.6;color:oklch(38% 0.025 85);">{{ f.body }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div id="subjects" class="pg-section" style="padding:80px 60px;">
+    <div style="max-width:1280px;margin:0 auto;">
+      <div class="pg-split-grid" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:60px;align-items:center;">
+        <image-slot id="explain-modes-shot" src="assets/explain-modes-shot.png" shape="rect" fit="contain" placeholder="screenshot: side-by-side Story / Picture explanation view" style="display:block;width:100%;height:auto;aspect-ratio:2816/1504;"></image-slot>
+        <div>
+          <h2 style="font-size:30px;margin:0 0 16px;" class="heading">Four ways to understand every topic</h2>
+          <p style="font-size:15px;line-height:1.7;color:oklch(38% 0.025 85);margin:0 0 24px;">Some kids need a story. Others need to see it, or connect it to real life. Pragati explains each topic four ways &mdash; Story, Picture, Real-world and Go Further &mdash; so nothing gets lost in translation.</p>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <sc-for list="{{ explainModes }}" as="m" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span style="width:8px;height:8px;border-radius:50%;background:oklch(52% 0.16 145);flex:0 0 auto;"></span>
+                <span style="font-size:14.5px;font-weight:600;">{{ m }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pg-section" style="padding:0 60px 80px;">
+    <div class="pg-split-grid" style="max-width:1280px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:60px;align-items:center;">
+      <div>
+        <h2 style="font-size:30px;margin:0 0 16px;" class="heading">Stuck on something? Just ask.</h2>
+        <p style="font-size:15px;line-height:1.7;color:oklch(38% 0.025 85);margin:0 0 24px;">A built-in doubt-solving tutor answers questions about the exact chapter your child is on &mdash; in English or Hindi, any time, without waiting for tuition.</p>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <sc-for list="{{ doubtPoints }}" as="p" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:oklch(52% 0.16 145);flex:0 0 auto;"></span>
+              <span style="font-size:14.5px;font-weight:600;">{{ p }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <image-slot id="doubt-chat-shot" src="assets/doubt-chat-shot.png" shape="rect" fit="contain" placeholder="screenshot: Ask a doubt chat widget" style="display:block;width:100%;height:auto;aspect-ratio:2880/1472;"></image-slot>
+    </div>
+  </div>
+
+  <div id="parents" class="pg-section" style="background:oklch(22% 0.03 145);color:white;padding:80px 60px;">
+    <div style="max-width:1280px;margin:0 auto;">
+      <div style="text-align:center;margin-bottom:56px;">
+        <h2 style="font-size:32px;margin:0 0 12px;" class="heading">Built for the whole learning team</h2>
+        <p style="font-size:15px;opacity:.75;margin:0;">Students, parents and teachers each get exactly what they need.</p>
+      </div>
+      <div class="pg-audience-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:28px;">
+        <sc-for list="{{ audienceCards }}" as="a" hint-placeholder-count="3">
+          <div style="background:oklch(28% 0.035 145);border-radius:20px;padding:28px;">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.65;margin-bottom:10px;">{{ a.tag }}</div>
+            <div style="font-size:19px;font-weight:700;margin-bottom:10px;" class="heading">{{ a.title }}</div>
+            <div style="font-size:14px;line-height:1.6;opacity:.85;">{{ a.body }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div class="pg-section" style="padding:90px 60px;text-align:center;">
+    <h2 style="font-size:36px;margin:0 0 16px;" class="heading">Give your child a head start today</h2>
+    <p style="font-size:15px;color:oklch(46% 0.02 85);margin:0 0 32px;">Free to start. No credit card required.</p>
+    <button onClick="{{ onGetStarted }}" style="padding:16px 36px;border:none;border-radius:14px;background:oklch(52% 0.16 145);color:white;font-family:'Fredoka',sans-serif;font-size:17px;font-weight:600;cursor:pointer;">Start Learning Free</button>
+  </div>
+
+  <div class="pg-section" style="border-top:1px solid oklch(88% 0.016 85);padding:32px 60px;display:flex;align-items:center;justify-content:space-between;max-width:1280px;margin:0 auto;box-sizing:border-box;flex-wrap:wrap;gap:12px;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:28px;height:28px;border-radius:9px;background:oklch(52% 0.16 145);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;" class="heading">P</div>
+      <span style="font-size:14px;font-weight:600;" class="heading">Pragati</span>
+    </div>
+    <span style="font-size:12.5px;color:oklch(46% 0.02 85);">&copy; 2026 Pragati. Made for CBSE learners.</span>
+  </div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  featureCardsData = [
+    { emoji: '📓', title: 'Chapter notes', body: 'Clear, structured notes for every chapter \u2014 plus handwritten-style versions to download.' },
+    { emoji: '🎬', title: 'Curated videos', body: 'Short, focused videos picked for exactly what your child is studying.' },
+    { emoji: '✍️', title: 'Practice & mastery', body: 'Quizzes that adapt, and a mastery tracker so revision time goes where it\u2019s needed.' },
+    { emoji: '📝', title: 'Exam-pattern papers', body: 'Full CBSE-pattern sample papers with weak topics flagged automatically.' }
+  ];
+  BG = ['oklch(92% 0.06 145)', 'oklch(94% 0.08 60)', 'oklch(93% 0.04 240)', 'oklch(92% 0.06 145)'];
+
+  onGetStarted = () => { window.location.href = './Student App.dc.html'; };
+
+  renderVals() {
+    return {
+      onGetStarted: this.onGetStarted,
+      featureCards: this.featureCardsData.map((f, i) => ({ ...f, bg: this.BG[i % this.BG.length] })),
+      explainModes: ['Story \u2014 a relatable narrative that introduces the idea', 'Picture \u2014 a labeled diagram for visual learners', 'Real-world \u2014 how the concept shows up in daily life', 'Go further \u2014 a deeper insight for curious minds'],
+      doubtPoints: ['Available inside every chapter, no extra app to open', 'Understands which topic your child is currently on', 'Works in English or Hindi'],
+      audienceCards: [
+        { tag: 'Students', title: 'Learn at your own pace', body: 'Notes, videos, explanations and practice for every chapter \u2014 in the language that\u2019s easiest for you.' },
+        { tag: 'Parents', title: 'See progress at a glance', body: 'Know which topics your child has mastered and which need a bit more revision.' },
+        { tag: 'Teachers', title: 'Stay in control of content', body: 'Upload chapters, review AI-generated notes with verifier flags inline, and publish only what you approve.' }
+      ]
+    };
+  }
+}
+
+</script>
+</body>
+</html>

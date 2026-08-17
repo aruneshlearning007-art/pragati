@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Karla:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body{margin:0;font-family:'Karla',sans-serif;}
+    a{color:oklch(52% 0.16 145);text-decoration:none;}
+    a:hover{color:oklch(40% 0.14 145);text-decoration:underline;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media (max-width:880px){
+      .pg-shell{flex-direction:column!important;height:auto!important;min-height:100vh}
+      .pg-sidebar{width:100%!important;flex:0 0 auto!important;flex-direction:row!important;align-items:center;overflow-x:auto;padding:10px 14px!important;border-right:none!important;border-bottom:1px solid oklch(88% 0.016 85);gap:6px}
+      .pg-sidebar-label,.pg-sidebar-spacer,.pg-sidebar-footer{display:none!important}
+      .pg-sidebar button{margin-bottom:0!important;white-space:nowrap}
+      .pg-topbar{flex-wrap:wrap;height:auto!important;padding:12px 16px!important;gap:10px}
+      .pg-content{padding:20px!important}
+      .pg-content h1{font-size:22px!important}
+      .pg-table-scroll{overflow-x:auto}
+      .pg-table-scroll>div{min-width:640px}
+    }
+    @media (max-width:520px){
+      .pg-content{padding:14px!important}
+    }
+  </style>
+</helmet>
+
+<div class="pg-shell" style="display:flex;height:100vh;background:oklch(97% 0.016 85);color:oklch(22% 0.02 85);">
+
+  <div class="pg-sidebar" style="width:240px;flex:0 0 240px;background:oklch(99% 0.008 85);border-right:1px solid oklch(88% 0.016 85);display:flex;flex-direction:column;padding:22px 16px;box-sizing:border-box;">
+    <div style="display:flex;align-items:center;gap:10px;padding:0 8px 24px;">
+      <div style="width:36px;height:36px;border-radius:11px;background:oklch(52% 0.16 145);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;font-family:'Fredoka',sans-serif;">P</div>
+      <span style="font-weight:600;font-size:18px;font-family:'Fredoka',sans-serif;">Pragati</span>
+    </div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:oklch(46% 0.02 85);text-transform:uppercase;padding:0 8px;margin-bottom:8px;">Teacher</div>
+    <button onClick="{{ goProgress }}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 10px;border:none;background:{{ progressNavBg }};color:{{ progressNavFg }};border-radius:10px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;margin-bottom:2px;">Class Progress</button>
+    <button onClick="{{ goPanel }}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 10px;border:none;background:{{ panelNavBg }};color:{{ panelNavFg }};border-radius:10px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;">
+      Content Panel
+      <sc-if value="{{ hasPendingCount }}" hint-placeholder-val="{{ false }}">
+        <span style="margin-left:auto;font-size:11px;font-weight:800;background:oklch(60% 0.18 30);color:white;border-radius:999px;padding:2px 7px;">{{ pendingCount }}</span>
+      </sc-if>
+    </button>
+    <div style="flex:1;"></div>
+    <div class="pg-sidebar-footer" style="font-size:12px;color:oklch(46% 0.02 85);padding:8px;">Mrs. Sharma · Class 6</div>
+  </div>
+
+  <div class="pg-main" style="flex:1;display:flex;flex-direction:column;min-width:0;">
+    <div class="pg-topbar" style="height:64px;flex:0 0 64px;border-bottom:1px solid oklch(88% 0.016 85);display:flex;align-items:center;justify-content:space-between;padding:0 32px;box-sizing:border-box;background:oklch(99% 0.008 85);">
+      <div style="font-size:15px;font-weight:700;font-family:'Fredoka',sans-serif;">{{ headerTitle }}</div>
+      <sc-if value="{{ showRefresh }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ refresh }}" style="padding:8px 14px;border:1px solid oklch(88% 0.016 85);border-radius:9px;background:white;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;">Refresh</button>
+      </sc-if>
+    </div>
+
+    <div class="pg-content" style="flex:1;overflow:auto;padding:36px 40px;box-sizing:border-box;">
+
+      <sc-if value="{{ isProgress }}" hint-placeholder-val="{{ true }}">
+        <h1 style="font-size:26px;margin:0 0 24px;font-family:'Fredoka',sans-serif;font-weight:600;">Class Progress</h1>
+        <div style="display:flex;flex-direction:column;gap:14px;max-width:820px;">
+          <sc-for list="{{ roster }}" as="st" hint-placeholder-count="4">
+            <div style="background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:18px;padding:20px 22px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <div style="width:36px;height:36px;border-radius:50%;background:oklch(92% 0.06 145);color:oklch(38% 0.13 145);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;">{{ st.initial }}</div>
+                  <span style="font-size:15px;font-weight:700;">{{ st.name }}</span>
+                </div>
+                <span style="font-size:13px;font-weight:700;color:oklch(38% 0.13 145);">{{ st.overallPct }}</span>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <sc-for list="{{ st.topics }}" as="tp" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:{{ tp.bg }};color:{{ tp.fg }};font-size:12px;font-weight:700;">
+                    <span style="width:6px;height:6px;border-radius:50%;background:{{ tp.dot }};"></span>
+                    {{ tp.name }}
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isPanelList }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:20px;">
+          <div>
+            <h1 style="font-size:26px;margin:0 0 6px;font-family:'Fredoka',sans-serif;font-weight:600;">Content Panel</h1>
+            <p style="font-size:14px;color:oklch(46% 0.02 85);margin:0;">Upload a chapter, then generate, verify and review it before it reaches students.</p>
+          </div>
+          <button onClick="{{ startUpload }}" style="flex:0 0 auto;padding:12px 20px;border:none;border-radius:11px;background:oklch(52% 0.16 145);color:white;font-family:'Fredoka',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">Upload chapter</button>
+        </div>
+        <div style="height:18px;"></div>
+
+        <sc-if value="{{ hasSubmissions }}" hint-placeholder-val="{{ true }}">
+          <div class="pg-table-scroll">
+          <div style="background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:16px;overflow:hidden;max-width:900px;">
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 100px;gap:0;padding:14px 20px;background:oklch(97% 0.016 85);font-size:12px;font-weight:700;color:oklch(46% 0.02 85);text-transform:uppercase;letter-spacing:.03em;">
+              <div>Topic</div><div>Subject</div><div>Class · Board</div><div>Status</div><div></div>
+            </div>
+            <sc-for list="{{ submissionRows }}" as="row" hint-placeholder-count="3">
+              <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 100px;gap:0;padding:16px 20px;border-top:1px solid oklch(88% 0.016 85);align-items:center;">
+                <div style="font-size:14px;font-weight:600;">{{ row.title }}</div>
+                <div style="font-size:13px;color:oklch(38% 0.025 85);">{{ row.subject }}</div>
+                <div style="font-size:13px;color:oklch(38% 0.025 85);">{{ row.classBoard }}</div>
+                <div>
+                  <span style="font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:999px;background:{{ row.statusBg }};color:{{ row.statusFg }};">{{ row.statusLabel }}</span>
+                </div>
+                <button onClick="{{ row.onOpen }}" style="padding:8px 14px;border:1px solid oklch(88% 0.016 85);border-radius:9px;background:white;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;">{{ row.actionLabel }}</button>
+              </div>
+            </sc-for>
+          </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ noSubmissions }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1.5px dashed oklch(80% 0.02 85);border-radius:18px;padding:56px 24px;text-align:center;color:oklch(46% 0.02 85);max-width:640px;">
+            <div style="font-size:15px;font-weight:700;margin-bottom:6px;color:oklch(22% 0.02 85);">No chapters yet</div>
+            <div style="font-size:13px;">Upload a chapter to generate notes, explanations and a quiz for review.</div>
+          </div>
+        </sc-if>
+      </sc-if>
+
+      <sc-if value="{{ isPanelUpload }}" hint-placeholder-val="{{ false }}">
+        <a href="#" onClick="{{ backToList }}" style="display:inline-block;font-size:13px;font-weight:600;margin-bottom:16px;">&larr; Back to Content Panel</a>
+        <h1 style="font-size:24px;margin:0 0 20px;font-family:'Fredoka',sans-serif;font-weight:600;">Upload a chapter</h1>
+        <div style="max-width:560px;background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:18px;padding:28px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div>
+              <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;">Subject</label>
+              <select value="{{ uploadForm.subjectId }}" onChange="{{ onSubjectChange }}" style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid oklch(88% 0.016 85);border-radius:10px;font-size:14px;font-family:inherit;background:white;">
+                <sc-for list="{{ subjects }}" as="sub" hint-placeholder-count="3">
+                  <option value="{{ sub.id }}">{{ sub.name }}</option>
+                </sc-for>
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;">Class</label>
+              <select value="{{ uploadForm.cls }}" onChange="{{ onClassChange }}" style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid oklch(88% 0.016 85);border-radius:10px;font-size:14px;font-family:inherit;background:white;">
+                <sc-for list="{{ classOptions }}" as="c" hint-placeholder-count="6">
+                  <option value="{{ c }}">{{ c }}</option>
+                </sc-for>
+              </select>
+            </div>
+          </div>
+
+          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;margin-top:16px;">Board</label>
+          <select value="{{ uploadForm.board }}" onChange="{{ onBoardChange }}" style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid oklch(88% 0.016 85);border-radius:10px;font-size:14px;margin-bottom:16px;font-family:inherit;background:white;">
+            <sc-for list="{{ boardOptions }}" as="b" hint-placeholder-count="3">
+              <option value="{{ b }}">{{ b }}</option>
+            </sc-for>
+          </select>
+
+          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;">Topic name</label>
+          <input type="text" value="{{ uploadForm.title }}" onChange="{{ onTitleChange }}" placeholder="e.g. Force and Pressure" style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid oklch(88% 0.016 85);border-radius:10px;font-size:14px;margin-bottom:16px;font-family:inherit;"/>
+
+          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;">Upload a chapter (PDF, photo or text file)</label>
+          <div style="border:1.5px dashed oklch(80% 0.02 85);border-radius:12px;padding:18px;text-align:center;margin-bottom:8px;background:oklch(97% 0.016 85);">
+            <input type="file" accept=".txt,.md,application/pdf,image/*" onChange="{{ onFile }}" style="width:100%;font-size:13px;"/>
+            <sc-if value="{{ hasFileName }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:12px;color:oklch(38% 0.13 145);font-weight:600;margin-top:8px;">{{ fileName }}</div>
+            </sc-if>
+          </div>
+          <div style="font-size:12px;color:oklch(46% 0.02 85);margin-bottom:10px;">or paste the chapter text below</div>
+          <textarea value="{{ uploadForm.text }}" onChange="{{ onTextChange }}" placeholder="Paste the chapter content here&hellip;" rows="7" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid oklch(88% 0.016 85);border-radius:10px;font-size:13.5px;font-family:inherit;resize:vertical;margin-bottom:20px;"></textarea>
+
+          <sc-if value="{{ uploadError }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:13px;color:oklch(45% 0.1 30);margin-bottom:14px;">{{ uploadError }}</div>
+          </sc-if>
+
+          <button onClick="{{ submitUpload }}" disabled="{{ uploadDisabled }}" style="width:100%;padding:13px;border:none;border-radius:12px;background:{{ uploadBtnBg }};color:white;font-size:15px;font-weight:600;font-family:'Fredoka',sans-serif;cursor:pointer;">Generate &amp; verify</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isPanelProcessing }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:560px;background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:20px;padding:44px;text-align:center;">
+          <div style="width:44px;height:44px;border-radius:50%;border:4px solid oklch(88% 0.03 145);border-top-color:oklch(52% 0.16 145);margin:0 auto 18px;animation:spin 0.9s linear infinite;"></div>
+          <div style="font-size:15px;font-weight:700;margin-bottom:6px;">Generating this chapter&hellip;</div>
+          <div style="font-size:13px;color:oklch(46% 0.02 85);">The Notes agent is drafting content and the Verifier agent is checking it for accuracy.</div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isPanelReview }}" hint-placeholder-val="{{ false }}">
+        <a href="#" onClick="{{ backToList }}" style="display:inline-block;font-size:13px;font-weight:600;margin-bottom:16px;">&larr; Back to Content Panel</a>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <h1 style="font-size:24px;margin:0;font-family:'Fredoka',sans-serif;font-weight:600;">{{ detail.title }}</h1>
+          <span style="font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:999px;background:{{ detail.statusBg }};color:{{ detail.statusFg }};">{{ detail.statusLabel }}</span>
+        </div>
+        <div style="font-size:13px;color:oklch(46% 0.02 85);margin-bottom:24px;">{{ detail.meta }}</div>
+
+        <sc-if value="{{ isRegenerating }}" hint-placeholder-val="{{ false }}">
+          <div style="max-width:760px;background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:18px;padding:40px;text-align:center;margin-bottom:24px;">
+            <div style="width:40px;height:40px;border-radius:50%;border:4px solid oklch(88% 0.03 145);border-top-color:oklch(52% 0.16 145);margin:0 auto 16px;animation:spin 0.9s linear infinite;"></div>
+            <div style="font-size:14px;font-weight:700;">Regenerating with your feedback&hellip;</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isNotRegenerating }}" hint-placeholder-val="{{ true }}">
+          <div style="max-width:760px;background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:18px;padding:30px;margin-bottom:20px;">
+            <sc-for list="{{ detail.notesSections }}" as="sec" hint-placeholder-count="3">
+              <div style="margin-bottom:22px;">
+                <div style="font-size:15px;font-weight:700;margin-bottom:8px;color:oklch(38% 0.13 145);">{{ sec.heading }}</div>
+                <div style="font-size:14.5px;line-height:1.85;color:oklch(28% 0.025 85);">
+                  <sc-for list="{{ sec.segments }}" as="seg" hint-placeholder-count="1">
+                    <sc-if value="{{ seg.isFlag }}" hint-placeholder-val="{{ false }}">
+                      <span title="{{ seg.reason }}" style="background:oklch(94% 0.08 60);border-bottom:2px solid oklch(55% 0.15 40);border-radius:3px;padding:1px 3px;cursor:help;">
+                        <span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:oklch(55% 0.15 40);color:white;font-size:9px;font-weight:800;margin-right:3px;vertical-align:middle;">!</span>{{ seg.text }}
+                      </span>
+                    </sc-if>
+                    <sc-if value="{{ seg.isText }}" hint-placeholder-val="{{ true }}">{{ seg.text }}</sc-if>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ detail.hasFlags }}" hint-placeholder-val="{{ false }}">
+            <div style="max-width:760px;font-size:12.5px;color:oklch(46% 0.02 85);margin-bottom:20px;display:flex;align-items:center;gap:6px;">
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:oklch(55% 0.15 40);color:white;font-size:9px;font-weight:800;">!</span>
+              {{ detail.flagCountLabel }} &mdash; hover a highlighted line to see the Verifier's concern.
+            </div>
+          </sc-if>
+
+          <div style="display:flex;gap:10px;max-width:760px;">
+            <button onClick="{{ publish }}" style="padding:12px 22px;border:none;border-radius:11px;background:oklch(52% 0.16 145);color:white;font-family:'Fredoka',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">Publish</button>
+            <button onClick="{{ toggleFeedback }}" style="padding:12px 22px;border:1px solid oklch(88% 0.016 85);border-radius:11px;background:white;color:oklch(28% 0.025 85);font-family:'Fredoka',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">Send feedback</button>
+          </div>
+
+          <sc-if value="{{ feedbackOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="max-width:760px;margin-top:16px;background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:16px;padding:20px;">
+              <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px;">What needs to change?</label>
+              <textarea value="{{ feedbackText }}" onChange="{{ onFeedbackChange }}" placeholder="e.g. The second paragraph mentions a fact that isn't in the source chapter. Please remove it." rows="3" style="width:100%;box-sizing:border-box;padding:11px;border:1px solid oklch(88% 0.016 85);border-radius:9px;font-family:inherit;font-size:13.5px;resize:vertical;margin-bottom:12px;"></textarea>
+              <div style="display:flex;gap:10px;">
+                <button onClick="{{ submitFeedback }}" disabled="{{ feedbackDisabled }}" style="padding:10px 18px;border:none;border-radius:9px;background:{{ feedbackBtnBg }};color:white;font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;">Submit feedback</button>
+                <button onClick="{{ toggleFeedback }}" style="padding:10px 18px;border:1px solid oklch(88% 0.016 85);border-radius:9px;background:white;font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;">Cancel</button>
+              </div>
+            </div>
+          </sc-if>
+        </sc-if>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    view: 'progress',
+    panelStage: 'list',
+    submissions: [],
+    selectedId: null,
+    feedbackOpen: false,
+    feedbackText: '',
+    regeneratingId: null,
+    uploadForm: { subjectId: 'science', cls: 'Class 6', board: 'CBSE', title: '', text: '' },
+    fileName: '',
+    uploadError: null
+  };
+
+  subjectsData = [
+    { id: 'science', name: 'Science' }, { id: 'maths', name: 'Mathematics' }, { id: 'english', name: 'English' }
+  ];
+  roster = [
+    { name: 'Aarav Mehta', topics: [{ name: 'Shadows and Reflections', status: 'revision' }, { name: 'Photosynthesis', status: 'mastered' }, { name: 'Simple Circuits', status: 'not-started' }] },
+    { name: 'Diya Kapoor', topics: [{ name: 'Shadows and Reflections', status: 'mastered' }, { name: 'Photosynthesis', status: 'mastered' }, { name: 'Simple Circuits', status: 'revision' }] },
+    { name: 'Ishaan Rao', topics: [{ name: 'Shadows and Reflections', status: 'not-started' }, { name: 'Photosynthesis', status: 'revision' }, { name: 'Simple Circuits', status: 'not-started' }] },
+    { name: 'Sara Fernandes', topics: [{ name: 'Shadows and Reflections', status: 'revision' }, { name: 'Photosynthesis', status: 'mastered' }, { name: 'Simple Circuits', status: 'mastered' }] }
+  ];
+  COLORS = {
+    mastered: { bg: 'oklch(92% 0.06 145)', fg: 'oklch(38% 0.13 145)', dot: 'oklch(55% 0.15 145)' },
+    revision: { bg: 'oklch(94% 0.08 60)', fg: 'oklch(40% 0.13 60)', dot: 'oklch(65% 0.15 70)' },
+    'not-started': { bg: 'oklch(93% 0.04 240)', fg: 'oklch(40% 0.1 240)', dot: 'oklch(55% 0.13 240)' }
+  };
+
+  async loadSubmissions() {
+    const { loadSubmissions } = await import('./submissions-store.js');
+    this.setState({ submissions: loadSubmissions() });
+  }
+  componentDidMount() {
+    this.loadSubmissions();
+    this._listener = () => this.loadSubmissions();
+    window.addEventListener('pragati-submissions-changed', this._listener);
+    window.addEventListener('storage', this._listener);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('pragati-submissions-changed', this._listener);
+    window.removeEventListener('storage', this._listener);
+  }
+
+  refresh = () => this.loadSubmissions();
+  goProgress = () => this.setState({ view: 'progress' });
+  goPanel = () => this.setState({ view: 'panel', panelStage: 'list', selectedId: null, feedbackOpen: false, feedbackText: '' });
+  backToList = () => this.setState({ panelStage: 'list', selectedId: null, feedbackOpen: false, feedbackText: '', uploadError: null });
+  startUpload = () => this.setState({ panelStage: 'upload', uploadError: null });
+  openSubmission = (id) => this.setState({ view: 'panel', panelStage: 'review', selectedId: id, feedbackOpen: false, feedbackText: '' });
+
+  onSubjectChange = (e) => this.setState(s => ({ uploadForm: { ...s.uploadForm, subjectId: e.target.value } }));
+  onClassChange = (e) => this.setState(s => ({ uploadForm: { ...s.uploadForm, cls: e.target.value } }));
+  onBoardChange = (e) => this.setState(s => ({ uploadForm: { ...s.uploadForm, board: e.target.value } }));
+  onTitleChange = (e) => this.setState(s => ({ uploadForm: { ...s.uploadForm, title: e.target.value } }));
+  onTextChange = (e) => this.setState(s => ({ uploadForm: { ...s.uploadForm, text: e.target.value } }));
+  onFile = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    this.setState({ fileName: file.name });
+    if (file.type === 'text/plain' || /\.(txt|md)$/i.test(file.name)) {
+      const reader = new FileReader();
+      reader.onload = () => this.setState(s => ({ uploadForm: { ...s.uploadForm, text: String(reader.result || '') } }));
+      reader.readAsText(file);
+    }
+  };
+
+  submitUpload = async () => {
+    const { subjectId, cls, board, title, text } = this.state.uploadForm;
+    if (!title.trim()) return;
+    this.setState({ panelStage: 'processing', uploadError: null });
+    const sourceText = text.trim() || `(No extractable text was provided for this upload; the file was "${this.state.fileName || 'untitled'}". Generate reasonable introductory material for a chapter titled "${title}".)`;
+    try {
+      const raw = await window.claude.complete({
+        system: `You convert a school chapter into structured learning material for a ${board} student (${cls}). Respond ONLY with strict JSON, no markdown, no commentary, no code fences. Shape: {"notes":[{"heading":"string","body":"string"}] (3-5 items), "explain":{"story":"a short relatable story explaining the topic","realworld":"a real-world application","gofurther":"a deeper insight"}, "quiz":[{"text":"string","options":["a","b","c","d"],"correct":0}] (4-5 items, correct is the 0-based index), "flags":[{"quote":"an exact short substring copied verbatim from one of the notes bodies above that is a claim you are not fully confident is grounded in the source text","reason":"a short one-sentence reason, e.g. Not found in source material"}] (always include at least 1 flag, at most 3, even if minor)}`,
+        messages: [{ role: 'user', content: sourceText.slice(0, 12000) }]
+      });
+      let jsonStr = raw.trim();
+      const start = jsonStr.indexOf('{'), end = jsonStr.lastIndexOf('}');
+      if (start >= 0 && end > start) jsonStr = jsonStr.slice(start, end + 1);
+      const parsed = JSON.parse(jsonStr);
+      const id = 'up-' + Date.now();
+      const notesArr = (parsed.notes || []).map(n => ({ heading: n.heading, body: n.body }));
+      const explainObj = {};
+      ['story', 'realworld', 'gofurther'].forEach(key => {
+        if (parsed.explain && parsed.explain[key]) explainObj[key] = { label: { en: key, hi: key }, body: { en: parsed.explain[key], hi: parsed.explain[key] } };
+      });
+      const quizArr = (parsed.quiz || []).map((q, i) => ({ id: id + '-q' + i, kind: 'mcq', text: q.text, correct: q.correct, options: q.options }));
+      const flags = (parsed.flags || []).map((f, i) => ({ id: 'f' + i, quote: f.quote, reason: f.reason }));
+      const { addSubmission } = await import('./submissions-store.js');
+      addSubmission({
+        id, subjectId, cls, board, title, sourceText,
+        notes: notesArr, explain: explainObj, quiz: quizArr, flags,
+        status: 'awaiting_review', createdAt: Date.now(), feedbackHistory: [], language: 'en'
+      });
+      await this.loadSubmissions();
+      this.setState({
+        panelStage: 'review', selectedId: id,
+        uploadForm: { subjectId: 'science', cls: 'Class 6', board: 'CBSE', title: '', text: '' }, fileName: ''
+      });
+    } catch (err) {
+      this.setState({ panelStage: 'upload', uploadError: 'Something went wrong generating this chapter. Please try again.' });
+    }
+  };
+
+  publish = async () => {
+    const { updateSubmission } = await import('./submissions-store.js');
+    updateSubmission(this.state.selectedId, { status: 'published' });
+    await this.loadSubmissions();
+  };
+
+  toggleFeedback = () => this.setState(s => ({ feedbackOpen: !s.feedbackOpen }));
+  onFeedbackChange = (e) => this.setState({ feedbackText: e.target.value });
+
+  submitFeedback = async () => {
+    const text = this.state.feedbackText.trim();
+    if (!text) return;
+    const id = this.state.selectedId;
+    const sub = this.state.submissions.find(s => s.id === id);
+    if (!sub) return;
+    const { updateSubmission } = await import('./submissions-store.js');
+    updateSubmission(id, { status: 'needs_changes' });
+    this.setState({ regeneratingId: id, feedbackOpen: false, feedbackText: '' });
+    await this.loadSubmissions();
+    try {
+      const isHi = sub.language === 'hi';
+      const raw = await window.claude.complete({
+        system: `You revise structured learning material for a school chapter based on a teacher's feedback. Respond ONLY with strict JSON, no markdown, no code fences, same shape as given: {"notes":[{"heading":"string","body":"string"}],"explain":{"story":"string","realworld":"string","gofurther":"string"},"quiz":[{"text":"string","options":["a","b","c","d"],"correct":0}],"flags":[{"quote":"exact substring from a note body that is still not fully grounded in the source, if any remain","reason":"short reason"}]}. Write all text in ${isHi ? 'Hindi (Devanagari script)' : 'English'}.`,
+        messages: [
+          { role: 'user', content: `Original source chapter text:\n${(sub.sourceText || '').slice(0, 8000)}\n\nCurrent draft JSON:\n${JSON.stringify({ notes: sub.notes, explain: sub.explain, quiz: sub.quiz })}\n\nTeacher feedback: ${text}\n\nRevise the draft to address the feedback.` }
+        ]
+      });
+      let jsonStr = raw.trim();
+      const start = jsonStr.indexOf('{'), end = jsonStr.lastIndexOf('}');
+      if (start >= 0 && end > start) jsonStr = jsonStr.slice(start, end + 1);
+      const parsed = JSON.parse(jsonStr);
+      const notesArr = (parsed.notes || sub.notes).map(n => ({ heading: n.heading, body: n.body }));
+      const explainObj = { ...sub.explain };
+      ['story', 'realworld', 'gofurther'].forEach(key => {
+        if (parsed.explain && parsed.explain[key]) explainObj[key] = { label: (sub.explain[key] && sub.explain[key].label) || { en: key, hi: key }, body: { en: parsed.explain[key], hi: parsed.explain[key] } };
+      });
+      const quizArr = (parsed.quiz || sub.quiz).map((q, i) => ({ id: sub.id + '-q' + i, kind: 'mcq', text: q.text, correct: q.correct, options: q.options }));
+      const flags = (parsed.flags || []).map((f, i) => ({ id: 'f' + i, quote: f.quote, reason: f.reason }));
+      const feedbackHistory = [...(sub.feedbackHistory || []), text];
+      await updateSubmission(id, { notes: notesArr, explain: explainObj, quiz: quizArr, flags, status: 'awaiting_review', feedbackHistory });
+    } catch (err) {
+      await updateSubmission(id, { status: 'awaiting_review' });
+    }
+    this.setState({ regeneratingId: null });
+    await this.loadSubmissions();
+  };
+
+  buildSegments(body, flags) {
+    if (!flags || !flags.length || !body) return [{ isText: true, isFlag: false, text: body || '' }];
+    let segments = [{ text: body, isFlag: false }];
+    flags.forEach(f => {
+      if (!f.quote) return;
+      const next = [];
+      segments.forEach(seg => {
+        if (seg.isFlag) { next.push(seg); return; }
+        const idx = seg.text.indexOf(f.quote);
+        if (idx === -1) { next.push(seg); return; }
+        if (idx > 0) next.push({ text: seg.text.slice(0, idx), isFlag: false });
+        next.push({ text: f.quote, isFlag: true, reason: f.reason });
+        const rest = seg.text.slice(idx + f.quote.length);
+        if (rest) next.push({ text: rest, isFlag: false });
+      });
+      segments = next;
+    });
+    return segments.map(s => ({ ...s, isText: !s.isFlag }));
+  }
+
+  renderVals() {
+    const s = this.state;
+    const statusMeta = (status) => ({
+      statusLabel: status === 'published' ? 'Published' : status === 'needs_changes' ? 'Needs changes' : 'Awaiting review',
+      statusBg: status === 'published' ? 'oklch(92% 0.06 145)' : status === 'needs_changes' ? 'oklch(94% 0.08 60)' : 'oklch(93% 0.04 240)',
+      statusFg: status === 'published' ? 'oklch(38% 0.13 145)' : status === 'needs_changes' ? 'oklch(40% 0.13 60)' : 'oklch(40% 0.1 240)'
+    });
+
+    const roster = this.roster.map(st => {
+      const topics = st.topics.map(tp => ({ name: tp.name, ...this.COLORS[tp.status] }));
+      const scoreMap = { mastered: 100, revision: 55, 'not-started': 0 };
+      const overall = Math.round(st.topics.reduce((a, t) => a + scoreMap[t.status], 0) / st.topics.length);
+      return { initial: st.name.charAt(0), name: st.name, topics, overallPct: overall + '% mastery' };
+    });
+
+    const submissionRows = s.submissions.slice().sort((a, b) => b.createdAt - a.createdAt).map(sub => {
+      const meta = statusMeta(sub.status);
+      return {
+        title: sub.title, subject: sub.subjectId, classBoard: sub.cls + ' · ' + sub.board,
+        statusLabel: meta.statusLabel, statusBg: meta.statusBg, statusFg: meta.statusFg,
+        actionLabel: sub.status === 'published' ? 'View' : 'Review',
+        onOpen: () => this.openSubmission(sub.id)
+      };
+    });
+
+    const sub = s.submissions.find(x => x.id === s.selectedId);
+    let detail = {};
+    if (sub) {
+      const meta = statusMeta(sub.status);
+      const notesSections = (sub.notes || []).map(n => ({ heading: n.heading, segments: this.buildSegments(n.body, sub.flags) }));
+      detail = {
+        title: sub.title, meta: sub.subjectId + ' · ' + sub.cls + ' · ' + sub.board,
+        statusLabel: meta.statusLabel, statusBg: meta.statusBg, statusFg: meta.statusFg,
+        notesSections, hasFlags: (sub.flags || []).length > 0,
+        flagCountLabel: (sub.flags || []).length + (sub.flags.length === 1 ? ' flag from the Verifier' : ' flags from the Verifier')
+      };
+    }
+
+    return {
+      goProgress: this.goProgress, goPanel: this.goPanel, refresh: this.refresh, startUpload: this.startUpload, backToList: this.backToList,
+      isProgress: s.view === 'progress',
+      isPanelList: s.view === 'panel' && s.panelStage === 'list',
+      isPanelUpload: s.view === 'panel' && s.panelStage === 'upload',
+      isPanelProcessing: s.view === 'panel' && s.panelStage === 'processing',
+      isPanelReview: s.view === 'panel' && s.panelStage === 'review',
+      showRefresh: s.view === 'panel' && s.panelStage === 'list',
+      progressNavBg: s.view === 'progress' ? 'oklch(92% 0.06 145)' : 'transparent', progressNavFg: s.view === 'progress' ? 'oklch(38% 0.13 145)' : 'oklch(28% 0.025 85)',
+      panelNavBg: s.view === 'panel' ? 'oklch(92% 0.06 145)' : 'transparent', panelNavFg: s.view === 'panel' ? 'oklch(38% 0.13 145)' : 'oklch(28% 0.025 85)',
+      headerTitle: s.view === 'progress' ? 'Class Progress' : (s.panelStage === 'list' ? 'Content Panel' : s.panelStage === 'upload' ? 'Upload chapter' : s.panelStage === 'processing' ? 'Generating\u2026' : (sub ? sub.title : 'Content Panel')),
+      roster,
+      hasSubmissions: s.submissions.length > 0, noSubmissions: s.submissions.length === 0, submissionRows,
+      pendingCount: s.submissions.filter(x => x.status !== 'published').length,
+      hasPendingCount: s.submissions.filter(x => x.status !== 'published').length > 0,
+
+      subjects: this.subjectsData, classOptions: ['Class 3','Class 4','Class 5','Class 6','Class 7','Class 8'], boardOptions: ['CBSE','ICSE','State Board'],
+      uploadForm: s.uploadForm, onSubjectChange: this.onSubjectChange, onClassChange: this.onClassChange, onBoardChange: this.onBoardChange,
+      onTitleChange: this.onTitleChange, onTextChange: this.onTextChange, onFile: this.onFile,
+      hasFileName: !!s.fileName, fileName: s.fileName, uploadError: s.uploadError,
+      submitUpload: this.submitUpload, uploadDisabled: !s.uploadForm.title.trim(),
+      uploadBtnBg: !s.uploadForm.title.trim() ? 'oklch(88% 0.03 145)' : 'oklch(52% 0.16 145)',
+
+      detail, isRegenerating: s.regeneratingId === s.selectedId, isNotRegenerating: s.regeneratingId !== s.selectedId,
+      publish: this.publish, toggleFeedback: this.toggleFeedback, feedbackOpen: s.feedbackOpen,
+      feedbackText: s.feedbackText, onFeedbackChange: this.onFeedbackChange, submitFeedback: this.submitFeedback,
+      feedbackDisabled: !s.feedbackText.trim(), feedbackBtnBg: s.feedbackText.trim() ? 'oklch(52% 0.16 145)' : 'oklch(88% 0.03 145)'
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Karla:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body{margin:0;font-family:'Karla','Noto Sans Devanagari',sans-serif;}
+    a{color:oklch(52% 0.16 145);text-decoration:none;}
+    a:hover{color:oklch(40% 0.14 145);text-decoration:underline;}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+    ::-webkit-scrollbar{width:10px;height:10px}
+    ::-webkit-scrollbar-thumb{background:oklch(88% 0.01 75);border-radius:6px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media (max-width:880px){
+      .pg-shell{flex-direction:column!important;height:auto!important;min-height:100vh}
+      .pg-sidebar{width:100%!important;flex:0 0 auto!important;flex-direction:row!important;align-items:center;overflow-x:auto;padding:10px 14px!important;border-right:none!important;border-bottom:1px solid oklch(88% 0.016 85);gap:6px}
+      .pg-sidebar-label,.pg-sidebar-divider,.pg-sidebar-spacer,.pg-sidebar-footer{display:none!important}
+      .pg-sidebar button{margin-bottom:0!important;white-space:nowrap}
+      .pg-topbar{flex-wrap:wrap;height:auto!important;padding:12px 16px!important;gap:10px}
+      .pg-content{padding:20px!important}
+      .pg-content h1{font-size:22px!important}
+      .pg-explain-grid{grid-template-columns:1fr!important}
+      .pg-doubt-panel{width:calc(100vw - 32px)!important;right:16px!important;bottom:88px!important}
+      .pg-doubt-fab{right:20px!important;bottom:20px!important}
+      .pg-onboard-image{display:none!important}
+      .pg-onboard-card{width:100%!important;max-width:460px!important}
+    }
+    @media (max-width:520px){
+      .pg-content{padding:14px!important}
+      .pg-topbar-user span{display:none}
+    }
+  </style>
+</helmet>
+
+<sc-if value="{{ isOnboarding }}" hint-placeholder-val="{{ false }}">
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;gap:56px;background:oklch(97% 0.016 85);padding:32px;flex-wrap:wrap;">
+    <div class="pg-onboard-image" style="width:420px;flex:0 1 420px;display:flex;justify-content:center;">
+      <img src="assets/onboarding-hero.png" alt="" style="width:100%;max-width:420px;object-fit:contain;"/>
+    </div>
+    <div class="pg-onboard-card" style="width:480px;flex:0 1 480px;background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:20px;padding:40px;box-shadow:0 12px 32px oklch(20% 0.02 85 / 0.06);">
+      <div style="width:52px;height:52px;border-radius:15px;background:oklch(52% 0.16 145);color:white;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;margin-bottom:20px;font-family:'Fredoka','Noto Sans Devanagari',sans-serif;">P</div>
+      <h1 style="font-size:26px;margin:0 0 6px;color:oklch(22% 0.02 85);font-family:'Fredoka','Noto Sans Devanagari',sans-serif;font-weight:600;">{{ ui.onboardingTitle }}</h1>
+      <p style="font-size:14px;color:oklch(46% 0.02 85);margin:0 0 28px;">{{ ui.onboardingSubtitle }}</p>
+
+      <label style="display:block;font-size:13px;font-weight:600;color:oklch(22% 0.02 85);margin-bottom:6px;">{{ ui.onboardingName }}</label>
+      <input type="text" value="{{ onboardForm.name }}" onChange="{{ onNameChange }}" placeholder="e.g. Aarav Mehta" style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid oklch(88% 0.016 85);border-radius:10px;font-size:14px;margin-bottom:18px;font-family:inherit;"/>
+
+      <label style="display:block;font-size:13px;font-weight:600;color:oklch(22% 0.02 85);margin-bottom:6px;">{{ ui.onboardingClass }}</label>
+      <select value="{{ onboardForm.cls }}" onChange="{{ onClassChange }}" style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid oklch(88% 0.016 85);border-radius:10px;font-size:14px;margin-bottom:18px;font-family:inherit;background:white;">
+        <sc-for list="{{ classOptions }}" as="c" hint-placeholder-count="6">
+          <option value="{{ c }}">{{ c }}</option>
+        </sc-for>
+      </select>
+
+      <label style="display:block;font-size:13px;font-weight:600;color:oklch(22% 0.02 85);margin-bottom:6px;">{{ ui.onboardingBoard }}</label>
+      <select value="{{ onboardForm.board }}" onChange="{{ onBoardChange }}" style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid oklch(88% 0.016 85);border-radius:10px;font-size:14px;margin-bottom:18px;font-family:inherit;background:white;">
+        <sc-for list="{{ boardOptions }}" as="b" hint-placeholder-count="3">
+          <option value="{{ b }}">{{ b }}</option>
+        </sc-for>
+      </select>
+
+      <label style="display:block;font-size:13px;font-weight:600;color:oklch(22% 0.02 85);margin-bottom:8px;">{{ ui.onboardingLanguage }}</label>
+      <div style="display:flex;gap:8px;margin-bottom:28px;">
+        <button onClick="{{ onSetOnboardLang_en }}" style="flex:1;padding:10px;border-radius:10px;border:1px solid oklch(88% 0.016 85);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;background:{{ langBtnEnBg }};color:{{ langBtnEnFg }};">English</button>
+        <button onClick="{{ onSetOnboardLang_hi }}" style="flex:1;padding:10px;border-radius:10px;border:1px solid oklch(88% 0.016 85);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;background:{{ langBtnHiBg }};color:{{ langBtnHiFg }};">हिंदी</button>
+      </div>
+
+      <button onClick="{{ submitOnboarding }}" disabled="{{ onboardDisabled }}" style="width:100%;padding:14px;border:none;border-radius:18px;background:{{ onboardBtnBg }};color:white;font-size:16px;font-weight:600;font-family:'Fredoka','Noto Sans Devanagari',sans-serif;cursor:pointer;">{{ ui.getStarted }}</button>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isApp }}" hint-placeholder-val="{{ true }}">
+<div class="pg-shell" style="display:flex;height:100vh;background:oklch(97% 0.016 85);color:oklch(22% 0.02 85);">
+
+  <div class="pg-sidebar" style="width:250px;flex:0 0 250px;background:oklch(99% 0.008 85);border-right:1px solid oklch(88% 0.016 85);display:flex;flex-direction:column;padding:22px 16px;box-sizing:border-box;">
+    <div style="display:flex;align-items:center;gap:10px;padding:0 8px 24px;">
+      <div style="width:36px;height:36px;border-radius:11px;background:oklch(52% 0.16 145);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;font-family:'Fredoka','Noto Sans Devanagari',sans-serif;">P</div>
+      <span style="font-weight:600;font-size:18px;font-family:'Fredoka','Noto Sans Devanagari',sans-serif;">{{ ui.appName }}</span>
+    </div>
+
+    <div class="pg-sidebar-label" style="font-size:11px;font-weight:700;letter-spacing:.06em;color:oklch(46% 0.02 85);text-transform:uppercase;padding:0 8px;margin-bottom:8px;">{{ ui.subjectsLabel }}</div>
+    <sc-for list="{{ subjects }}" as="sub" hint-placeholder-count="3">
+      <button onClick="{{ sub.onSelect }}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 10px;border:none;background:{{ sub.bg }};color:{{ sub.fg }};border-radius:10px;font-size:14px;font-weight:{{ sub.weight }};font-family:inherit;cursor:pointer;margin-bottom:2px;">
+        <span style="width:7px;height:7px;border-radius:50%;background:{{ sub.dot }};flex:0 0 auto;"></span>
+        {{ sub.name }}
+      </button>
+    </sc-for>
+
+    <div class="pg-sidebar-divider" style="height:1px;background:oklch(88% 0.016 85);margin:16px 8px;"></div>
+
+    <button onClick="{{ goProgress }}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 10px;border:none;background:{{ progressNavBg }};color:{{ progressNavFg }};border-radius:10px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;margin-bottom:2px;">{{ ui.navProgress }}</button>
+    <button onClick="{{ goSettings }}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 10px;border:none;background:{{ settingsNavBg }};color:{{ settingsNavFg }};border-radius:10px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;">{{ ui.navSettings }}</button>
+
+    <div class="pg-sidebar-spacer" style="flex:1;"></div>
+    <div class="pg-sidebar-footer" style="font-size:12px;color:oklch(46% 0.02 85);padding:8px;">CBSE · {{ student.cls }}</div>
+  </div>
+
+  <div class="pg-main" style="flex:1;display:flex;flex-direction:column;min-width:0;">
+    <div class="pg-topbar" style="height:64px;flex:0 0 64px;border-bottom:1px solid oklch(88% 0.016 85);display:flex;align-items:center;justify-content:space-between;padding:0 32px;box-sizing:border-box;background:oklch(99% 0.008 85);">
+      <div class="pg-topbar-user" style="display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:oklch(92% 0.06 145);color:oklch(38% 0.13 145);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;">{{ student.initial }}</div>
+        <div>
+          <div style="font-size:14px;font-weight:700;">{{ student.name }}</div>
+          <div style="font-size:12px;color:oklch(46% 0.02 85);">{{ student.cls }} · {{ student.board }}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div style="display:flex;background:oklch(97% 0.016 85);border-radius:999px;padding:3px;border:1px solid oklch(88% 0.016 85);">
+          <button onClick="{{ onSetOnboardLang_en }}" style="padding:6px 14px;border-radius:999px;border:none;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;background:{{ langBtnEnBg }};color:{{ langBtnEnFg }};">EN</button>
+          <button onClick="{{ onSetOnboardLang_hi }}" style="padding:6px 14px;border-radius:999px;border:none;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;background:{{ langBtnHiBg }};color:{{ langBtnHiFg }};">हिं</button>
+        </div>
+        <span style="font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px;background:oklch(92% 0.06 145);color:oklch(38% 0.13 145);white-space:nowrap;flex:0 0 auto;">{{ subscriptionLabel }}</span>
+      </div>
+    </div>
+
+    <div class="pg-content" style="flex:1;overflow:auto;padding:36px 40px;box-sizing:border-box;">
+
+      <sc-if value="{{ isHome }}" hint-placeholder-val="{{ false }}">
+        <h1 style="font-size:28px;margin:0 0 24px;font-family:'Fredoka','Noto Sans Devanagari',sans-serif;font-weight:600;color:oklch(22% 0.02 85);">{{ currentSubjectName }}</h1>
+
+        <sc-if value="{{ hasTodaysFocus }}" hint-placeholder-val="{{ false }}">
+          <div style="background:oklch(92% 0.06 145);border:1px solid oklch(78% 0.09 145);border-radius:20px;padding:22px 26px;margin-bottom:28px;display:flex;align-items:center;justify-content:space-between;gap:20px;">
+            <div>
+              <div style="font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:oklch(38% 0.13 145);margin-bottom:6px;">{{ ui.todaysFocusTitle }}</div>
+              <div style="font-size:18px;font-weight:600;margin-bottom:4px;font-family:'Fredoka','Noto Sans Devanagari',sans-serif;">{{ todaysFocus.topic }}</div>
+              <div style="font-size:13px;color:oklch(28% 0.025 85);">{{ todaysFocus.reason }}</div>
+            </div>
+            <button onClick="{{ todaysFocus.onClick }}" style="flex:0 0 auto;padding:12px 22px;border:none;border-radius:12px;background:oklch(52% 0.16 145);color:white;font-family:'Fredoka','Noto Sans Devanagari',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">{{ ui.todaysFocusCta }}</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ subjectHasChapters }}" hint-placeholder-val="{{ true }}">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;">
+            <sc-for list="{{ chaptersForSubject }}" as="ch" hint-placeholder-count="3">
+              <div style="background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px;box-shadow:0 4px 14px oklch(20% 0.02 85 / 0.05);transition:transform .15s;">
+                <div style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:{{ ch.statusBg }};color:{{ ch.statusFg }};font-size:12px;font-weight:700;width:fit-content;">
+                  <span style="width:7px;height:7px;border-radius:50%;background:{{ ch.statusDot }};"></span>
+                  {{ ch.statusLabel }}
+                </div>
+                <div style="font-size:17px;font-weight:600;line-height:1.35;min-height:44px;font-family:'Fredoka','Noto Sans Devanagari',sans-serif;">{{ ch.title }}</div>
+                <div style="height:8px;background:oklch(90% 0.02 85);border-radius:999px;overflow:hidden;">
+                  <div style="height:100%;background:{{ ch.statusDot }};width:{{ ch.progressPct }};border-radius:999px;"></div>
+                </div>
+                <button onClick="{{ ch.onOpen }}" style="margin-top:4px;padding:11px;border:none;border-radius:12px;background:oklch(52% 0.16 145);color:white;font-family:'Fredoka','Noto Sans Devanagari',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">{{ ch.ctaLabel }}</button>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ subjectIsEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1.5px dashed oklch(84% 0.02 85);border-radius:20px;padding:56px 24px;text-align:center;color:oklch(46% 0.02 85);">
+            <div style="font-size:15px;font-weight:700;margin-bottom:6px;color:oklch(22% 0.02 85);">{{ ui.comingSoonTitle }}</div>
+            <div style="font-size:13px;">{{ ui.comingSoonSubject }}</div>
+          </div>
+        </sc-if>
+      </sc-if>
+
+      <sc-if value="{{ isChapter }}" hint-placeholder-val="{{ false }}">
+        <a href="#" onClick="{{ goHome }}" style="display:inline-block;font-size:13px;font-weight:600;margin-bottom:16px;">{{ ui.backToHome }}</a>
+        <h1 style="font-size:28px;margin:0 0 24px;font-family:'Fredoka','Noto Sans Devanagari',sans-serif;font-weight:600;color:oklch(22% 0.02 85);">{{ currentChapterObj.title }}</h1>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;">
+          <sc-for list="{{ topicsForChapter }}" as="tp" hint-placeholder-count="3">
+            <div style="background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px;box-shadow:0 4px 14px oklch(20% 0.02 85 / 0.05);">
+              <div style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:{{ tp.statusBg }};color:{{ tp.statusFg }};font-size:12px;font-weight:700;width:fit-content;">
+                <span style="width:7px;height:7px;border-radius:50%;background:{{ tp.statusDot }};"></span>
+                {{ tp.statusLabel }}
+              </div>
+              <div style="font-size:17px;font-weight:600;line-height:1.35;min-height:44px;font-family:'Fredoka','Noto Sans Devanagari',sans-serif;">{{ tp.title }}</div>
+              <div style="height:8px;background:oklch(90% 0.02 85);border-radius:999px;overflow:hidden;">
+                <div style="height:100%;background:{{ tp.statusDot }};width:{{ tp.progressPct }};border-radius:999px;"></div>
+              </div>
+              <button onClick="{{ tp.onOpen }}" style="margin-top:4px;padding:11px;border:none;border-radius:12px;background:oklch(52% 0.16 145);color:white;font-family:'Fredoka','Noto Sans Devanagari',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">{{ tp.ctaLabel }}</button>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isTopic }}" hint-placeholder-val="{{ false }}">
+        <a href="#" onClick="{{ goHome }}" style="display:inline-block;font-size:13px;font-weight:600;margin-bottom:16px;">{{ ui.backToHome }}</a>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+          <h1 style="font-size:26px;margin:0;font-family:'Fredoka','Noto Sans Devanagari',sans-serif;font-weight:600;color:oklch(22% 0.02 85);">{{ currentTopic.title }}</h1>
+          <div style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:{{ currentTopic.statusBg }};color:{{ currentTopic.statusFg }};font-size:12px;font-weight:700;">
+            <span style="width:7px;height:7px;border-radius:50%;background:{{ currentTopic.statusDot }};"></span>
+            {{ currentTopic.statusLabel }}
+          </div>
+        </div>
+
+        <div style="display:flex;gap:4px;border-bottom:1px solid oklch(88% 0.016 85);margin-bottom:28px;">
+          <sc-for list="{{ chapterTabs }}" as="tb" hint-placeholder-count="5">
+            <button onClick="{{ tb.onClick }}" style="padding:10px 16px;border:none;background:none;font-family:'Fredoka','Noto Sans Devanagari',sans-serif;font-size:14px;font-weight:500;cursor:pointer;color:{{ tb.color }};border-bottom:3px solid {{ tb.borderColor }};">{{ tb.label }}</button>
+          </sc-for>
+        </div>
+
+        <sc-if value="{{ chapterLoading }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="height:22px;width:40%;background:oklch(90% 0.02 85);border-radius:6px;animation:pulse 1.2s infinite;"></div>
+            <div style="height:80px;background:oklch(94% 0.008 75);border-radius:12px;animation:pulse 1.2s infinite;"></div>
+            <div style="height:80px;background:oklch(94% 0.008 75);border-radius:12px;animation:pulse 1.2s infinite;"></div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ chapterReady }}" hint-placeholder-val="{{ false }}">
+
+          <sc-if value="{{ tabIsNotes }}" hint-placeholder-val="{{ false }}">
+            <sc-if value="{{ notesEmpty }}" hint-placeholder-val="{{ false }}">
+              <div style="border:1.5px dashed oklch(85% 0.01 75);border-radius:20px;padding:48px 24px;text-align:center;">
+                <div style="font-size:15px;font-weight:700;margin-bottom:8px;">{{ ui.startChapterTitle }}</div>
+                <div style="font-size:13px;color:oklch(46% 0.02 85);margin-bottom:18px;">{{ ui.startChapterBody }}</div>
+                <button onClick="{{ startChapter }}" style="padding:11px 22px;border:none;border-radius:10px;background:oklch(52% 0.16 145);color:white;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">{{ ui.startChapterCta }}</button>
+              </div>
+            </sc-if>
+            <sc-if value="{{ notesStub }}" hint-placeholder-val="{{ false }}">
+              <div style="background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:20px;padding:24px;color:oklch(46% 0.02 85);font-size:14px;">{{ ui.stubNotes }}</div>
+            </sc-if>
+            <sc-if value="{{ notesFull }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;justify-content:flex-end;gap:10px;margin-bottom:12px;">
+                <button onClick="{{ toggleHandwritten }}" style="padding:9px 16px;border:1px solid oklch(88% 0.016 85);border-radius:9px;background:white;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;">{{ ui.downloadHandwritten }}</button>
+                <button onClick="{{ printNotes }}" style="padding:9px 16px;border:1px solid oklch(88% 0.016 85);border-radius:9px;background:white;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;">{{ ui.printExport }}</button>
+              </div>
+              <sc-if value="{{ handwrittenOpen }}" hint-placeholder-val="{{ false }}">
+                <div style="max-width:760px;border:1px solid oklch(88% 0.016 85);border-radius:20px;padding:20px;margin-bottom:20px;background:oklch(97% 0.016 85);display:flex;align-items:center;gap:16px;">
+                  <div style="width:90px;height:110px;flex:0 0 auto;border-radius:8px;background:repeating-linear-gradient(45deg,oklch(93% 0.02 292),oklch(93% 0.02 292) 8px,oklch(90% 0.02 292) 8px,oklch(90% 0.02 292) 16px);display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:10px;color:oklch(40% 0.05 292);text-align:center;padding:6px;">handwritten page</div>
+                  <div style="flex:1;">
+                    <div style="font-size:14px;font-weight:700;margin-bottom:4px;">{{ currentTopic.title }}</div>
+                    <div style="font-size:13px;color:oklch(46% 0.02 85);margin-bottom:12px;">{{ ui.handwrittenDesc }}</div>
+                    <a href="{{ handwrittenFileUrl }}" download="{{ handwrittenFileName }}" style="display:inline-block;padding:9px 16px;border:none;border-radius:9px;background:oklch(52% 0.16 145);color:white;font-family:inherit;font-size:13px;font-weight:700;">{{ ui.download }}</a>
+                  </div>
+                </div>
+              </sc-if>
+              <div style="background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:20px;padding:32px;max-width:760px;">
+                <sc-for list="{{ notesSections }}" as="sec" hint-placeholder-count="3">
+                  <div style="margin-bottom:22px;">
+                    <div style="font-size:15px;font-weight:700;margin-bottom:8px;color:oklch(38% 0.13 145);">{{ sec.heading }}</div>
+                    <div style="font-size:14.5px;line-height:1.7;color:oklch(28% 0.025 85);">{{ sec.body }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </sc-if>
+
+          <sc-if value="{{ tabIsExplain }}" hint-placeholder-val="{{ false }}">
+            <sc-if value="{{ explainStub }}" hint-placeholder-val="{{ false }}">
+              <div style="background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:20px;padding:24px;color:oklch(46% 0.02 85);font-size:14px;">{{ ui.stubExplain }}</div>
+            </sc-if>
+            <sc-if value="{{ explainFull }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+                <div style="display:flex;gap:8px;">
+                  <sc-for list="{{ explainModes }}" as="md" hint-placeholder-count="4">
+                    <button onClick="{{ md.onClick }}" style="padding:8px 14px;border-radius:999px;border:1px solid {{ md.borderColor }};background:{{ md.bg }};color:{{ md.fg }};font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;">{{ md.label }}</button>
+                  </sc-for>
+                </div>
+                <button onClick="{{ toggleCompare }}" style="padding:8px 14px;border-radius:999px;border:1px solid oklch(88% 0.016 85);background:{{ compareBtnBg }};color:{{ compareBtnFg }};font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;">{{ ui.compareToggle }}</button>
+              </div>
+
+              <div class="pg-explain-grid" style="display:grid;grid-template-columns:{{ explainGridCols }};gap:20px;">
+                <div style="background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:20px;padding:26px;">
+                  <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:oklch(38% 0.13 145);margin-bottom:12px;">{{ explainPaneA.label }}</div>
+                  <div style="font-size:14.5px;line-height:1.7;color:oklch(28% 0.025 85);">{{ explainPaneA.body }}</div>
+                  <sc-if value="{{ explainPaneA.hasImage }}" hint-placeholder-val="{{ false }}">
+                    <div style="margin-top:16px;height:160px;border-radius:12px;background:repeating-linear-gradient(45deg,oklch(93% 0.02 292),oklch(93% 0.02 292) 10px,oklch(90% 0.02 292) 10px,oklch(90% 0.02 292) 20px);display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:12px;color:oklch(40% 0.05 292);text-align:center;padding:12px;">{{ explainPaneA.imageLabel }}</div>
+                  </sc-if>
+                </div>
+                <sc-if value="{{ compareOn }}" hint-placeholder-val="{{ false }}">
+                  <div style="background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:20px;padding:26px;">
+                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:oklch(38% 0.13 145);margin-bottom:12px;">{{ explainPaneB.label }}</div>
+                    <div style="font-size:14.5px;line-height:1.7;color:oklch(28% 0.025 85);">{{ explainPaneB.body }}</div>
+                    <sc-if value="{{ explainPaneB.hasImage }}" hint-placeholder-val="{{ false }}">
+                      <div style="margin-top:16px;height:160px;border-radius:12px;background:repeating-linear-gradient(45deg,oklch(93% 0.02 292),oklch(93% 0.02 292) 10px,oklch(90% 0.02 292) 10px,oklch(90% 0.02 292) 20px);display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:12px;color:oklch(40% 0.05 292);text-align:center;padding:12px;">{{ explainPaneB.imageLabel }}</div>
+                    </sc-if>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+          </sc-if>
+
+          <sc-if value="{{ tabIsVideos }}" hint-placeholder-val="{{ false }}">
+            <sc-if value="{{ videosStub }}" hint-placeholder-val="{{ false }}">
+              <div style="background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:20px;padding:24px;color:oklch(46% 0.02 85);font-size:14px;">{{ ui.stubVideos }}</div>
+            </sc-if>
+            <sc-if value="{{ videosFull }}" hint-placeholder-val="{{ false }}">
+              <sc-if value="{{ hasActiveVideo }}" hint-placeholder-val="{{ false }}">
+                <div style="background:oklch(20% 0.01 280);border-radius:20px;height:340px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;margin-bottom:20px;position:relative;">
+                  <div style="width:64px;height:64px;border-radius:50%;background:oklch(52% 0.16 145);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:14px;">▶</div>
+                  <div style="font-size:15px;font-weight:700;">{{ activeVideo.title }}</div>
+                  <div style="font-size:12px;opacity:.7;margin-top:4px;">{{ activeVideo.duration }}</div>
+                </div>
+              </sc-if>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;">
+                <sc-for list="{{ videos }}" as="v" hint-placeholder-count="3">
+                  <button onClick="{{ v.onPlay }}" style="text-align:left;border:1px solid oklch(88% 0.016 85);border-radius:18px;overflow:hidden;background:oklch(99% 0.008 85);cursor:pointer;font-family:inherit;padding:0;">
+                    <div style="height:100px;background:repeating-linear-gradient(45deg,oklch(93% 0.01 75),oklch(93% 0.01 75) 8px,oklch(90% 0.01 75) 8px,oklch(90% 0.01 75) 16px);display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:11px;color:oklch(46% 0.02 85);">thumbnail</div>
+                    <div style="padding:12px;">
+                      <div style="font-size:13px;font-weight:700;margin-bottom:4px;">{{ v.title }}</div>
+                      <div style="font-size:12px;color:oklch(46% 0.02 85);">{{ v.duration }}</div>
+                    </div>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-if>
+          </sc-if>
+
+          <sc-if value="{{ tabIsPractice }}" hint-placeholder-val="{{ false }}">
+            <sc-if value="{{ practiceStub }}" hint-placeholder-val="{{ false }}">
+              <div style="background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:20px;padding:24px;color:oklch(46% 0.02 85);font-size:14px;">{{ ui.stubPractice }}</div>
+            </sc-if>
+            <sc-if value="{{ quizNotSubmitted }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:16px;max-width:720px;">
+                <sc-for list="{{ quizQuestions }}" as="q" hint-placeholder-count="5">
+                  <div style="background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:20px;padding:22px;">
+                    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:oklch(46% 0.02 85);margin-bottom:8px;">{{ q.kindLabel }}</div>
+                    <div style="font-size:15px;font-weight:600;margin-bottom:14px;line-height:1.5;">{{ q.text }}</div>
+                    <sc-if value="{{ q.hasImage }}" hint-placeholder-val="{{ false }}">
+                      <div style="height:120px;margin-bottom:14px;border-radius:10px;background:repeating-linear-gradient(45deg,oklch(93% 0.01 75),oklch(93% 0.01 75) 8px,oklch(90% 0.01 75) 8px,oklch(90% 0.01 75) 16px);display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:12px;color:oklch(46% 0.02 85);">{{ q.imageLabel }}</div>
+                    </sc-if>
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                      <sc-for list="{{ q.options }}" as="opt" hint-placeholder-count="4">
+                        <button onClick="{{ opt.onClick }}" style="text-align:left;padding:11px 14px;border-radius:10px;border:1.5px solid {{ opt.borderColor }};background:{{ opt.bg }};color:{{ opt.fg }};font-family:inherit;font-size:13.5px;cursor:pointer;">{{ opt.text }}</button>
+                      </sc-for>
+                    </div>
+                    <sc-if value="{{ q.revealed }}" hint-placeholder-val="{{ false }}">
+                      <div style="margin-top:12px;font-size:13px;font-weight:600;color:{{ q.feedbackColor }};">{{ q.feedbackText }}</div>
+                    </sc-if>
+                  </div>
+                </sc-for>
+                <button onClick="{{ seeQuizResults }}" disabled="{{ quizIncomplete }}" style="align-self:flex-start;padding:12px 24px;border:none;border-radius:10px;background:{{ quizResultsBtnBg }};color:white;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">{{ ui.seeResults }}</button>
+              </div>
+            </sc-if>
+            <sc-if value="{{ quizSubmitted }}" hint-placeholder-val="{{ false }}">
+              <div style="max-width:480px;background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:20px;padding:32px;text-align:center;">
+                <div style="font-size:13px;font-weight:700;color:oklch(46% 0.02 85);margin-bottom:6px;">{{ ui.yourScore }}</div>
+                <div style="font-size:40px;font-weight:800;color:oklch(52% 0.16 145);margin-bottom:10px;">{{ quizScoreLabel }}</div>
+                <div style="font-size:14px;color:oklch(28% 0.025 85);margin-bottom:22px;">{{ quizFeedbackMsg }}</div>
+                <button onClick="{{ retryQuiz }}" style="padding:11px 22px;border:1px solid oklch(88% 0.016 85);border-radius:10px;background:white;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">{{ ui.retry }}</button>
+              </div>
+            </sc-if>
+          </sc-if>
+
+          <sc-if value="{{ tabIsExamPrep }}" hint-placeholder-val="{{ false }}">
+            <sc-if value="{{ examStub }}" hint-placeholder-val="{{ false }}">
+              <div style="background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:20px;padding:24px;color:oklch(46% 0.02 85);font-size:14px;">{{ ui.stubExam }}</div>
+            </sc-if>
+            <sc-if value="{{ examIntro }}" hint-placeholder-val="{{ false }}">
+              <div style="background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:20px;padding:28px;max-width:600px;">
+                <div style="font-size:16px;font-weight:700;margin-bottom:6px;">{{ ui.examTitle }}</div>
+                <div style="font-size:13px;color:oklch(46% 0.02 85);margin-bottom:20px;">{{ ui.examSubtitle }}</div>
+                <button onClick="{{ startExam }}" style="padding:11px 22px;border:none;border-radius:10px;background:oklch(52% 0.16 145);color:white;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">{{ ui.examStart }}</button>
+              </div>
+            </sc-if>
+            <sc-if value="{{ examInProgress }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:24px;max-width:720px;">
+                <sc-for list="{{ examSections }}" as="s" hint-placeholder-count="3">
+                  <div>
+                    <div style="font-size:14px;font-weight:800;margin-bottom:10px;color:oklch(38% 0.13 145);">{{ s.heading }}</div>
+                    <div style="display:flex;flex-direction:column;gap:12px;">
+                      <sc-for list="{{ s.questions }}" as="q" hint-placeholder-count="3">
+                        <div style="background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:18px;padding:18px;">
+                          <div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:10px;">
+                            <div style="font-size:14px;font-weight:600;line-height:1.5;">{{ q.text }}</div>
+                            <sc-if value="{{ q.weak }}" hint-placeholder-val="{{ false }}">
+                              <span style="flex:0 0 auto;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:oklch(94% 0.08 60);color:oklch(40% 0.13 60);white-space:nowrap;">{{ ui.needsAttention }}</span>
+                            </sc-if>
+                          </div>
+                          <sc-if value="{{ q.isMcq }}" hint-placeholder-val="{{ false }}">
+                            <div style="display:flex;flex-direction:column;gap:7px;">
+                              <sc-for list="{{ q.options }}" as="opt" hint-placeholder-count="4">
+                                <button onClick="{{ opt.onClick }}" style="text-align:left;padding:9px 12px;border-radius:9px;border:1.5px solid {{ opt.borderColor }};background:{{ opt.bg }};color:{{ opt.fg }};font-family:inherit;font-size:13px;cursor:pointer;">{{ opt.text }}</button>
+                              </sc-for>
+                            </div>
+                          </sc-if>
+                          <sc-if value="{{ q.isWritten }}" hint-placeholder-val="{{ false }}">
+                            <textarea placeholder="{{ ui.writeAnswerPlaceholder }}" rows="3" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid oklch(88% 0.016 85);border-radius:8px;font-family:inherit;font-size:13px;resize:vertical;"></textarea>
+                          </sc-if>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-for>
+                <button onClick="{{ submitExam }}" style="align-self:flex-start;padding:12px 24px;border:none;border-radius:10px;background:oklch(52% 0.16 145);color:white;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">{{ ui.examSubmit }}</button>
+              </div>
+            </sc-if>
+            <sc-if value="{{ examSubmitted }}" hint-placeholder-val="{{ false }}">
+              <div style="max-width:560px;background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:20px;padding:30px;">
+                <div style="font-size:13px;font-weight:700;color:oklch(46% 0.02 85);margin-bottom:4px;">{{ ui.sectionAScore }}</div>
+                <div style="font-size:32px;font-weight:800;color:oklch(52% 0.16 145);margin-bottom:20px;">{{ examScoreLabel }}</div>
+                <div style="font-size:14px;font-weight:700;margin-bottom:12px;">{{ ui.readinessTitle }}</div>
+                <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+                  <sc-for list="{{ readinessTopics }}" as="rt" hint-placeholder-count="3">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:oklch(97% 0.016 85);">
+                      <span style="font-size:13.5px;font-weight:600;">{{ rt.name }}</span>
+                      <span style="font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:{{ rt.bg }};color:{{ rt.fg }};">{{ rt.label }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+                <button onClick="{{ retakeExam }}" style="padding:11px 22px;border:1px solid oklch(88% 0.016 85);border-radius:10px;background:white;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">{{ ui.retry }}</button>
+              </div>
+            </sc-if>
+          </sc-if>
+
+        </sc-if>
+
+        <button onClick="{{ toggleDoubt }}" class="pg-doubt-fab" style="position:fixed;bottom:28px;right:36px;width:56px;height:56px;border-radius:50%;border:none;background:oklch(52% 0.16 145);color:white;font-size:22px;cursor:pointer;box-shadow:0 8px 20px oklch(20% 0.02 85 / 0.25);z-index:20;">{{ doubtFabIcon }}</button>
+
+        <sc-if value="{{ doubtOpen }}" hint-placeholder-val="{{ false }}">
+          <div class="pg-doubt-panel" style="position:fixed;bottom:96px;right:36px;width:360px;height:460px;background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:20px;box-shadow:0 16px 40px oklch(20% 0.02 85 / 0.18);display:flex;flex-direction:column;z-index:20;overflow:hidden;">
+            <div style="padding:14px 18px;border-bottom:1px solid oklch(88% 0.016 85);background:oklch(92% 0.06 145);">
+              <div style="font-size:14px;font-weight:700;color:oklch(38% 0.13 145);">{{ ui.doubtTitle }}</div>
+              <div style="font-size:12px;color:oklch(38% 0.025 85);">{{ currentTopic.title }}</div>
+            </div>
+            <div style="flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px;">
+              <sc-for list="{{ doubtMessages }}" as="m" hint-placeholder-count="2">
+                <div style="align-self:{{ m.align }};max-width:85%;background:{{ m.bg }};color:{{ m.fg }};padding:10px 13px;border-radius:12px;font-size:13.5px;line-height:1.5;white-space:pre-wrap;">{{ m.text }}</div>
+              </sc-for>
+              <sc-if value="{{ doubtThinking }}" hint-placeholder-val="{{ false }}">
+                <div style="align-self:flex-start;background:oklch(95% 0.008 75);color:oklch(46% 0.02 85);padding:10px 13px;border-radius:12px;font-size:13.5px;">{{ ui.doubtThinking }}</div>
+              </sc-if>
+            </div>
+            <div style="display:flex;gap:8px;padding:12px;border-top:1px solid oklch(88% 0.016 85);">
+              <input type="text" value="{{ doubtInput }}" onChange="{{ onDoubtInputChange }}" onKeyDown="{{ onDoubtKeyDown }}" placeholder="{{ ui.doubtPlaceholder }}" style="flex:1;padding:10px 12px;border:1px solid oklch(88% 0.016 85);border-radius:10px;font-size:13.5px;font-family:inherit;"/>
+              <button onClick="{{ sendDoubt }}" disabled="{{ doubtSendDisabled }}" style="padding:10px 16px;border:none;border-radius:10px;background:oklch(52% 0.16 145);color:white;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;">{{ ui.doubtSend }}</button>
+            </div>
+          </div>
+        </sc-if>
+      </sc-if>
+
+      <sc-if value="{{ isProgress }}" hint-placeholder-val="{{ false }}">
+        <h1 style="font-size:26px;margin:0 0 24px;">{{ ui.progressTitle }}</h1>
+        <div style="display:flex;gap:28px;align-items:center;background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:20px;padding:28px;margin-bottom:24px;max-width:640px;">
+          <div style="width:110px;height:110px;border-radius:50%;flex:0 0 auto;background:conic-gradient(oklch(52% 0.16 145) {{ overallMasteryDeg }}deg, oklch(90% 0.02 85) 0deg);display:flex;align-items:center;justify-content:center;">
+            <div style="width:82px;height:82px;border-radius:50%;background:oklch(99% 0.008 85);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;">{{ overallMasteryPct }}</div>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:700;margin-bottom:6px;">{{ ui.overallMastery }}</div>
+            <div style="font-size:13.5px;color:oklch(46% 0.02 85);">{{ ui.keepGoing }}</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;max-width:640px;">
+          <sc-for list="{{ chaptersForSubject }}" as="ch" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;justify-content:space-between;background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:18px;padding:16px 20px;">
+              <span style="font-size:14px;font-weight:600;">{{ ch.title }}</span>
+              <div style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:{{ ch.statusBg }};color:{{ ch.statusFg }};font-size:12px;font-weight:700;">
+                <span style="width:7px;height:7px;border-radius:50%;background:{{ ch.statusDot }};"></span>
+                {{ ch.statusLabel }}
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+        <h1 style="font-size:26px;margin:0 0 24px;">{{ ui.settingsTitle }}</h1>
+        <div style="display:flex;flex-direction:column;gap:14px;max-width:520px;">
+          <div style="background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:18px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:14px;font-weight:600;">{{ ui.languageLabel }}</span>
+            <div style="display:flex;gap:6px;">
+              <button onClick="{{ onSetOnboardLang_en }}" style="padding:7px 14px;border-radius:999px;border:1px solid oklch(88% 0.016 85);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;background:{{ langBtnEnBg }};color:{{ langBtnEnFg }};">EN</button>
+              <button onClick="{{ onSetOnboardLang_hi }}" style="padding:7px 14px;border-radius:999px;border:1px solid oklch(88% 0.016 85);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;background:{{ langBtnHiBg }};color:{{ langBtnHiFg }};">हिं</button>
+            </div>
+          </div>
+          <div style="background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:18px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:14px;font-weight:600;">{{ ui.boardClassLabel }}</span>
+            <span style="font-size:14px;color:oklch(46% 0.02 85);">{{ student.cls }} · {{ student.board }}</span>
+          </div>
+          <div style="background:oklch(99% 0.008 85);border:1px solid oklch(88% 0.016 85);border-radius:18px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:14px;font-weight:600;">{{ ui.subscriptionLabel }}</span>
+            <button onClick="{{ toggleSubscription }}" style="padding:7px 14px;border-radius:999px;border:none;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;background:oklch(92% 0.06 145);color:oklch(38% 0.13 145);">{{ subscriptionLabel }}</button>
+          </div>
+          <button onClick="{{ restartOnboarding }}" style="margin-top:8px;padding:12px;border:1px solid oklch(88% 0.016 85);border-radius:10px;background:white;font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;">{{ ui.restartOnboarding }}</button>
+        </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+</sc-if>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    onboarded: true,
+    onboardForm: { name: 'Aarav Mehta', cls: 'Class 6', board: 'CBSE' },
+    language: 'en',
+    subscription: 'Free plan',
+    student: { name: 'Aarav Mehta', cls: 'Class 6', board: 'CBSE' },
+    view: 'home',
+    selectedSubjectId: 'science',
+    selectedChapterId: null,
+    selectedTopicId: null,
+    chapterTab: 'notes',
+    chapterLoading: false,
+    handwrittenOpen: false,
+    doubtOpen: false, doubtInput: '', doubtThinking: false, doubtHistory: [],
+
+    explainCompare: true,
+    explainA: 'story',
+    explainB: 'picture',
+    activeVideoId: null,
+    quiz: { answers: {}, submitted: false },
+    exam: { stage: 'intro', mcqAnswers: {}, submitted: false }
+  };
+
+  EN = {
+    appName: 'Pragati', subjectsLabel: 'Subjects', navProgress: 'Progress', navSettings: 'Settings',
+    onboardingTitle: 'Welcome! Let\u2019s set up your profile', onboardingSubtitle: 'This takes less than a minute.',
+    onboardingName: 'Your name', onboardingClass: 'Class', onboardingBoard: 'Board', onboardingLanguage: 'Preferred language',
+    getStarted: 'Get started',
+    todaysFocusTitle: "Today's focus", todaysFocusCta: 'Revise now',
+    comingSoonTitle: 'Coming soon', comingSoonSubject: 'Chapters for this subject are being prepared.',
+    backToHome: '\u2190 Back to Home',
+    tabNotes: 'Notes', tabExplain: 'Explain', tabVideos: 'Videos', tabPractice: 'Practice', tabExamPrep: 'Exam Prep',
+    printExport: 'Print / Export', downloadHandwritten: 'Download handwritten notes',
+    handwrittenDesc: 'A scanned handwritten version of these notes, ready to download or print.', download: 'Download PDF',
+    doubtTitle: 'Ask a doubt', doubtPlaceholder: 'Type your question\u2026', doubtSend: 'Send',
+    doubtThinking: 'Thinking\u2026', doubtGreeting: "Hi! Ask me anything about this chapter and I'll help you understand it.",
+
+    startChapterTitle: "You haven't started this chapter yet",
+    startChapterBody: 'Start it to unlock notes, explanations, videos and practice.',
+    startChapterCta: 'Start chapter',
+    stubNotes: 'Sample content for this chapter would appear here, structured just like Light \u2014 Shadows and Reflections.',
+    stubExplain: 'Story, Picture, Real-world and Go-further explanations for this chapter would appear here.',
+    stubVideos: 'Curated videos for this chapter would appear here.',
+    stubPractice: 'A practice quiz for this chapter would appear here.',
+    stubExam: 'A full sample paper for this chapter would appear here.',
+    compareToggle: 'Compare side-by-side',
+    seeResults: 'See results', yourScore: 'Your score', retry: 'Try again',
+    examTitle: 'Full chapter test \u2014 CBSE pattern', examSubtitle: 'A complete sample paper covering this chapter, with your weaker topics flagged.',
+    examStart: 'Start test', examSubmit: 'Submit test',
+    needsAttention: 'Needs attention', writeAnswerPlaceholder: 'Write your answer\u2026',
+    sectionAScore: 'Section A score', readinessTitle: 'Readiness by topic',
+    progressTitle: 'Progress', overallMastery: 'Overall mastery', keepGoing: "You're doing well \u2014 keep going, one topic at a time.",
+    settingsTitle: 'Settings', languageLabel: 'Language', boardClassLabel: 'Class & board', subscriptionLabel: 'Subscription',
+    restartOnboarding: 'Restart onboarding'
+  };
+  HI = {
+    appName: 'प्रगति', subjectsLabel: 'विषय', navProgress: 'प्रगति', navSettings: 'सेटिंग्स',
+    onboardingTitle: 'नमस्ते! अपनी प्रोफ़ाइल तैयार करें', onboardingSubtitle: 'इसमें एक मिनट से भी कम समय लगेगा।',
+    onboardingName: 'आपका नाम', onboardingClass: 'कक्षा', onboardingBoard: 'बोर्ड', onboardingLanguage: 'पसंदीदा भाषा',
+    getStarted: 'शुरू करें',
+    todaysFocusTitle: 'आज का फोकस', todaysFocusCta: 'अभी दोहराएँ',
+    comingSoonTitle: 'जल्द आ रहा है', comingSoonSubject: 'इस विषय के अध्याय तैयार किए जा रहे हैं।',
+    backToHome: '\u2190 होम पर वापस जाएँ',
+    tabNotes: 'नोट्स', tabExplain: 'व्याख्या', tabVideos: 'वीडियो', tabPractice: 'अभ्यास', tabExamPrep: 'परीक्षा तैयारी',
+    printExport: 'प्रिंट करें', downloadHandwritten: 'हस्तलिखित नोट्स डाउनलोड करें',
+    handwrittenDesc: 'इन नोट्स का हस्तलिखित संस्करण, डाउनलोड या प्रिंट करने के लिए तैयार।', download: 'PDF डाउनलोड करें',
+    doubtTitle: 'शंका पूछें', doubtPlaceholder: 'अपना प्रश्न लिखें…', doubtSend: 'भेजें',
+    doubtThinking: 'सोच रहा हूँ…', doubtGreeting: 'नमस्ते! इस अध्याय के बारे में कुछ भी पूछें, मैं समझाने में मदद करूँगा।',
+
+    startChapterTitle: 'आपने अभी यह अध्याय शुरू नहीं किया है',
+    startChapterBody: 'नोट्स, व्याख्या, वीडियो और अभ्यास खोलने के लिए इसे शुरू करें।',
+    startChapterCta: 'अध्याय शुरू करें',
+    stubNotes: 'इस अध्याय की सामग्री यहाँ वैसे ही दिखेगी जैसे "प्रकाश — छाया और परावर्तन" में है।',
+    stubExplain: 'इस अध्याय के लिए कहानी, चित्र, वास्तविक जीवन और आगे की व्याख्या यहाँ दिखेगी।',
+    stubVideos: 'इस अध्याय के वीडियो यहाँ दिखेंगे।',
+    stubPractice: 'इस अध्याय का अभ्यास प्रश्नोत्तरी यहाँ दिखेगी।',
+    stubExam: 'इस अध्याय का पूरा नमूना पत्र यहाँ दिखेगा।',
+    compareToggle: 'साथ-साथ तुलना करें',
+    seeResults: 'परिणाम देखें', yourScore: 'आपका स्कोर', retry: 'फिर कोशिश करें',
+    examTitle: 'पूरा अध्याय परीक्षण — CBSE पैटर्न', examSubtitle: 'इस अध्याय का पूरा नमूना पत्र, जिसमें आपके कमज़ोर विषय चिह्नित हैं।',
+    examStart: 'परीक्षण शुरू करें', examSubmit: 'परीक्षण जमा करें',
+    needsAttention: 'ध्यान देने योग्य', writeAnswerPlaceholder: 'अपना उत्तर लिखें…',
+    sectionAScore: 'खंड A स्कोर', readinessTitle: 'विषयवार तैयारी',
+    progressTitle: 'प्रगति', overallMastery: 'समग्र निपुणता', keepGoing: 'आप अच्छा कर रहे हैं — एक-एक विषय पर आगे बढ़ते रहें।',
+    settingsTitle: 'सेटिंग्स', languageLabel: 'भाषा', boardClassLabel: 'कक्षा और बोर्ड', subscriptionLabel: 'सदस्यता',
+    restartOnboarding: 'ऑनबोर्डिंग फिर से शुरू करें'
+  };
+
+  COLORS = {
+    mastered: { bg: 'oklch(93% 0.06 145)', fg: 'oklch(35% 0.1 145)', dot: 'oklch(55% 0.15 145)', label: { en: 'Mastered', hi: 'पूर्ण निपुणता' } },
+    revision: { bg: 'oklch(94% 0.08 60)', fg: 'oklch(40% 0.13 60)', dot: 'oklch(65% 0.15 70)', label: { en: 'Needs revision', hi: 'दोहराने की ज़रूरत' } },
+    'not-started': { bg: 'oklch(93% 0.04 240)', fg: 'oklch(40% 0.1 240)', dot: 'oklch(55% 0.13 240)', label: { en: 'Not started', hi: 'शुरू नहीं हुआ' } }
+  };
+
+  subjectsData = [
+    { id: 'science', name: { en: 'Science', hi: 'विज्ञान' } },
+    { id: 'maths', name: { en: 'Mathematics', hi: 'गणित' } },
+    { id: 'english', name: { en: 'English', hi: 'अंग्रेज़ी' } }
+  ];
+
+  chapters = {
+    science: [
+      { id: 'light', title: { en: 'Light', hi: 'प्रकाश' }, topics: [
+        { id: 'light-shadows-reflections', title: { en: 'Shadows and Reflections', hi: 'छाया और परावर्तन' }, status: 'revision', progress: 62, weakTopics: ['Reflection angles', 'Shadow formation'] },
+        { id: 'light-sources-types', title: { en: 'Sources and Types of Light', hi: 'प्रकाश के स्रोत और प्रकार' }, status: 'not-started', progress: 0, weakTopics: [] }
+      ] },
+      { id: 'nutrition', title: { en: 'Nutrition in Plants', hi: 'पौधों में पोषण' }, topics: [
+        { id: 'nutrition-photosynthesis', title: { en: 'Photosynthesis', hi: 'प्रकाश संश्लेषण' }, status: 'mastered', progress: 100, weakTopics: [] },
+        { id: 'nutrition-modes', title: { en: 'Modes of Nutrition', hi: 'पोषण के प्रकार' }, status: 'mastered', progress: 100, weakTopics: [] }
+      ] },
+      { id: 'electricity', title: { en: 'Electricity and Circuits', hi: 'विद्युत और परिपथ' }, topics: [
+        { id: 'electricity-circuits', title: { en: 'Simple Circuits', hi: 'सरल परिपथ' }, status: 'not-started', progress: 0, weakTopics: [] }
+      ] }
+    ]
+  };
+
+  notesData = {
+    en: [
+      { heading: 'What is Light?', body: 'Light is a form of energy that lets us see objects. It travels in straight lines and can bounce off surfaces.' },
+      { heading: 'How Shadows Form', body: "A shadow forms when an opaque object blocks light from a source. The shape of the shadow depends on the object's shape and the light's angle." },
+      { heading: 'Reflection of Light', body: 'When light hits a smooth surface like a mirror, it bounces back in a predictable way. The angle of incidence equals the angle of reflection.' }
+    ],
+    hi: [
+      { heading: 'प्रकाश क्या है?', body: 'प्रकाश ऊर्जा का एक रूप है जो हमें वस्तुओं को देखने में मदद करता है। यह सीधी रेखा में चलता है और सतहों से टकराकर वापस लौट सकता है।' },
+      { heading: 'छाया कैसे बनती है', body: 'जब कोई अपारदर्शी वस्तु प्रकाश के स्रोत को रोकती है, तो छाया बनती है। छाया का आकार वस्तु के आकार और प्रकाश के कोण पर निर्भर करता है।' },
+      { heading: 'प्रकाश का परावर्तन', body: 'जब प्रकाश किसी चमकदार सतह जैसे शीशे पर पड़ता है, तो वह एक निश्चित तरीके से वापस लौटता है। आपतन कोण और परावर्तन कोण बराबर होते हैं।' }
+    ]
+  };
+
+  explainData = {
+    story: { label: { en: 'Story', hi: 'कहानी' },
+      body: { en: "Riya switched off the lights and lit a candle. On the wall, she saw a giant shadow of her hand shaped like a bird. She moved the candle closer \u2014 the shadow grew bigger. She moved it away \u2014 the shadow shrank. \u2018The shadow's size depends on how close the light is!\u2019 she realized.",
+        hi: 'रिया ने बत्ती बंद करके एक मोमबत्ती जलाई। दीवार पर उसने अपने हाथ की एक बड़ी छाया देखी, जो पंछी जैसी दिख रही थी। जब उसने मोमबत्ती पास की, तो छाया बड़ी हो गई। जब उसने उसे दूर किया, तो छाया छोटी हो गई। उसे समझ आया — छाया का आकार यह बताता है कि प्रकाश स्रोत कितना पास या दूर है!' } },
+    picture: { label: { en: 'Picture', hi: 'चित्र' },
+      body: { en: 'A labeled diagram showing the light source, the opaque object, the shadow it casts, and the angle of incidence and reflection at a mirror.', hi: 'एक चित्र जिसमें प्रकाश स्रोत, अपारदर्शी वस्तु, उससे बनी छाया, और शीशे पर आपतन व परावर्तन कोण दिखाए गए हैं।' },
+      image: { en: 'diagram: light source \u2192 object \u2192 shadow; mirror with angle of incidence / reflection', hi: 'चित्र: प्रकाश स्रोत → वस्तु → छाया; शीशा और कोण' } },
+    realworld: { label: { en: 'Real-world', hi: 'वास्तविक जीवन' },
+      body: { en: 'Shadows help sundials tell time. Mirrors in cars and bathrooms use reflection. Periscopes use two mirrors to see around corners.', hi: 'सूर्य घड़ी छाया से समय बताती है। कार और बाथरूम के शीशे परावर्तन का उपयोग करते हैं। पेरिस्कोप कोनों के आस-पास देखने के लिए दो शीशों का उपयोग करता है।' } },
+    gofurther: { label: { en: 'Go further', hi: 'आगे जानें' },
+      body: { en: 'Mirrors reflect light almost perfectly, paper scatters it, and dark surfaces absorb most of it instead of reflecting it \u2014 which is why dark clothes feel hotter in sunlight.', hi: 'शीशा प्रकाश को लगभग पूरी तरह परावर्तित करता है, कागज़ उसे बिखेर देता है, और गहरे रंग की सतहें उसे परावर्तित करने के बजाय अवशोषित कर लेती हैं — इसलिए धूप में गहरे रंग के कपड़े ज़्यादा गरम लगते हैं।' } }
+  };
+
+  videosData = [
+    { id: 'v1', title: 'Why Do Shadows Change Size?', duration: '4:12' },
+    { id: 'v2', title: 'Reflection in Mirrors \u2014 Explained', duration: '5:40' },
+    { id: 'v3', title: 'Angle of Incidence vs Angle of Reflection', duration: '3:25' }
+  ];
+
+  quizData = [
+    { id: 'q1', kind: 'mcq', text: 'Which of these is needed to form a shadow?', correct: 0, options: ['Light source', 'Sound', 'Water', 'Magnet'] },
+    { id: 'q2', kind: 'mcq', text: 'The angle of incidence is always ___ the angle of reflection.', correct: 0, options: ['equal to', 'greater than', 'less than', 'unrelated to'] },
+    { id: 'q3', kind: 'assertion-reason', text: 'Assertion: A translucent object allows some light to pass through it. Reason: Translucent objects let light travel through completely, without any obstruction.', correct: 2, options: ['Both A and R are true, and R explains A', 'Both are true, but R does not explain A', 'A is true, R is false', 'A is false, R is true'] },
+    { id: 'q4', kind: 'picture', text: 'At which time of day is a person\u2019s shadow the shortest?', correct: 1, imageLabel: 'picture: a person\u2019s shadow at different times of day', options: ['Early morning', 'Noon', 'Evening', 'Midnight'] },
+    { id: 'q5', kind: 'mcq', text: 'Which surface produces a clear, regular reflection?', correct: 1, options: ['Rough wall', 'Plane mirror', 'Cloth', 'Sand'] }
+  ];
+
+  examData = {
+    sections: [
+      { heading: 'Section A \u2014 MCQ (1 mark each)', questions: [
+        { id: 'a1', kind: 'mcq', topic: 'Light basics', text: 'Light travels in a ___ line.', correct: 0, options: ['straight', 'curved', 'zigzag', 'circular'] },
+        { id: 'a2', kind: 'mcq', topic: 'Shadow formation', text: 'Shadows are formed because light cannot pass through ___ objects.', correct: 2, options: ['transparent', 'translucent', 'opaque', 'all'] },
+        { id: 'a3', kind: 'mcq', topic: 'Reflection angles', text: 'If the angle of incidence is 40\u00b0, the angle of reflection is ___.', correct: 0, options: ['40\u00b0', '50\u00b0', '80\u00b0', '20\u00b0'] },
+        { id: 'a4', kind: 'mcq', topic: 'Mirrors', text: 'Which type of mirror is used in cars\u2019 side mirrors to give a wider view?', correct: 1, options: ['Plane', 'Convex', 'Concave', 'None'] }
+      ] },
+      { heading: 'Section B \u2014 Short answer (2 marks each)', questions: [
+        { id: 'b1', kind: 'written', topic: 'Shadow formation', text: 'Explain why shadows are longer in the early morning than at noon.' },
+        { id: 'b2', kind: 'written', topic: 'Reflection angles', text: 'State the law of reflection.' },
+        { id: 'b3', kind: 'written', topic: 'Light basics', text: 'List two natural sources and two artificial sources of light.' }
+      ] },
+      { heading: 'Section C \u2014 Long answer (3 marks each)', questions: [
+        { id: 'c1', kind: 'written', topic: 'Mirrors', text: 'Describe, with an example, how a periscope uses reflection to let you see around a corner.' },
+        { id: 'c2', kind: 'written', topic: 'Shadow formation', text: 'Why can you see your shadow on a sunny day but not on a completely cloudy day?' }
+      ] }
+    ]
+  };
+
+  chapterContent = {
+    'light-shadows-reflections': { notes: this.notesData, explain: this.explainData, quiz: this.quizData, videos: this.videosData }
+  };
+
+  findTopic(topicId) {
+    for (const subjectId in this.chapters) {
+      for (const chapter of this.chapters[subjectId]) {
+        const topic = (chapter.topics || []).find(t => t.id === topicId);
+        if (topic) return { subjectId, chapter, topic };
+      }
+    }
+    return null;
+  }
+  updateTopic(topicId, patch) {
+    const found = this.findTopic(topicId);
+    if (!found) return;
+    found.chapter.topics = found.chapter.topics.map(t => t.id === topicId ? { ...t, ...patch } : t);
+  }
+  GENERIC_LABELS = {
+    story: { en: 'Story', hi: 'कहानी' }, picture: { en: 'Picture', hi: 'चित्र' },
+    realworld: { en: 'Real-world', hi: 'वास्तविक जीवन' }, gofurther: { en: 'Go further', hi: 'आगे जानें' }
+  };
+
+  async mergePublishedSubmissions() {
+    try {
+      const { loadSubmissions } = await import('./submissions-store.js');
+      const submissions = loadSubmissions();
+      let changed = false;
+      submissions.filter(s => s.status === 'published').forEach(sub => {
+        if (this.chapterContent[sub.id]) return;
+        this.chapterContent[sub.id] = {
+          notes: { en: sub.notes, hi: sub.notes }, explain: sub.explain, quiz: sub.quiz, videos: []
+        };
+        if (!this.chapters[sub.subjectId]) this.chapters[sub.subjectId] = [];
+        this.chapters[sub.subjectId].push({ id: sub.id + '-ch', title: { en: sub.title, hi: sub.title }, topics: [
+          { id: sub.id, title: { en: sub.title, hi: sub.title }, status: 'not-started', progress: 0, weakTopics: [] }
+        ] });
+        changed = true;
+      });
+      if (changed) this.forceUpdate();
+    } catch (err) {}
+  }
+  componentDidMount() {
+    this.mergePublishedSubmissions();
+    this._subListener = () => this.mergePublishedSubmissions();
+    window.addEventListener('pragati-submissions-changed', this._subListener);
+    window.addEventListener('storage', this._subListener);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('pragati-submissions-changed', this._subListener);
+    window.removeEventListener('storage', this._subListener);
+  }
+
+  onNameChange = (e) => this.setState(s => ({ onboardForm: { ...s.onboardForm, name: e.target.value } }));
+  onClassChange = (e) => this.setState(s => ({ onboardForm: { ...s.onboardForm, cls: e.target.value } }));
+  onBoardChange = (e) => this.setState(s => ({ onboardForm: { ...s.onboardForm, board: e.target.value } }));
+  onSetOnboardLang_en = () => this.setState({ language: 'en' });
+  onSetOnboardLang_hi = () => this.setState({ language: 'hi' });
+
+  submitOnboarding = () => {
+    const f = this.state.onboardForm;
+    if (!f.name.trim()) return;
+    this.setState({ onboarded: true, student: { ...f }, view: 'home' });
+  };
+
+  goHome = () => this.setState({ view: 'home', selectedChapterId: null, selectedTopicId: null });
+  goProgress = () => this.setState({ view: 'progress' });
+  goSettings = () => this.setState({ view: 'settings' });
+  selectSubject = (id) => this.setState({ selectedSubjectId: id, view: 'home' });
+
+  openChapterTopics = (chapterId) => this.setState({ view: 'chapter', selectedChapterId: chapterId, selectedTopicId: null });
+
+  openTopic = (topicId, tab) => {
+    const found = this.findTopic(topicId);
+    this.setState({
+      view: 'topic', selectedChapterId: found ? found.chapter.id : this.state.selectedChapterId, selectedTopicId: topicId,
+      chapterTab: tab || 'notes', chapterLoading: true, activeVideoId: null, handwrittenOpen: false,
+      quiz: { answers: {}, submitted: false }, exam: { stage: 'intro', mcqAnswers: {}, submitted: false }
+    });
+    setTimeout(() => this.setState({ chapterLoading: false }), 500);
+  };
+  setChapterTab = (tab) => this.setState({ chapterTab: tab });
+
+  startChapter = () => {
+    this.updateTopic(this.state.selectedTopicId, { status: 'revision', progress: 5 });
+    this.forceUpdate();
+  };
+
+  printNotes = () => window.print();
+  toggleHandwritten = () => this.setState(s => ({ handwrittenOpen: !s.handwrittenOpen }));
+  toggleDoubt = () => this.setState(s => ({ doubtOpen: !s.doubtOpen }));
+  onDoubtInputChange = (e) => this.setState({ doubtInput: e.target.value });
+  onDoubtKeyDown = (e) => { if (e.key === 'Enter') this.sendDoubt(); };
+
+  sendDoubt = async () => {
+    const text = this.state.doubtInput.trim();
+    if (!text || this.state.doubtThinking) return;
+    const isHi = this.state.language === 'hi';
+    const found = this.findTopic(this.state.selectedTopicId);
+    const chapterTitle = found ? (isHi ? found.topic.title.hi : found.topic.title.en) : '';
+    this.setState(s => ({ doubtHistory: [...s.doubtHistory, { role: 'user', text }], doubtInput: '', doubtThinking: true }));
+    try {
+      const answer = await window.claude.complete({
+        system: `You are a friendly tutor helping a school student (class 3-8, CBSE board) with the chapter "${chapterTitle}" in Science. Answer clearly and simply in 2-4 short sentences, suitable for a young student. Respond in ${isHi ? 'Hindi (Devanagari script)' : 'English'}. Reply in plain prose only, with no Markdown formatting whatsoever (no #, *, **, bullets, or numbered lists).`,
+        messages: [...this.state.doubtHistory, { role: 'user', content: text }].map(m => ({ role: m.role, content: m.text || text }))
+      });
+      this.setState(s => ({ doubtHistory: [...s.doubtHistory, { role: 'assistant', text: answer }], doubtThinking: false }));
+    } catch (err) {
+      this.setState(s => ({ doubtHistory: [...s.doubtHistory, { role: 'assistant', text: isHi ? 'क्षमा करें, अभी उत्तर नहीं दे सका।' : "Sorry, I couldn't answer right now." }], doubtThinking: false }));
+    }
+  };
+
+  setExplainSingle = (mode) => this.setState({ explainA: mode });
+  setExplainMode = (slot, mode) => this.setState(s => slot === 'a' ? { explainA: mode } : { explainB: mode });
+  toggleCompare = () => this.setState(s => ({ explainCompare: !s.explainCompare }));
+
+  playVideo = (id) => this.setState({ activeVideoId: id });
+
+  selectQuizOption = (qid, idx) => this.setState(s => ({ quiz: { ...s.quiz, answers: { ...s.quiz.answers, [qid]: idx } } } ));
+  seeQuizResults = () => {
+    const id = this.state.selectedTopicId;
+    const quizSrc = (this.chapterContent[id] && this.chapterContent[id].quiz) || [];
+    const total = quizSrc.length;
+    let correct = 0;
+    quizSrc.forEach(q => { if (this.state.quiz.answers[q.id] === q.correct) correct++; });
+    const pct = total ? correct / total : 0;
+    let newStatus, newProgress;
+    if (pct >= 0.8) { newStatus = 'mastered'; newProgress = 100; }
+    else if (pct >= 0.4) { newStatus = 'revision'; newProgress = 70; }
+    else { newStatus = 'revision'; newProgress = 40; }
+    const found = this.findTopic(id);
+    if (found) this.updateTopic(id, { status: newStatus, progress: Math.max(found.topic.progress, newProgress) });
+    this.setState(s => ({ quiz: { ...s.quiz, submitted: true, score: correct, total } }));
+  };
+  retryQuiz = () => this.setState({ quiz: { answers: {}, submitted: false } });
+
+  selectExamMcq = (qid, idx) => this.setState(s => ({ exam: { ...s.exam, mcqAnswers: { ...s.exam.mcqAnswers, [qid]: idx } } }));
+  startExam = () => this.setState({ exam: { stage: 'progress', mcqAnswers: {}, submitted: false } });
+  submitExam = () => this.setState(s => ({ exam: { ...s.exam, submitted: true } }));
+  retakeExam = () => this.setState({ exam: { stage: 'intro', mcqAnswers: {}, submitted: false } });
+
+  toggleSubscription = () => this.setState(s => ({ subscription: s.subscription === 'Free plan' ? 'Premium' : 'Free plan' }));
+  restartOnboarding = () => this.setState({ onboarded: false });
+
+  renderVals() {
+    const s = this.state;
+    const lang = s.language;
+    const isHi = lang === 'hi';
+    const ui = isHi ? this.HI : this.EN;
+    const T = (obj) => obj[lang];
+
+    const statusMeta = (status) => {
+      const c = this.COLORS[status];
+      return { statusBg: c.bg, statusFg: c.fg, statusDot: c.dot, statusLabel: T(c.label) };
+    };
+
+    const chapterRollup = (ch) => {
+      const topics = ch.topics || [];
+      const progress = topics.length ? Math.round(topics.reduce((a, t) => a + t.progress, 0) / topics.length) : 0;
+      let status;
+      if (topics.length && topics.every(t => t.status === 'mastered')) status = 'mastered';
+      else if (topics.some(t => t.status === 'revision' || t.status === 'mastered')) status = 'revision';
+      else status = 'not-started';
+      return { status, progress };
+    };
+
+    const chList = this.chapters[s.selectedSubjectId] || [];
+    const chaptersForSubject = chList.map(ch => {
+      const { status, progress } = chapterRollup(ch);
+      const meta = statusMeta(status);
+      const ctaLabel = status === 'mastered' ? (isHi ? 'फिर से देखें' : 'Review') :
+                        status === 'revision' ? (isHi ? 'दोहराएँ' : 'Continue') : (isHi ? 'शुरू करें' : 'Start');
+      return { id: ch.id, title: T(ch.title), progressPct: progress + '%', ctaLabel, onOpen: () => this.openChapterTopics(ch.id), ...meta };
+    });
+
+    const subjects = this.subjectsData.map(sub => ({
+      id: sub.id, name: T(sub.name),
+      bg: s.selectedSubjectId === sub.id ? 'oklch(92% 0.06 145)' : 'transparent',
+      fg: s.selectedSubjectId === sub.id ? 'oklch(38% 0.13 145)' : 'oklch(28% 0.025 85)',
+      weight: s.selectedSubjectId === sub.id ? 700 : 500,
+      dot: sub.id === 'science' ? 'oklch(55% 0.15 145)' : sub.id === 'maths' ? 'oklch(65% 0.15 70)' : 'oklch(55% 0.13 240)',
+      onSelect: () => this.selectSubject(sub.id)
+    }));
+
+    const currentSubject = this.subjectsData.find(x => x.id === s.selectedSubjectId);
+    const lightTopic = this.chapters.science[0].topics[0];
+    const todaysFocus = s.selectedSubjectId === 'science' ? {
+      topic: isHi ? 'परावर्तन कोण' : 'Reflection angles',
+      reason: isHi ? '"छाया और परावर्तन" में यह विषय अभी दोहराने लायक है।' : 'Worth revisiting in Shadows and Reflections.',
+      onClick: () => this.openTopic('light-shadows-reflections', 'practice')
+    } : null;
+
+    const currentChapterRaw = chList.find(c => c.id === s.selectedChapterId);
+    const currentChapterObj = currentChapterRaw ? { title: T(currentChapterRaw.title) } : {};
+    const topicsForChapter = currentChapterRaw ? (currentChapterRaw.topics || []).map(tp => {
+      const meta = statusMeta(tp.status);
+      const ctaLabel = tp.status === 'mastered' ? (isHi ? 'फिर से देखें' : 'Review') :
+                        tp.status === 'revision' ? (isHi ? 'दोहराएँ' : 'Continue') : (isHi ? 'शुरू करें' : 'Start');
+      return { id: tp.id, title: T(tp.title), progressPct: tp.progress + '%', ctaLabel, onOpen: () => this.openTopic(tp.id), ...meta };
+    }) : [];
+
+    const currentTopicRaw = currentChapterRaw ? (currentChapterRaw.topics || []).find(t => t.id === s.selectedTopicId) : null;
+    const currentTopic = currentTopicRaw ? { title: T(currentTopicRaw.title), ...statusMeta(currentTopicRaw.status) } : {};
+    const chContent = this.chapterContent[s.selectedTopicId];
+    const hasFullContent = !!chContent;
+    const isLightTopic = s.selectedTopicId === 'light-shadows-reflections';
+    const notStarted = currentTopicRaw && currentTopicRaw.status === 'not-started';
+
+    const tabDefs = [
+      ['notes', ui.tabNotes], ['explain', ui.tabExplain], ['videos', ui.tabVideos], ['practice', ui.tabPractice], ['examprep', ui.tabExamPrep]
+    ];
+    const chapterTabs = tabDefs.map(([key, label]) => ({
+      label, onClick: () => this.setChapterTab(key),
+      color: s.chapterTab === key ? 'oklch(38% 0.13 145)' : 'oklch(46% 0.02 85)',
+      borderColor: s.chapterTab === key ? 'oklch(52% 0.16 145)' : 'transparent'
+    }));
+
+    const notesSections = hasFullContent ? (chContent.notes[lang] || chContent.notes.en || []) : [];
+
+    const explainSrc = chContent ? chContent.explain : {};
+    const explainKeyOrder = ['story', 'picture', 'realworld', 'gofurther'].filter(k => explainSrc[k]);
+    const explainModes = explainKeyOrder.map(key => ({
+      key, label: T((explainSrc[key] && explainSrc[key].label) || this.GENERIC_LABELS[key]),
+      onClick: () => this.setExplainMode(s.explainCompare ? (s.explainA === key ? 'a' : 'b') : 'a', key),
+      bg: (s.explainA === key || s.explainB === key) ? 'oklch(52% 0.16 145)' : 'white',
+      fg: (s.explainA === key || s.explainB === key) ? 'white' : 'oklch(28% 0.025 85)',
+      borderColor: (s.explainA === key || s.explainB === key) ? 'oklch(52% 0.16 145)' : 'oklch(88% 0.016 85)'
+    }));
+    const mkPane = (key) => {
+      const d = explainSrc[key];
+      if (!d) return { label: '', body: '', hasImage: false, imageLabel: '' };
+      return { label: T(d.label || this.GENERIC_LABELS[key]), body: T(d.body), hasImage: key === 'picture', imageLabel: d.image ? T(d.image) : '' };
+    };
+    const effExplainA = explainSrc[s.explainA] ? s.explainA : (explainKeyOrder[0] || 'story');
+    const effExplainB = explainSrc[s.explainB] ? s.explainB : (explainKeyOrder[1] || explainKeyOrder[0] || 'realworld');
+
+    const videoSrc = (chContent && chContent.videos) || [];
+    const videos = videoSrc.map(v => ({ ...v, onPlay: () => this.playVideo(v.id) }));
+    const activeVideoRaw = videoSrc.find(v => v.id === s.activeVideoId);
+
+    const quizSrc = (chContent && chContent.quiz) || [];
+    const quizQuestions = quizSrc.map(q => {
+      const answered = s.quiz.answers[q.id];
+      const kindLabel = q.kind === 'mcq' ? (isHi ? 'बहुविकल्पीय' : 'Multiple choice') : q.kind === 'assertion-reason' ? (isHi ? 'कथन-कारण' : 'Assertion-Reason') : (isHi ? 'चित्र-आधारित' : 'Picture-based');
+      const options = q.options.map((opt, idx) => {
+        let bg = 'white', fg = 'oklch(28% 0.025 85)', borderColor = 'oklch(88% 0.016 85)';
+        if (answered !== undefined) {
+          if (idx === q.correct) { bg = 'oklch(93% 0.06 145)'; fg = 'oklch(35% 0.1 145)'; borderColor = 'oklch(55% 0.15 145)'; }
+          else if (idx === answered) { bg = 'oklch(96% 0.03 30)'; fg = 'oklch(45% 0.1 30)'; borderColor = 'oklch(60% 0.12 30)'; }
+        }
+        return { text: opt, bg, fg, borderColor, onClick: answered === undefined ? () => this.selectQuizOption(q.id, idx) : () => {} };
+      });
+      const correct = answered === q.correct;
+      return {
+        kindLabel, text: q.text, hasImage: q.kind === 'picture', imageLabel: q.imageLabel, options,
+        revealed: answered !== undefined,
+        feedbackColor: correct ? 'oklch(35% 0.1 145)' : 'oklch(45% 0.1 30)',
+        feedbackText: answered === undefined ? '' : correct ? (isHi ? 'बहुत बढ़िया!' : 'Nice work!') : (isHi ? 'फिर कोशिश करते हैं — सही उत्तर हरे रंग में है।' : "Let's look at this again \u2014 the right answer is highlighted in green.")
+      };
+    });
+    const quizAnsweredCount = Object.keys(s.quiz.answers).length;
+    const quizTotalCount = quizSrc.length;
+
+    const examSections = this.examData.sections.map(sec => ({
+      heading: sec.heading,
+      questions: sec.questions.map(q => {
+        const weak = lightTopic.weakTopics.includes(q.topic);
+        if (q.kind === 'mcq') {
+          const answered = s.exam.mcqAnswers[q.id];
+          const options = q.options.map((opt, idx) => {
+            let bg = 'white', fg = 'oklch(28% 0.025 85)', borderColor = 'oklch(88% 0.016 85)';
+            if (s.exam.submitted) {
+              if (idx === q.correct) { bg = 'oklch(93% 0.06 145)'; fg = 'oklch(35% 0.1 145)'; borderColor = 'oklch(55% 0.15 145)'; }
+              else if (idx === answered) { bg = 'oklch(96% 0.03 30)'; borderColor = 'oklch(60% 0.12 30)'; }
+            } else if (idx === answered) { bg = 'oklch(92% 0.06 145)'; borderColor = 'oklch(52% 0.16 145)'; }
+            return { text: opt, bg, fg, borderColor, onClick: s.exam.submitted ? () => {} : () => this.selectExamMcq(q.id, idx) };
+          });
+          return { text: q.text, weak, isMcq: true, isWritten: false, options };
+        }
+        return { text: q.text, weak, isMcq: false, isWritten: true };
+      })
+    }));
+
+    let sectionAScore = 0, sectionATotal = 0;
+    this.examData.sections[0].questions.forEach(q => { sectionATotal++; if (s.exam.mcqAnswers[q.id] === q.correct) sectionAScore++; });
+    const allTopics = [...new Set(this.examData.sections.flatMap(sec => sec.questions.map(q => q.topic)))];
+    const readinessTopics = allTopics.map(topic => {
+      const weak = lightTopic.weakTopics.includes(topic);
+      const mcq = this.examData.sections[0].questions.find(q => q.topic === topic && q.kind === 'mcq');
+      const answeredCorrect = mcq ? s.exam.mcqAnswers[mcq.id] === mcq.correct : false;
+      const ready = !weak || answeredCorrect;
+      return { name: topic, label: ready ? ui.readyLabel || (isHi ? 'तैयार' : 'Ready') : (isHi ? 'अभ्यास ज़रूरी' : 'Needs practice'), bg: ready ? 'oklch(93% 0.06 145)' : 'oklch(94% 0.08 60)', fg: ready ? 'oklch(35% 0.1 145)' : 'oklch(40% 0.13 60)' };
+    });
+
+    const allSciTopics = this.chapters.science.flatMap(c => c.topics || []);
+    const overallProgress = allSciTopics.length ? allSciTopics.reduce((a, t) => a + t.progress, 0) / (allSciTopics.length * 100) : 0;
+
+    return {
+      isOnboarding: !s.onboarded, isApp: s.onboarded,
+      onboardForm: s.onboardForm, classOptions: ['Class 3','Class 4','Class 5','Class 6','Class 7','Class 8'], boardOptions: ['CBSE','ICSE','State Board'],
+      onNameChange: this.onNameChange, onClassChange: this.onClassChange, onBoardChange: this.onBoardChange,
+      langBtnEnBg: !isHi ? 'oklch(52% 0.16 145)' : 'transparent', langBtnEnFg: !isHi ? 'white' : 'oklch(28% 0.025 85)',
+      langBtnHiBg: isHi ? 'oklch(52% 0.16 145)' : 'transparent', langBtnHiFg: isHi ? 'white' : 'oklch(28% 0.025 85)',
+      onSetOnboardLang_en: this.onSetOnboardLang_en, onSetOnboardLang_hi: this.onSetOnboardLang_hi,
+      onboardDisabled: !s.onboardForm.name.trim(), onboardBtnBg: s.onboardForm.name.trim() ? 'oklch(52% 0.16 145)' : 'oklch(88% 0.03 145)',
+      submitOnboarding: this.submitOnboarding, ui, student: { ...s.student, initial: s.student.name.charAt(0) },
+      subscriptionLabel: s.subscription,
+
+      subjects, currentSubjectName: currentSubject ? T(currentSubject.name) : '',
+      progressNavBg: s.view === 'progress' ? 'oklch(92% 0.06 145)' : 'transparent', progressNavFg: s.view === 'progress' ? 'oklch(38% 0.13 145)' : 'oklch(28% 0.025 85)',
+      settingsNavBg: s.view === 'settings' ? 'oklch(92% 0.06 145)' : 'transparent', settingsNavFg: s.view === 'settings' ? 'oklch(38% 0.13 145)' : 'oklch(28% 0.025 85)',
+      goHome: this.goHome, goProgress: this.goProgress, goSettings: this.goSettings,
+
+      isHome: s.view === 'home', isChapter: s.view === 'chapter', isTopic: s.view === 'topic', isProgress: s.view === 'progress', isSettings: s.view === 'settings',
+      hasTodaysFocus: !!todaysFocus, todaysFocus: todaysFocus || {},
+      subjectHasChapters: chList.length > 0, subjectIsEmpty: chList.length === 0,
+      chaptersForSubject, currentChapterObj, topicsForChapter,
+
+      currentTopic, chapterTabs, chapterLoading: s.chapterLoading, chapterReady: !s.chapterLoading,
+      tabIsNotes: s.chapterTab === 'notes', tabIsExplain: s.chapterTab === 'explain', tabIsVideos: s.chapterTab === 'videos', tabIsPractice: s.chapterTab === 'practice', tabIsExamPrep: s.chapterTab === 'examprep',
+      notesEmpty: s.chapterTab === 'notes' && !!notStarted && !hasFullContent, notesStub: s.chapterTab === 'notes' && !hasFullContent && !notStarted, notesFull: s.chapterTab === 'notes' && hasFullContent,
+      notesSections, startChapter: this.startChapter, printNotes: this.printNotes,
+      toggleHandwritten: this.toggleHandwritten, handwrittenOpen: s.handwrittenOpen,
+      handwrittenFileUrl: 'data:application/pdf;base64,', handwrittenFileName: 'handwritten-notes.pdf',
+      toggleDoubt: this.toggleDoubt, doubtOpen: s.doubtOpen, doubtFabIcon: s.doubtOpen ? '\u2715' : '?',
+      doubtInput: s.doubtInput, onDoubtInputChange: this.onDoubtInputChange, onDoubtKeyDown: this.onDoubtKeyDown,
+      sendDoubt: this.sendDoubt, doubtSendDisabled: !s.doubtInput.trim() || s.doubtThinking, doubtThinking: s.doubtThinking,
+      doubtMessages: [{ role: 'assistant', text: ui.doubtGreeting }, ...s.doubtHistory].map(m => ({
+        align: m.role === 'user' ? 'flex-end' : 'flex-start',
+        bg: m.role === 'user' ? 'oklch(52% 0.16 145)' : 'oklch(95% 0.008 75)',
+        fg: m.role === 'user' ? 'white' : 'oklch(24% 0.02 280)',
+        text: m.text
+      })),
+
+      explainStub: s.chapterTab === 'explain' && !hasFullContent, explainFull: s.chapterTab === 'explain' && hasFullContent,
+      explainModes, compareOn: s.explainCompare, toggleCompare: this.toggleCompare,
+      compareBtnBg: s.explainCompare ? 'oklch(52% 0.16 145)' : 'white', compareBtnFg: s.explainCompare ? 'white' : 'oklch(28% 0.025 85)',
+      explainGridCols: s.explainCompare ? '1fr 1fr' : '1fr',
+      explainPaneA: mkPane(effExplainA), explainPaneB: mkPane(effExplainB),
+
+      videosStub: s.chapterTab === 'videos' && videoSrc.length === 0, videosFull: s.chapterTab === 'videos' && videoSrc.length > 0,
+      videos, hasActiveVideo: !!activeVideoRaw, activeVideo: activeVideoRaw || {},
+
+      practiceStub: s.chapterTab === 'practice' && !hasFullContent, quizNotSubmitted: s.chapterTab === 'practice' && hasFullContent && !s.quiz.submitted, quizSubmitted: s.chapterTab === 'practice' && hasFullContent && s.quiz.submitted,
+      quizQuestions, quizIncomplete: quizAnsweredCount < quizTotalCount, quizResultsBtnBg: quizAnsweredCount < quizTotalCount ? 'oklch(88% 0.03 145)' : 'oklch(52% 0.16 145)',
+      seeQuizResults: this.seeQuizResults, retryQuiz: this.retryQuiz,
+      quizScoreLabel: s.quiz.score !== undefined ? s.quiz.score + ' / ' + s.quiz.total : '',
+      quizFeedbackMsg: s.quiz.score !== undefined ? (s.quiz.score / s.quiz.total >= 0.8 ? (isHi ? 'शानदार! यह अध्याय अब पूर्ण निपुणता में है।' : 'Excellent! This chapter is now mastered.') : (isHi ? 'अच्छी कोशिश। कुछ विषय अभी दोहराने लायक हैं।' : 'Good attempt. A few topics are still worth revisiting.')) : '',
+
+      examStub: s.chapterTab === 'examprep' && !isLightTopic, examIntro: s.chapterTab === 'examprep' && isLightTopic && s.exam.stage === 'intro',
+      examInProgress: s.chapterTab === 'examprep' && isLightTopic && s.exam.stage === 'progress' && !s.exam.submitted,
+      examSubmitted: s.chapterTab === 'examprep' && isLightTopic && s.exam.stage === 'progress' && s.exam.submitted,
+      examSections, startExam: this.startExam, submitExam: this.submitExam, retakeExam: this.retakeExam,
+      examScoreLabel: sectionAScore + ' / ' + sectionATotal, readinessTopics,
+
+      overallMasteryPct: Math.round(overallProgress * 100) + '%', overallMasteryDeg: Math.round(overallProgress * 360),
+      toggleSubscription: this.toggleSubscription, restartOnboarding: this.restartOnboarding,
+
+    };
+  }
+}
+
+</script>
+</body>
+</html>
