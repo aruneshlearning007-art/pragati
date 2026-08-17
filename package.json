@@ -3,12 +3,10 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "dev:web": "pnpm --filter @pragati/web dev",
-    "dev:api": "pnpm --filter @pragati/api dev",
-    "build": "pnpm --filter @pragati/db build && pnpm --filter @pragati/shared build && pnpm --filter @pragati/api build && pnpm --filter @pragati/web build",
+    "dev": "pnpm --filter @pragati/web dev",
+    "build": "pnpm --filter @pragati/db generate && pnpm --filter @pragati/shared build && pnpm --filter @pragati/web build",
     "typecheck": "pnpm -r typecheck",
-    "lint": "pnpm -r lint",
-    "start": "pnpm --filter @pragati/db migrate:deploy && pnpm --filter @pragati/api start"
+    "lint": "pnpm -r lint"
   },
   "packageManager": "pnpm@10.33.0",
   "engines": {
