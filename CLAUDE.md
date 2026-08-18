@@ -63,10 +63,11 @@ applies in this repo.
 4. **Cheap personalization** — core content stays generic/cached per scope;
    personalization is a thin nudge layer on top, not per-student regeneration.
 5. **Child safety is structural** — every agent output must be age-appropriate
-   (audience is 8-14 year olds); doubt-chat (Phase 2, not yet built) needs a
-   moderation layer that logs a `SafetyIncident` and alerts teacher+parent via
-   in-app dashboard notification (not email/SMS) on harmful messages, with
-   auto-disable after repeated incidents.
+   (audience is 8-14 year olds); doubt-chat's moderation layer (built
+   2026-08-18, see Phase 2 below) logs a `SafetyIncident` and auto-disables
+   after repeated incidents. The teacher/parent in-app dashboard alert on
+   those incidents is not built yet — that's Phase 3/5 territory, once those
+   dashboards exist at all.
 6. **India-specific curriculum scoping**: Class 3-5 content is
    **school-scoped** (no national-standard book — every school uses a
    different one); Class 6-12 content is **board-scoped**
@@ -166,7 +167,25 @@ machine. Feel free to use them normally instead of the workarounds above.
   points at `/student/progress`, which 404s — no `page.tsx` exists under
   `apps/web/app/student/progress/`. Low priority, separate from Phase 1's
   scope; build when the user wants a progress view.
-- **Phase 2 — Doubt-chat + safety moderation** — not started.
+- **Phase 2 — Doubt-chat + safety moderation** ✅ core loop done (verified
+  live 2026-08-18): topic-scoped chat widget (`apps/web/components/DoubtChat.tsx`,
+  floating button + panel matching the Claude Design prototype) backed by
+  `apps/web/lib/agents/doubt.ts`. One Gemini call per turn both answers the
+  question and classifies it (self-harm, abuse, bullying, sexual content,
+  violence) via `SAFETY_MODERATION_INSTRUCTION` in
+  `packages/shared/src/prompts.ts`. Tested live on production with a normal
+  question (answered helpfully) and three different flagged scenarios
+  (bullying, hopelessness, online grooming) — each got a caring redirect-to-
+  a-trusted-adult reply instead of a normal answer, each logged a
+  `SafetyIncident` row, and after the 3rd incident the chat auto-disabled
+  (confirmed the input/button are actually `disabled` in the DOM, and the
+  4th message returned instantly without an LLM call).
+  **Known gap**: `SafetyIncident` rows are logged but nothing surfaces
+  them yet — no teacher or parent UI exists at all in this app so far, so
+  "alerts teacher+parent via in-app dashboard notification" from the product
+  philosophy above is not implemented. That lands naturally once Phase 3
+  (teacher panel) and Phase 5 (parent dashboard) exist; the data is already
+  there for them to query.
 - **Phase 3 — Teacher Content Panel** — not started. Also needs to resolve a
   known schema gap: `Chapter` currently has no `schoolId`, needed for the
   class 3-5 school-scoped upload path.
