@@ -110,26 +110,29 @@ machine. Feel free to use them normally instead of the workarounds above.
 ## Build sequence (phased, each phase ends with something live to click through)
 
 - **Phase 0 — Foundation** ✅ done: monorepo, Prisma schema, GitHub→Vercel→Supabase wired.
-- **Phase 1 — Student core loop** — code complete, **currently blocked on a
-  live bug**: after the Prisma-engine fix above, onboarding form submit still
-  produced a generic Next.js "Application error: a server-side exception...
+- **Phase 1 — Student core loop** — code complete, **error-surfacing work
+  now finished, real bug still needs to be walked live to confirm it's
+  gone**: after the Prisma-engine fix above, onboarding form submit was
+  producing a generic Next.js "Application error: a server-side exception...
   Digest: ..." page in production (message redacted by Next in prod, so the
-  real cause is still unconfirmed — could be a Gemini call failing during
-  first-visit content generation, a data issue, or something else). Work in
-  progress at the point this file was written: adding an `ErrorCard`
-  component (`apps/web/components/ErrorCard.tsx`, already created) and
-  wrapping the risky Server Component data-fetching in
-  `apps/web/app/student/layout.tsx` (done) and `apps/web/app/student/page.tsx`
-  (in progress, mid-edit) in try/catch so real error messages render directly
-  in the browser instead of being swallowed into the generic digest page —
-  this removes the need to fetch Vercel logs for most future issues. Still
-  needs the same treatment in
+  real cause was unconfirmed — could be a Gemini call failing during
+  first-visit content generation, a data issue, or something else). Every
+  Server Component in the onboarding→home→topic flow that does risky
+  data-fetching is now wrapped in try/catch and renders the real error via
+  `ErrorCard` (`apps/web/components/ErrorCard.tsx`) instead of the generic
+  digest page: `apps/web/app/page.tsx` (root redirect — this one was still
+  unguarded, fixed 2026-08-18), `apps/web/app/student/layout.tsx`,
+  `apps/web/app/student/page.tsx`, and
   `apps/web/app/student/topics/[topicId]/page.tsx` (NotesPane/ExplainPane).
-  Consider also adding a `/api/debug/health` route that checks env var
-  presence + does a live `SELECT 1` DB ping, for one-shot diagnosis.
-  **Next step: finish this error-surfacing work, then actually resolve
-  whatever it reveals, then walk the full onboarding→home→topic→quiz flow
-  live before calling Phase 1 done.**
+  `apps/web/app/api/debug/health/route.ts` also already exists for one-shot
+  env-var + DB-ping diagnosis. `pnpm -r typecheck` and `next build` both pass
+  clean locally as of this fix.
+  **Next step: this sandbox has no access to the live Supabase DB or the
+  `pragati20` Vercel team, so the actual production error text has not been
+  seen yet — deploy this fix, then walk the onboarding form live. If it still
+  errors, the ErrorCard will now show the real message/stack in the browser;
+  paste that back here to resolve the root cause. Then walk the full
+  onboarding→home→topic→quiz flow live before calling Phase 1 done.**
 - **Phase 2 — Doubt-chat + safety moderation** — not started.
 - **Phase 3 — Teacher Content Panel** — not started. Also needs to resolve a
   known schema gap: `Chapter` currently has no `schoolId`, needed for the
