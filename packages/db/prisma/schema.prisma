@@ -161,6 +161,7 @@ model SubConcept {
 
   masteryScores     MasteryScore[]
   misconceptionTags MisconceptionTag[]
+  quizQuestions     QuizQuestion[]
 
   @@index([topicId])
 }
@@ -244,6 +245,7 @@ model Explanation {
 model QuizQuestion {
   id           String       @id @default(cuid())
   topicId      String
+  subConceptId String?
   schoolId     String?
   board        String
   class        String
@@ -254,8 +256,9 @@ model QuizQuestion {
   imageLabel   String?
   createdAt    DateTime     @default(now())
 
-  topic  Topic   @relation(fields: [topicId], references: [id])
-  school School? @relation(fields: [schoolId], references: [id])
+  topic      Topic       @relation(fields: [topicId], references: [id])
+  subConcept SubConcept? @relation(fields: [subConceptId], references: [id])
+  school     School?     @relation(fields: [schoolId], references: [id])
 
   attempts QuizAttempt[]
 
