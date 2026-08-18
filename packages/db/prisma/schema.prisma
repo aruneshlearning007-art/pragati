@@ -1,6 +1,11 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../generated/client"
+  provider      = "prisma-client-js"
+  output        = "../generated/client"
+  // Vercel's serverless runtime image differs from the build image; without
+  // this the query engine binary generated at build time doesn't match what
+  // the function actually runs on ("Query Engine for runtime rhel-openssl-3.0.x
+  // not found").
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
