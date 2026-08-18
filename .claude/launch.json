@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "pragati-web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@pragati/web", "dev"],
+      "port": 3000
+    }
+  ]
+}

@@ -10,3 +10,4 @@ build/
 .turbo/
 packages/db/generated/
 *.tsbuildinfo
+.secrets/
