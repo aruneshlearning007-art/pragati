@@ -7,6 +7,7 @@ import { getOrGenerateExplanations } from "@/lib/agents/pedagogy";
 import { ExplainTab } from "@/components/ExplainTab";
 import { PracticeTab } from "@/components/PracticeTab";
 import { UI, type Language } from "@/lib/i18n";
+import { ErrorCard } from "@/components/ErrorCard";
 
 type Tab = "notes" | "explain" | "practice";
 
@@ -26,12 +27,20 @@ export default async function TopicPage({
   const { tab: tabParam } = await searchParams;
   const tab: Tab = tabParam === "explain" || tabParam === "practice" ? tabParam : "notes";
 
-  const topic = await prisma.topic.findUnique({
-    where: { id: topicId },
-    include: { chapter: { include: { subject: true } } },
-  });
-  if (!topic) {
-    return <p style={{ color: "var(--color-text-muted)" }}>Topic not found.</p>;
+  let topic: Awaited<ReturnType<typeof prisma.topic.findUnique>> & {
+    chapter: { titleEn: string; titleHi: string | null };
+  };
+  try {
+    const found = await prisma.topic.findUnique({
+      where: { id: topicId },
+      include: { chapter: { include: { subject: true } } },
+    });
+    if (!found) {
+      return <p style={{ color: "var(--color-text-muted)" }}>Topic not found.</p>;
+    }
+    topic = found;
+  } catch (err) {
+    return <ErrorCard title="Could not load this topic" error={err} />;
   }
 
   const scope = getContentScope({
@@ -89,7 +98,12 @@ async function NotesPane({
   scope: ReturnType<typeof getContentScope>;
   language: Language;
 }) {
-  const sections = await getOrGenerateNotes(topicId, scope, language);
+  let sections: Awaited<ReturnType<typeof getOrGenerateNotes>>;
+  try {
+    sections = await getOrGenerateNotes(topicId, scope, language);
+  } catch (err) {
+    return <ErrorCard title="Could not generate notes for this topic" error={err} />;
+  }
   return (
     <div className="max-w-3xl flex flex-col gap-4">
       {sections.map((s, i) => (
@@ -115,6 +129,11 @@ async function ExplainPane({
   scope: ReturnType<typeof getContentScope>;
   language: Language;
 }) {
-  const variants = await getOrGenerateExplanations(topicId, scope, language);
+  let variants: Awaited<ReturnType<typeof getOrGenerateExplanations>>;
+  try {
+    variants = await getOrGenerateExplanations(topicId, scope, language);
+  } catch (err) {
+    return <ErrorCard title="Could not generate explanations for this topic" error={err} />;
+  }
   return <ExplainTab variants={variants} language={language} />;
 }

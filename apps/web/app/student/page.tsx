@@ -1,8 +1,11 @@
 import Link from "next/link";
-import { prisma } from "@pragati/db";
+import { prisma, Prisma } from "@pragati/db";
 import { getCurrentStudent } from "@/lib/session-server";
-import { getChapterStatus } from "@/lib/agents/diagnostic";
+import { getChapterStatus, type TopicStatus } from "@/lib/agents/diagnostic";
 import { UI, STATUS_STYLES, type Language } from "@/lib/i18n";
+import { ErrorCard } from "@/components/ErrorCard";
+
+type ChapterWithTopics = Prisma.ChapterGetPayload<{ include: { topics: true } }>;
 
 export default async function StudentHomePage({
   searchParams,
@@ -14,26 +17,32 @@ export default async function StudentHomePage({
   const language = (student.language as Language) ?? "en";
   const t = UI[language];
 
-  const { subject: subjectIdParam } = await searchParams;
-  const subjects = await prisma.subject.findMany({ orderBy: { nameEn: "asc" } });
-  const activeSubject = subjects.find((s) => s.id === subjectIdParam) ?? subjects[0];
+  let activeSubject: Awaited<ReturnType<typeof prisma.subject.findMany>>[number] | undefined;
+  let chapterCards: { chapter: ChapterWithTopics; status: TopicStatus; progress: number }[];
+  try {
+    const { subject: subjectIdParam } = await searchParams;
+    const subjects = await prisma.subject.findMany({ orderBy: { nameEn: "asc" } });
+    activeSubject = subjects.find((s) => s.id === subjectIdParam) ?? subjects[0];
 
-  if (!activeSubject) {
-    return <p style={{ color: "var(--color-text-muted)" }}>No subjects yet.</p>;
+    if (!activeSubject) {
+      return <p style={{ color: "var(--color-text-muted)" }}>No subjects yet.</p>;
+    }
+
+    const chapters = await prisma.chapter.findMany({
+      where: { subjectId: activeSubject.id, class: student.class ?? undefined, board: student.board ?? undefined },
+      include: { topics: true },
+      orderBy: { createdAt: "asc" },
+    });
+
+    chapterCards = await Promise.all(
+      chapters.map(async (ch) => {
+        const { status, progress } = await getChapterStatus(student.id, ch.id);
+        return { chapter: ch, status, progress };
+      }),
+    );
+  } catch (err) {
+    return <ErrorCard title="Could not load your subjects" error={err} />;
   }
-
-  const chapters = await prisma.chapter.findMany({
-    where: { subjectId: activeSubject.id, class: student.class ?? undefined, board: student.board ?? undefined },
-    include: { topics: true },
-    orderBy: { createdAt: "asc" },
-  });
-
-  const chapterCards = await Promise.all(
-    chapters.map(async (ch) => {
-      const { status, progress } = await getChapterStatus(student.id, ch.id);
-      return { chapter: ch, status, progress };
-    }),
-  );
 
   return (
     <div>

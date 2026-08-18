@@ -32,7 +32,10 @@ export default function OnboardingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, language }),
       });
-      if (!res.ok) throw new Error("Something went wrong. Please try again.");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Something went wrong. Please try again.");
+      }
       router.push("/student");
       router.refresh();
     } catch (err) {

@@ -4,14 +4,26 @@ import { prisma } from "@pragati/db";
 import { getCurrentStudent } from "@/lib/session-server";
 import { UI, type Language } from "@/lib/i18n";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { ErrorCard } from "@/components/ErrorCard";
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
-  const student = await getCurrentStudent();
+  let student: Awaited<ReturnType<typeof getCurrentStudent>>;
+  let subjects: Awaited<ReturnType<typeof prisma.subject.findMany>>;
+  try {
+    student = await getCurrentStudent();
+    subjects = student ? await prisma.subject.findMany({ orderBy: { nameEn: "asc" } }) : [];
+  } catch (err) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-8">
+        <ErrorCard title="Could not load your profile" error={err} />
+      </div>
+    );
+  }
+
   if (!student) redirect("/onboarding");
 
   const language = (student.language as Language) ?? "en";
   const t = UI[language];
-  const subjects = await prisma.subject.findMany({ orderBy: { nameEn: "asc" } });
 
   return (
     <div className="pg-shell flex h-screen" style={{ background: "var(--color-bg)" }}>
