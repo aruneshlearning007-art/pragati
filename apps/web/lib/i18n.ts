@@ -27,6 +27,11 @@ export const UI = {
     mastered: "Mastered",
     revision: "Needs revision",
     notStarted: "Not started",
+    doubtTitle: "Ask a doubt",
+    doubtPlaceholder: "Type your question…",
+    doubtSend: "Send",
+    doubtThinking: "Thinking…",
+    doubtGreeting: "Hi! Ask me anything about this topic and I'll help you understand it.",
   },
   hi: {
     appName: "प्रगति",
@@ -56,6 +61,11 @@ export const UI = {
     mastered: "पूर्ण निपुणता",
     revision: "दोहराने की ज़रूरत",
     notStarted: "शुरू नहीं हुआ",
+    doubtTitle: "शंका पूछें",
+    doubtPlaceholder: "अपना प्रश्न लिखें…",
+    doubtSend: "भेजें",
+    doubtThinking: "सोच रहा हूँ…",
+    doubtGreeting: "नमस्ते! इस विषय के बारे में कुछ भी पूछें, मैं समझाने में मदद करूँगा।",
   },
 } as const;
 

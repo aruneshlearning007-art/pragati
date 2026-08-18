@@ -6,6 +6,7 @@ import { getOrGenerateNotes } from "@/lib/agents/notes";
 import { getOrGenerateExplanations } from "@/lib/agents/pedagogy";
 import { ExplainTab } from "@/components/ExplainTab";
 import { PracticeTab } from "@/components/PracticeTab";
+import { DoubtChat } from "@/components/DoubtChat";
 import { UI, type Language } from "@/lib/i18n";
 import { ErrorCard } from "@/components/ErrorCard";
 
@@ -85,6 +86,8 @@ export default async function TopicPage({
       {tab === "notes" && <NotesPane topicId={topicId} scope={scope} language={language} />}
       {tab === "explain" && <ExplainPane topicId={topicId} scope={scope} language={language} />}
       {tab === "practice" && <PracticeTab topicId={topicId} language={language} />}
+
+      <DoubtChat topicId={topicId} language={language} />
     </div>
   );
 }

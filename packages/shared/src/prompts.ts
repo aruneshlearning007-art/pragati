@@ -18,3 +18,20 @@ export const TEACH_NOT_ROTE_INSTRUCTION =
 export function withBaseInstructions(taskSpecificPrompt: string): string {
   return `${CHILD_AUDIENCE_INSTRUCTION}\n\n${TEACH_NOT_ROTE_INSTRUCTION}\n\n${taskSpecificPrompt}`;
 }
+
+// Doubt-chat replies must pass through this moderation framing before ever
+// reaching a student. It classifies every incoming message in the same LLM
+// call that would otherwise just answer it, so a harmful message never
+// produces a normal answer by accident.
+export const SAFETY_MODERATION_INSTRUCTION =
+  "Before writing your reply, silently check the student's message for signs of: self-harm or " +
+  "suicidal thoughts, being bullied, abused, or unsafe at home or school, sexual content, violent " +
+  "intent, or anything else an adult should know about urgently. " +
+  "If you see any such sign, do NOT answer the question normally. Instead write a short, warm, " +
+  'age-appropriate reply that does not lecture or alarm the student, gently encourages them to talk ' +
+  "to a trusted adult (a parent, teacher, or school counsellor) right now, and never dismisses what " +
+  'they said. Set "flagged" to true and "category" to one of: "self_harm", "abuse", "bullying", ' +
+  '"sexual_content", "violence", "other".\n' +
+  'If the message has no such sign, set "flagged" to false and "category" to null, and answer ' +
+  "normally and helpfully.\n" +
+  'Respond ONLY with strict JSON, no markdown, no commentary: {"flagged":boolean,"category":string|null,"reply":"string"}';
