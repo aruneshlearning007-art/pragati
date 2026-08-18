@@ -1,6 +1,11 @@
 generator client {
   provider      = "prisma-client-js"
-  output        = "../generated/client"
+  // Deliberately NOT customizing `output`: Vercel's file tracer has a
+  // built-in special case for the default node_modules/.prisma/client
+  // location in pnpm monorepos. A custom output path (tried first) kept
+  // getting dropped from the serverless bundle even with
+  // outputFileTracingIncludes set, causing "Query Engine ... not found" at
+  // runtime.
   // Vercel's serverless runtime image differs from the build image; without
   // this the query engine binary generated at build time doesn't match what
   // the function actually runs on ("Query Engine for runtime rhel-openssl-3.0.x

@@ -1,11 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@pragati/shared"],
-  // Prisma's generated client lives outside apps/web (packages/db/generated),
-  // so Vercel's file tracer needs an explicit hint to bundle its query
-  // engine binaries into the serverless functions.
+  // Prisma's query-engine binaries live deep in pnpm's content-addressed
+  // store (node_modules/.pnpm/...), and Next's automatic file tracer can't
+  // see through the dynamic require() Prisma's runtime uses to load them —
+  // it silently drops the binary from the deployed function, which then
+  // fails at runtime with "Query Engine ... not found" even though the
+  // build itself succeeds. Force-include it explicitly.
   outputFileTracingIncludes: {
-    "/**": ["../../packages/db/generated/client/**/*"],
+    "/**/*": ["../../node_modules/.pnpm/**/node_modules/.prisma/client/*.node"],
   },
 };
 
