@@ -148,29 +148,24 @@ machine. Feel free to use them normally instead of the workarounds above.
 ## Build sequence (phased, each phase ends with something live to click through)
 
 - **Phase 0 — Foundation** ✅ done: monorepo, Prisma schema, GitHub→Vercel→Supabase wired.
-- **Phase 1 — Student core loop** — code complete, **error-surfacing work
-  now finished, real bug still needs to be walked live to confirm it's
-  gone**: after the Prisma-engine fix above, onboarding form submit was
-  producing a generic Next.js "Application error: a server-side exception...
-  Digest: ..." page in production (message redacted by Next in prod, so the
-  real cause was unconfirmed — could be a Gemini call failing during
-  first-visit content generation, a data issue, or something else). Every
-  Server Component in the onboarding→home→topic flow that does risky
-  data-fetching is now wrapped in try/catch and renders the real error via
-  `ErrorCard` (`apps/web/components/ErrorCard.tsx`) instead of the generic
-  digest page: `apps/web/app/page.tsx` (root redirect — this one was still
-  unguarded, fixed 2026-08-18), `apps/web/app/student/layout.tsx`,
-  `apps/web/app/student/page.tsx`, and
-  `apps/web/app/student/topics/[topicId]/page.tsx` (NotesPane/ExplainPane).
-  `apps/web/app/api/debug/health/route.ts` also already exists for one-shot
-  env-var + DB-ping diagnosis. `pnpm -r typecheck` and `next build` both pass
-  clean locally as of this fix.
-  **Next step: this sandbox has no access to the live Supabase DB or the
-  `pragati20` Vercel team, so the actual production error text has not been
-  seen yet — deploy this fix, then walk the onboarding form live. If it still
-  errors, the ErrorCard will now show the real message/stack in the browser;
-  paste that back here to resolve the root cause. Then walk the full
-  onboarding→home→topic→quiz flow live before calling Phase 1 done.**
+- **Phase 1 — Student core loop** ✅ done (verified live 2026-08-18): the
+  ErrorCard work from the previous session (`apps/web/components/ErrorCard.tsx`,
+  wired into `apps/web/app/page.tsx`, `student/layout.tsx`, `student/page.tsx`,
+  `student/topics/[topicId]/page.tsx`) surfaced the real production error on
+  first live test — `prisma.user.findUnique()` failing with Postgres 42P05
+  "prepared statement already exists". Root cause: `DATABASE_URL` targets
+  Supabase's PgBouncer transaction pooler, which doesn't support prepared
+  statements; concurrent serverless invocations collided. Fixed in
+  `packages/db/src/index.ts` by appending `?pgbouncer=true` to the URL at
+  runtime (see https://pris.ly/d/pgbouncer) rather than editing the secret
+  value itself. Deployed and walked the full flow live on
+  https://pragati-web-swart.vercel.app: onboarding → home → Notes → Explain
+  (all 4 modes) → Practice quiz → submit → score (3/4) all worked with real
+  Gemini-generated content, no errors.
+  **Known gap (not a regression, never built)**: the "Progress" nav link
+  points at `/student/progress`, which 404s — no `page.tsx` exists under
+  `apps/web/app/student/progress/`. Low priority, separate from Phase 1's
+  scope; build when the user wants a progress view.
 - **Phase 2 — Doubt-chat + safety moderation** — not started.
 - **Phase 3 — Teacher Content Panel** — not started. Also needs to resolve a
   known schema gap: `Chapter` currently has no `schoolId`, needed for the
