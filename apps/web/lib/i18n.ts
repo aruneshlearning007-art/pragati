@@ -62,6 +62,10 @@ export const UI = {
     conceptsInChapter: "Concepts in this chapter",
     concept: "Concept",
     keyTermsTitle: "Key Terms",
+    whatWentWrong: "What you got wrong",
+    yourAnswer: "You chose",
+    correctAnswer: "Correct answer",
+    commonMixup: "Common mix-up",
   },
   hi: {
     appName: "प्रगति",
@@ -126,6 +130,10 @@ export const UI = {
     conceptsInChapter: "इस अध्याय के विषय-वस्तु",
     concept: "विषय-वस्तु",
     keyTermsTitle: "मुख्य शब्द",
+    whatWentWrong: "जो गलत हुआ",
+    yourAnswer: "आपने चुना",
+    correctAnswer: "सही उत्तर",
+    commonMixup: "आम भ्रम",
   },
 } as const;
 

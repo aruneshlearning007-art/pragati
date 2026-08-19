@@ -16,7 +16,12 @@ export function PracticeTab({ topicId, language }: { topicId: string; language: 
   const [questions, setQuestions] = useState<QuizQuestionView[] | null>(null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [submitted, setSubmitted] = useState(false);
-  const [result, setResult] = useState<{ score: number; total: number; correctByQuestionId: Record<string, boolean> } | null>(null);
+  const [result, setResult] = useState<{
+    score: number;
+    total: number;
+    correctByQuestionId: Record<string, boolean>;
+    feedbackByQuestionId: Record<string, { correctIndex: number; misconception: string | null }>;
+  } | null>(null);
   const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
@@ -75,25 +80,60 @@ export function PracticeTab({ topicId, language }: { topicId: string; language: 
         : language === "hi"
           ? "अच्छी कोशिश। कुछ हिस्से अभी दोहराने लायक हैं।"
           : "Good attempt. A few parts are still worth revisiting.";
+    const wrongQuestions = questions.filter((q) => result.correctByQuestionId[q.id] === false);
     return (
-      <div
-        className="max-w-md p-8 rounded-card text-center"
-        style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-      >
-        <div className="text-[13px] font-bold mb-1.5" style={{ color: "var(--color-text-muted)" }}>
-          {t.yourScore}
-        </div>
-        <div className="text-[40px] font-extrabold mb-2.5" style={{ color: "var(--color-primary)" }}>
-          {result.score} / {result.total}
-        </div>
-        <div className="text-sm mb-5">{message}</div>
-        <button
-          onClick={retry}
-          className="px-5 py-2.5 rounded-xl font-bold text-sm"
-          style={{ border: "1px solid var(--color-border)", background: "white" }}
+      <div className="max-w-md flex flex-col gap-4">
+        <div
+          className="p-8 rounded-card text-center"
+          style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
         >
-          {t.retry}
-        </button>
+          <div className="text-[13px] font-bold mb-1.5" style={{ color: "var(--color-text-muted)" }}>
+            {t.yourScore}
+          </div>
+          <div className="text-[40px] font-extrabold mb-2.5" style={{ color: "var(--color-primary)" }}>
+            {result.score} / {result.total}
+          </div>
+          <div className="text-sm mb-5">{message}</div>
+          <button
+            onClick={retry}
+            className="px-5 py-2.5 rounded-xl font-bold text-sm"
+            style={{ border: "1px solid var(--color-border)", background: "white" }}
+          >
+            {t.retry}
+          </button>
+        </div>
+
+        {wrongQuestions.length > 0 && (
+          <div className="p-5.5 rounded-card" style={{ background: "var(--color-revision-bg)", border: "1px solid var(--color-revision-dot)" }}>
+            <div className="font-heading font-bold text-[14px] mb-3" style={{ color: "var(--color-revision-fg)" }}>
+              {t.whatWentWrong}
+            </div>
+            <div className="flex flex-col gap-3.5">
+              {wrongQuestions.map((q) => {
+                const feedback = result.feedbackByQuestionId[q.id];
+                const yourIndex = answers[q.id];
+                return (
+                  <div key={q.id} className="text-[13px]">
+                    <div className="font-semibold mb-1" style={{ color: "var(--color-text)" }}>
+                      {q.text}
+                    </div>
+                    <div style={{ color: "var(--color-text-muted)" }}>
+                      {t.yourAnswer}: {yourIndex !== undefined ? q.options[yourIndex] : "—"}
+                    </div>
+                    <div style={{ color: "var(--color-mastered-fg)" }}>
+                      {t.correctAnswer}: {q.options[feedback.correctIndex]}
+                    </div>
+                    {feedback.misconception && (
+                      <div className="italic mt-0.5" style={{ color: "var(--color-revision-fg)" }}>
+                        {t.commonMixup}: {feedback.misconception}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     );
   }

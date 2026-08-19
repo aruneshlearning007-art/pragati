@@ -318,6 +318,12 @@ model QuizQuestion {
   text         String
   options      Json
   correctIndex Int
+  // Parallel array to `options` — one entry per option, null for the
+  // correct option, a short label for each wrong one describing the
+  // misconception a student holds if they pick it (e.g. "thinks plants
+  // absorb food from soil, not sunlight"). Set at generation time so
+  // grading a wrong answer is a free lookup, not a second LLM call.
+  optionMisconceptions Json?
   imageLabel   String?
   // Same review-workflow role as Chapter.status — see Explanation.status.
   status       ContentStatus @default(published)
@@ -361,18 +367,25 @@ model MasteryScore {
   @@unique([studentId, subConceptId])
 }
 
-// Written by the Diagnostic Engine from wrong-answer patterns and doubt-chat
-// signals — feeds the personalized nudge layer on Explain.
+// Written by the Diagnostic Engine from wrong-answer patterns (via each
+// wrong option's pre-labeled optionMisconceptions entry on QuizQuestion)
+// — feeds the personalized nudge layer on Doubt-chat. One row per distinct
+// (student, sub-concept, misconception type): a repeat occurrence upserts
+// (bumps `count`, refreshes `lastSeen`) instead of growing a new row per
+// wrong answer, so "recurring" is just `count >= 2`, not a query over
+// history.
 model MisconceptionTag {
   id           String   @id @default(cuid())
   studentId    String
   subConceptId String
   type         String
+  count        Int      @default(1)
   lastSeen     DateTime @default(now())
 
   student    User       @relation(fields: [studentId], references: [id])
   subConcept SubConcept @relation(fields: [subConceptId], references: [id])
 
+  @@unique([studentId, subConceptId, type])
   @@index([studentId, subConceptId])
 }
 

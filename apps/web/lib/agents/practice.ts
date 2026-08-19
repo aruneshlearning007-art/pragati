@@ -37,16 +37,26 @@ export async function getOrGenerateQuiz(
   const subConceptList = topic.subConcepts.map((s) => `${s.id}:${s.name}`).join("; ");
 
   const system = withBaseInstructions(
-    "You are the Practice Agent. Write a short topic quiz that checks real understanding, not memorized wording. " +
+    "You are the Practice Agent. Write a topic quiz that genuinely diagnoses understanding, not just memorized " +
+      "wording — cover every sub-concept listed, with at least 2 questions each. " +
       (options?.sourceText
         ? "The source chapter text provided may cover multiple topics/concepts — base every question strictly " +
           "on the source, but only on material relevant to THIS topic, ignoring parts of the source about " +
           "other concepts in the same chapter. Never invent facts beyond the source. "
         : "") +
+      "Mix question types: roughly half plain \"mcq\", and about a quarter \"assertion_reason\" (a two-part " +
+      "question — an assertion and a reason, testing WHETHER the reasoning is correct, not just the fact — " +
+      "this is the strongest way to tell a real misconception apart from a lucky guess). Vary difficulty too: " +
+      "include at least one pure-recall question and at least one application question (\"if X, what would " +
+      "happen\") rather than making every question the same style. " +
+      "For every question, write realistic wrong options — each one should be what a student with a specific, " +
+      "genuine misunderstanding would actually pick, not a random distractor. " +
       'Respond ONLY with strict JSON, no markdown, no code fences. Shape: {"questions":[{"kind":"mcq or ' +
       'assertion_reason or picture","text":"string","options":["a","b","c","d"],"correctIndex":0,' +
+      '"optionMisconceptions":["a short phrase describing the misunderstanding a student who picks this ' +
+      'option holds, or null for the correct option — one entry per option, same order as options"],' +
       '"subConceptName":"the closest matching sub-concept name from the list given, or null",' +
-      '"imageLabel":"a short placeholder caption if kind is picture, else null"}]} with 4-5 items. ' +
+      '"imageLabel":"a short placeholder caption if kind is picture, else null"}]} with 6-8 items. ' +
       "Use kind \"picture\" for at most one question, and only if it genuinely helps (the imageLabel describes " +
       "what a diagram/photo placeholder would show).",
   );
@@ -67,6 +77,7 @@ export async function getOrGenerateQuiz(
       text: string;
       options: string[];
       correctIndex: number;
+      optionMisconceptions?: (string | null)[];
       subConceptName: string | null;
       imageLabel: string | null;
     }[];
@@ -92,6 +103,7 @@ export async function getOrGenerateQuiz(
           text: q.text,
           options: q.options as unknown as object,
           correctIndex: q.correctIndex,
+          optionMisconceptions: q.optionMisconceptions ? (q.optionMisconceptions as unknown as object) : undefined,
           imageLabel: q.imageLabel,
           status: options?.status ?? "published",
         },

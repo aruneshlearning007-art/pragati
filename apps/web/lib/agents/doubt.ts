@@ -1,5 +1,6 @@
 import { prisma } from "@pragati/db";
 import { generate, extractJson, withBaseInstructions, SAFETY_MODERATION_INSTRUCTION } from "@pragati/shared";
+import { getActiveMisconceptions } from "./diagnostic";
 
 // After this many logged incidents for a student, doubt-chat stops calling
 // the LLM entirely and just points them to a trusted adult — until Phase 5's
@@ -62,10 +63,22 @@ export async function answerDoubt(
   // Last 10 turns of context is enough continuity without unbounded token growth.
   const recentHistory = history.slice(-10);
 
+  // Doubt-chat is inherently per-student (unlike Notes/Explain, which are
+  // cached and shared across a whole scope), so this is the one place a
+  // personalized nudge can safely live — see the caching-tension note in
+  // pedagogy.ts. Only recurring misconceptions (count >= 2) are surfaced,
+  // so a single wrong guess doesn't trigger a nudge.
+  const misconceptions = await getActiveMisconceptions(studentId, topicId);
+  const personalizationHint =
+    misconceptions.length > 0
+      ? ` This student has recently shown difficulty with: ${misconceptions.join("; ")}. If relevant to their question, gently address it without calling it out as a mistake.`
+      : "";
+
   const system = withBaseInstructions(
     "You are the Doubt Chat Agent: a friendly study helper answering one student's question about a " +
-      `specific topic they are currently studying. Subject: ${topic.chapter.subject.nameEn}. Topic: ${topic.titleEn}. ` +
-      "Keep replies short (2-5 sentences), conversational, and focused on building understanding — not just " +
+      `specific topic they are currently studying. Subject: ${topic.chapter.subject.nameEn}. Topic: ${topic.titleEn}.` +
+      personalizationHint +
+      " Keep replies short (2-5 sentences), conversational, and focused on building understanding — not just " +
       "handing over an answer to copy. If the student's message is off-topic but harmless, respond briefly and " +
       "warmly, then gently steer back to the topic. " +
       `Write your reply in ${language === "hi" ? "Hindi (Devanagari script)" : "English"}.\n\n` +

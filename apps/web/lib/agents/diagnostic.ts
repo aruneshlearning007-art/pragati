@@ -2,14 +2,17 @@ import { prisma } from "@pragati/db";
 
 /**
  * Diagnostic Engine — deterministic, no LLM call. Sole writer of
- * MasteryScore. Thresholds mirror the prototype: >=80% correct -> mastered,
- * >=40% -> revision, else revision-low. Misconception classification
- * (Phase 4) will read the same QuizAttempt rows this writes.
+ * MasteryScore and MisconceptionTag. Thresholds mirror the prototype:
+ * >=80% correct -> mastered, >=40% -> revision, else revision-low.
+ * Misconception classification is a free lookup, not a second LLM call —
+ * the Practice Agent (practice.ts) pre-labels each wrong option at
+ * generation time with the misconception it represents.
  */
 export interface QuizSubmitResult {
   score: number;
   total: number;
   correctByQuestionId: Record<string, boolean>;
+  feedbackByQuestionId: Record<string, { correctIndex: number; misconception: string | null }>;
 }
 
 export async function submitQuizAnswers(
@@ -22,6 +25,7 @@ export async function submitQuizAnswers(
   const questionById = new Map(questions.map((q) => [q.id, q]));
 
   const correctByQuestionId: Record<string, boolean> = {};
+  const feedbackByQuestionId: QuizSubmitResult["feedbackByQuestionId"] = {};
   let correctCount = 0;
 
   for (const [questionId, selectedIndex] of Object.entries(answers)) {
@@ -31,6 +35,20 @@ export async function submitQuizAnswers(
     correctByQuestionId[questionId] = correct;
     if (correct) correctCount++;
 
+    let misconception: string | null = null;
+    if (!correct) {
+      const labels = question.optionMisconceptions as unknown as (string | null)[] | null;
+      misconception = labels?.[selectedIndex] ?? null;
+      if (misconception && question.subConceptId) {
+        await prisma.misconceptionTag.upsert({
+          where: { studentId_subConceptId_type: { studentId, subConceptId: question.subConceptId, type: misconception } },
+          update: { count: { increment: 1 }, lastSeen: new Date() },
+          create: { studentId, subConceptId: question.subConceptId, type: misconception },
+        });
+      }
+    }
+    feedbackByQuestionId[questionId] = { correctIndex: question.correctIndex, misconception };
+
     await prisma.quizAttempt.create({
       data: { studentId, topicId, questionId, selectedIndex, correct },
     });
@@ -38,7 +56,23 @@ export async function submitQuizAnswers(
 
   await updateMasteryForTopic(studentId, topicId, questionIds);
 
-  return { score: correctCount, total: questionIds.length, correctByQuestionId };
+  return { score: correctCount, total: questionIds.length, correctByQuestionId, feedbackByQuestionId };
+}
+
+/**
+ * Sub-concepts this student has repeatedly shown the same misconception on
+ * (count >= 2 — a single wrong answer could just be a guess, not a real
+ * pattern) within one topic. Used to give Doubt-chat a personalized nudge
+ * without touching the scope-cached Explain content (see doubt.ts).
+ */
+export async function getActiveMisconceptions(studentId: string, topicId: string): Promise<string[]> {
+  const subConcepts = await prisma.subConcept.findMany({ where: { topicId } });
+  if (subConcepts.length === 0) return [];
+
+  const tags = await prisma.misconceptionTag.findMany({
+    where: { studentId, subConceptId: { in: subConcepts.map((s) => s.id) }, count: { gte: 2 } },
+  });
+  return tags.map((t) => t.type);
 }
 
 async function updateMasteryForTopic(studentId: string, topicId: string, questionIds: string[]): Promise<void> {
