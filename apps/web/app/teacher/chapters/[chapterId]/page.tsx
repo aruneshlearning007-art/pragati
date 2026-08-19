@@ -3,6 +3,8 @@ import Link from "next/link";
 import { prisma } from "@pragati/db";
 import { getCurrentTeacher } from "@/lib/session-server";
 import { PublishButton } from "@/components/PublishButton";
+import { RichText } from "@/components/RichText";
+import { WorkedExampleView, type WorkedExample } from "@/components/WorkedExampleView";
 import { UI, type Language } from "@/lib/i18n";
 
 export default async function ChapterReviewPage({ params }: { params: Promise<{ chapterId: string }> }) {
@@ -111,9 +113,11 @@ export default async function ChapterReviewPage({ params }: { params: Promise<{ 
               {sections.map((s, si) => (
                 <div key={si}>
                   <div className="font-heading font-semibold text-[14px] mb-1">{s.heading}</div>
-                  <div className="text-[13.5px] leading-relaxed whitespace-pre-wrap" style={{ color: "var(--color-text-muted)" }}>
-                    {s.body}
-                  </div>
+                  <RichText
+                    text={s.body}
+                    className="text-[13.5px] leading-relaxed whitespace-pre-wrap"
+                    style={{ color: "var(--color-text-muted)" }}
+                  />
                 </div>
               ))}
               {keyTerms.length > 0 && (
@@ -139,9 +143,14 @@ export default async function ChapterReviewPage({ params }: { params: Promise<{ 
                   <div className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: "var(--color-primary)" }}>
                     {e.mode}
                   </div>
-                  <div className="text-[13.5px] leading-relaxed whitespace-pre-wrap" style={{ color: "var(--color-text-muted)" }}>
-                    {e.body}
-                  </div>
+                  <RichText
+                    text={e.body}
+                    className="text-[13.5px] leading-relaxed whitespace-pre-wrap mb-2"
+                    style={{ color: "var(--color-text-muted)" }}
+                  />
+                  {e.mode === "worked" && e.workedExample && (
+                    <WorkedExampleView example={e.workedExample as unknown as WorkedExample} language={language} />
+                  )}
                 </div>
               ))}
             </div>
@@ -151,22 +160,32 @@ export default async function ChapterReviewPage({ params }: { params: Promise<{ 
             <div className="flex flex-col gap-4">
               {questions.map((q) => (
                 <div key={q.id}>
-                  <div className="text-[13.5px] font-semibold mb-1.5">{q.text}</div>
-                  <div className="flex flex-col gap-1">
-                    {(q.options as unknown as string[]).map((opt, idx) => (
-                      <div
-                        key={idx}
-                        className="text-[13px] px-2.5 py-1.5 rounded-md"
-                        style={
-                          idx === q.correctIndex
-                            ? { background: "var(--color-mastered-bg)", color: "var(--color-mastered-fg)" }
-                            : { color: "var(--color-text-muted)" }
-                        }
-                      >
-                        {opt} {idx === q.correctIndex && "✓"}
-                      </div>
-                    ))}
-                  </div>
+                  <RichText text={q.text} className="text-[13.5px] font-semibold mb-1.5" />
+                  {q.kind === "numeric" ? (
+                    <div
+                      className="text-[13px] px-2.5 py-1.5 rounded-md inline-block"
+                      style={{ background: "var(--color-mastered-bg)", color: "var(--color-mastered-fg)" }}
+                    >
+                      {q.correctValue}
+                      {q.tolerance > 0 ? ` (± ${q.tolerance})` : ""} ✓
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-1">
+                      {(q.options as unknown as string[]).map((opt, idx) => (
+                        <div
+                          key={idx}
+                          className="text-[13px] px-2.5 py-1.5 rounded-md"
+                          style={
+                            idx === q.correctIndex
+                              ? { background: "var(--color-mastered-bg)", color: "var(--color-mastered-fg)" }
+                              : { color: "var(--color-text-muted)" }
+                          }
+                        >
+                          {opt} {idx === q.correctIndex && "✓"}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

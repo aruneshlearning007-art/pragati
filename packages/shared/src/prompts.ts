@@ -15,8 +15,13 @@ export const TEACH_NOT_ROTE_INSTRUCTION =
   "favor clear reasoning over lists of facts to memorize. A student who reads your " +
   "output should come away understanding the concept, not just able to recite it.";
 
+export const MATH_NOTATION_INSTRUCTION =
+  "When writing a mathematical expression or equation, wrap it in single dollar signs, e.g. " +
+  "$3 \\times 4 = 12$ or $\\frac{3}{4}$, so it renders properly as real math notation instead of " +
+  "plain text - never use a dollar sign for currency (use ₹ instead).";
+
 export function withBaseInstructions(taskSpecificPrompt: string): string {
-  return `${CHILD_AUDIENCE_INSTRUCTION}\n\n${TEACH_NOT_ROTE_INSTRUCTION}\n\n${taskSpecificPrompt}`;
+  return `${CHILD_AUDIENCE_INSTRUCTION}\n\n${TEACH_NOT_ROTE_INSTRUCTION}\n\n${MATH_NOTATION_INSTRUCTION}\n\n${taskSpecificPrompt}`;
 }
 
 // Doubt-chat replies must pass through this moderation framing before ever

@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { RichText } from "@/components/RichText";
+import { WorkedExampleView, type WorkedExample } from "@/components/WorkedExampleView";
 import { UI, type Language } from "@/lib/i18n";
+import type { KeyTerm } from "@/lib/richtext";
 
 interface DiagramStep {
   icon: string;
@@ -18,47 +21,7 @@ interface ExplainVariant {
   mode: string;
   body: string;
   diagram: PictureDiagram | null;
-}
-
-interface KeyTerm {
-  term: string;
-  meaning: string;
-}
-
-function escapeRegExp(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-/**
- * Wraps whole-word, case-insensitive matches of any key term in a tooltip
- * span. Explain text is written freely by the model and often uses the
- * plain-English plural of a glossary term ("cotyledons") rather than the
- * exact singular listed ("Cotyledon") — matching allows one optional
- * trailing "s" so simple plurals still tooltip, without loosening the
- * match enough to catch unrelated words that merely start the same way
- * (e.g. "seed" must not match inside "seedling").
- */
-function renderWithTooltips(text: string, keyTerms: KeyTerm[]) {
-  if (keyTerms.length === 0) return text;
-  const sorted = [...keyTerms].sort((a, b) => b.term.length - a.term.length);
-  const pattern = sorted.map((kt) => `${escapeRegExp(kt.term)}s?`).join("|");
-  const regex = new RegExp(`\\b(${pattern})\\b`, "gi");
-  const meaningByLower = new Map(keyTerms.map((kt) => [kt.term.toLowerCase(), kt.meaning]));
-
-  return text.split(regex).map((part, i) => {
-    const lower = part.toLowerCase();
-    const meaning = meaningByLower.get(lower) ?? (lower.endsWith("s") ? meaningByLower.get(lower.slice(0, -1)) : undefined);
-    if (!meaning) return part;
-    return (
-      <span
-        key={i}
-        title={meaning}
-        style={{ borderBottom: "1.5px dotted var(--color-primary)", cursor: "help" }}
-      >
-        {part}
-      </span>
-    );
-  });
+  workedExample: WorkedExample | null;
 }
 
 function DiagramView({ diagram }: { diagram: PictureDiagram }) {
@@ -97,6 +60,7 @@ const MODE_LABEL: Record<string, { en: string; hi: string }> = {
   picture: { en: "Picture", hi: "चित्र" },
   realworld: { en: "Real-world", hi: "वास्तविक जीवन" },
   gofurther: { en: "Go further", hi: "और आगे" },
+  worked: { en: "Worked example", hi: "हल किया उदाहरण" },
 };
 
 function VariantCard({ variant, keyTerms, language }: { variant: ExplainVariant; keyTerms: KeyTerm[]; language: Language }) {
@@ -105,13 +69,18 @@ function VariantCard({ variant, keyTerms, language }: { variant: ExplainVariant;
       <div className="text-[11px] font-bold uppercase tracking-wide mb-3" style={{ color: "var(--color-primary)" }}>
         {MODE_LABEL[variant.mode]?.[language] ?? variant.mode}
       </div>
-      <div className="text-[14.5px] leading-relaxed whitespace-pre-wrap mb-3.5">
-        {renderWithTooltips(variant.body, keyTerms)}
-      </div>
+      <RichText
+        text={variant.body}
+        keyTerms={keyTerms}
+        className="text-[14.5px] leading-relaxed whitespace-pre-wrap mb-3.5"
+      />
       {variant.mode === "picture" && variant.diagram && variant.diagram.steps.length > 0 && (
         <div className="overflow-x-auto">
           <DiagramView diagram={variant.diagram} />
         </div>
+      )}
+      {variant.mode === "worked" && variant.workedExample && (
+        <WorkedExampleView example={variant.workedExample} language={language} />
       )}
     </div>
   );

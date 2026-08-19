@@ -12,7 +12,7 @@ export interface QuizSubmitResult {
   score: number;
   total: number;
   correctByQuestionId: Record<string, boolean>;
-  feedbackByQuestionId: Record<string, { correctIndex: number; misconception: string | null }>;
+  feedbackByQuestionId: Record<string, { correctIndex: number | null; correctValue: number | null; misconception: string | null }>;
 }
 
 export async function submitQuizAnswers(
@@ -28,17 +28,22 @@ export async function submitQuizAnswers(
   const feedbackByQuestionId: QuizSubmitResult["feedbackByQuestionId"] = {};
   let correctCount = 0;
 
-  for (const [questionId, selectedIndex] of Object.entries(answers)) {
+  for (const [questionId, rawValue] of Object.entries(answers)) {
     const question = questionById.get(questionId);
     if (!question) continue;
-    const correct = selectedIndex === question.correctIndex;
+    const isNumeric = question.kind === "numeric";
+    const correct = isNumeric
+      ? question.correctValue != null && Math.abs(rawValue - question.correctValue) <= question.tolerance
+      : rawValue === question.correctIndex;
     correctByQuestionId[questionId] = correct;
     if (correct) correctCount++;
 
+    // No per-option misconception labels for numeric questions — there's
+    // no options array to index into.
     let misconception: string | null = null;
-    if (!correct) {
+    if (!correct && !isNumeric) {
       const labels = question.optionMisconceptions as unknown as (string | null)[] | null;
-      misconception = labels?.[selectedIndex] ?? null;
+      misconception = labels?.[rawValue] ?? null;
       if (misconception && question.subConceptId) {
         await prisma.misconceptionTag.upsert({
           where: { studentId_subConceptId_type: { studentId, subConceptId: question.subConceptId, type: misconception } },
@@ -47,10 +52,17 @@ export async function submitQuizAnswers(
         });
       }
     }
-    feedbackByQuestionId[questionId] = { correctIndex: question.correctIndex, misconception };
+    feedbackByQuestionId[questionId] = { correctIndex: question.correctIndex, correctValue: question.correctValue, misconception };
 
     await prisma.quizAttempt.create({
-      data: { studentId, topicId, questionId, selectedIndex, correct },
+      data: {
+        studentId,
+        topicId,
+        questionId,
+        selectedIndex: isNumeric ? null : rawValue,
+        numericResponse: isNumeric ? rawValue : null,
+        correct,
+      },
     });
   }
 

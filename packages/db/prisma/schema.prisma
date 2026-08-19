@@ -47,6 +47,7 @@ enum QuestionKind {
   mcq
   assertion_reason
   picture
+  numeric
 }
 
 enum ExplainMode {
@@ -54,6 +55,7 @@ enum ExplainMode {
   picture
   realworld
   gofurther
+  worked
 }
 
 enum DoubtRole {
@@ -294,6 +296,14 @@ model Explanation {
   // modes. Once Phase 3 extracts images from teacher uploads, those should
   // display alongside this, not replace it.
   diagram    Json?
+  // Structured content for "worked" mode: {problem, steps:[{explanation,
+  // work}], answer} — a fully solved, step-by-step example applying the
+  // concept to one concrete case. Null for the other four modes. Always
+  // generated (like Notes.keyTerms) rather than gated by subject, since
+  // even a conceptual topic benefits from one worked walkthrough — the
+  // model is instructed to keep it minimal when there's no real
+  // calculation, rather than us branching on subject in code.
+  workedExample Json?
   // Same review-workflow role as Chapter.status: system-generated content
   // defaults to published (immediately live); teacher-upload-triggered
   // generation is created awaiting_review and flips to published only when
@@ -317,13 +327,18 @@ model QuizQuestion {
   kind         QuestionKind
   text         String
   options      Json
-  correctIndex Int
+  // Null for kind="numeric" (no options to index into — see correctValue).
+  correctIndex Int?
   // Parallel array to `options` — one entry per option, null for the
   // correct option, a short label for each wrong one describing the
   // misconception a student holds if they pick it (e.g. "thinks plants
   // absorb food from soil, not sunlight"). Set at generation time so
   // grading a wrong answer is a free lookup, not a second LLM call.
   optionMisconceptions Json?
+  // Only for kind="numeric": the target numeric answer and the acceptable
+  // rounding margin either side of it (0 for exact integer answers).
+  correctValue Float?
+  tolerance    Float @default(0)
   imageLabel   String?
   // Same review-workflow role as Chapter.status — see Explanation.status.
   status       ContentStatus @default(published)
@@ -343,7 +358,10 @@ model QuizAttempt {
   studentId     String
   topicId       String
   questionId    String
-  selectedIndex Int
+  // Exactly one of selectedIndex/numericResponse is set, depending on the
+  // question's kind — null for the other.
+  selectedIndex Int?
+  numericResponse Float?
   correct       Boolean
   timestamp     DateTime @default(now())
 

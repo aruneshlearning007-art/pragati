@@ -9,6 +9,7 @@ import { ExplainTab } from "@/components/ExplainTab";
 import { PracticeTab } from "@/components/PracticeTab";
 import { VideosTab } from "@/components/VideosTab";
 import { DoubtChat } from "@/components/DoubtChat";
+import { RichText } from "@/components/RichText";
 import { UI, type Language } from "@/lib/i18n";
 import { ErrorCard } from "@/components/ErrorCard";
 
@@ -117,7 +118,7 @@ export default async function TopicPage({
 
       {tab === "notes" && <NotesPane topicId={topicId} scope={scope} language={language} />}
       {tab === "explain" && <ExplainPane topicId={topicId} scope={scope} language={language} />}
-      {tab === "practice" && <PracticeTab topicId={topicId} language={language} />}
+      {tab === "practice" && <PracticeTab topicId={topicId} subjectName={topic.chapter.subject.nameEn} language={language} />}
       {tab === "videos" && (
         <VideosPane
           topicId={topicId}
@@ -173,9 +174,11 @@ async function NotesPane({
               <div className="font-heading font-semibold text-[15px] mb-1.5" style={{ color: fg }}>
                 {s.heading}
               </div>
-              <div className="text-[14.5px] leading-relaxed whitespace-pre-wrap" style={{ color: "var(--color-text)" }}>
-                {s.body}
-              </div>
+              <RichText
+                text={s.body}
+                className="text-[14.5px] leading-relaxed whitespace-pre-wrap"
+                style={{ color: "var(--color-text)" }}
+              />
             </div>
           </div>
         );

@@ -13,19 +13,31 @@ export interface PictureDiagram {
   connectors: string[];
 }
 
+export interface WorkedExampleStep {
+  explanation: string;
+  work: string;
+}
+
+export interface WorkedExample {
+  problem: string;
+  steps: WorkedExampleStep[];
+  answer: string;
+}
+
 export interface ExplainVariant {
   mode: ExplainMode;
   body: string;
   diagram: PictureDiagram | null;
+  workedExample: WorkedExample | null;
 }
 
-const MODES: ExplainMode[] = ["story", "picture", "realworld", "gofurther"];
+const MODES: ExplainMode[] = ["story", "picture", "realworld", "gofurther", "worked"];
 
 /**
- * Pedagogy Agent — generates all four explanation modes for a topic in one
+ * Pedagogy Agent — generates all five explanation modes for a topic in one
  * call, cached per scope+language like Notes. Only the *default selected
  * pane* is personalized per student (via PedagogyPreference/MisconceptionTag,
- * added in Phase 4) — the four explanations themselves are shared content.
+ * added in Phase 4) — the five explanations themselves are shared content.
  *
  * Picture mode has no real diagram image — an earlier attempt to source one
  * from Wikimedia Commons couldn't reliably return something *relevant* (see
@@ -35,6 +47,13 @@ const MODES: ExplainMode[] = ["story", "picture", "realworld", "gofurther"];
  * arrow between them, which the UI renders as a real labeled flow diagram.
  * This is always accurate, since it's exactly what the model intends to
  * teach rather than a search result gambled on keyword overlap.
+ *
+ * "worked" mode (added for Math, but generated for every subject — same
+ * "always attempt" precedent as Notes.keyTerms) is a fully-solved,
+ * step-by-step example problem — the single most research-validated math
+ * teaching technique. For a non-procedural topic the model is instructed to
+ * still produce a short minimal walkthrough rather than we branching on
+ * subject in code.
  *
  * `options.sourceText` grounds generation in a teacher-uploaded chapter
  * instead of the topic title alone (Phase 3); `options.status` lets that
@@ -60,7 +79,12 @@ export async function getOrGenerateExplanations(
     },
   });
   if (existing.length === MODES.length) {
-    return existing.map((e) => ({ mode: e.mode, body: e.body, diagram: e.diagram as unknown as PictureDiagram | null }));
+    return existing.map((e) => ({
+      mode: e.mode,
+      body: e.body,
+      diagram: e.diagram as unknown as PictureDiagram | null,
+      workedExample: e.workedExample as unknown as WorkedExample | null,
+    }));
   }
 
   const topic = await prisma.topic.findUniqueOrThrow({
@@ -70,13 +94,18 @@ export async function getOrGenerateExplanations(
   const title = language === "hi" ? topic.titleHi || topic.titleEn : topic.titleEn;
 
   const system = withBaseInstructions(
-    "You are the Pedagogy Agent. Explain the same topic four different ways so every kind of learner finds one " +
-      "that clicks — never just four rewordings of the same explanation. There is no real diagram image, so the " +
+    "You are the Pedagogy Agent. Explain the same topic several different ways so every kind of learner finds " +
+      "one that clicks — never just rewordings of the same explanation. There is no real diagram image, so the " +
       "picture mode instead breaks the idea into an ordered sequence of 2-5 steps (like a flow diagram) — each " +
       "step has one emoji icon, a short label, and a one-sentence description, and each arrow between " +
       "consecutive steps has a short label describing that transition (e.g. \"blocks light\", \"heats up\"). " +
       "Make the sequence specific to this exact topic, never generic filler, and order it the way the process " +
       "or idea actually flows. " +
+      "For the worked-example mode, write a fully solved, step-by-step example applying this concept to one " +
+      "concrete case — each step needs both the reasoning (explanation) and the actual computation (work, " +
+      "using $...$ math notation for any calculation). If the topic genuinely has no calculation or procedure " +
+      "(e.g. a purely historical or descriptive topic), still produce a short 2-3 step walkthrough of applying " +
+      "or identifying the concept once, rather than skipping it. " +
       (options?.sourceText
         ? "The source chapter text provided may cover multiple topics/concepts — ground every explanation " +
           "strictly in the source, but explain ONLY this specific topic, ignoring parts of the source about " +
@@ -86,7 +115,11 @@ export async function getOrGenerateExplanations(
       'that introduces the idea","picture":"one short sentence introducing what the diagram below shows",' +
       '"pictureSteps":[{"icon":"single emoji","label":"short label","description":"one sentence"}, ...2 to 5],' +
       '"pictureConnectors":["short arrow label", ... exactly one fewer than pictureSteps],' +
-      '"realworld":"how the concept shows up in daily life","gofurther":"a deeper insight for curious minds"}. ' +
+      '"realworld":"how the concept shows up in daily life","gofurther":"a deeper insight for curious minds",' +
+      '"worked":"one short sentence introducing the example problem below",' +
+      '"workedProblem":"the example problem statement, may include $...$ math",' +
+      '"workedSteps":[{"explanation":"string","work":"string, may include $...$ math"}, ...3 to 6],' +
+      '"workedAnswer":"the final answer, may include $...$ math"}. ' +
       `Write all text in ${language === "hi" ? "Hindi (Devanagari script)" : "English"}.`,
   );
 
@@ -107,6 +140,10 @@ export async function getOrGenerateExplanations(
     pictureConnectors: string[];
     realworld: string;
     gofurther: string;
+    worked: string;
+    workedProblem: string;
+    workedSteps: WorkedExampleStep[];
+    workedAnswer: string;
   }>(raw);
 
   const bodies: Record<ExplainMode, string> = {
@@ -114,9 +151,11 @@ export async function getOrGenerateExplanations(
     picture: parsed.picture,
     realworld: parsed.realworld,
     gofurther: parsed.gofurther,
+    worked: parsed.worked,
   };
 
   const diagram: PictureDiagram = { steps: parsed.pictureSteps, connectors: parsed.pictureConnectors };
+  const workedExample: WorkedExample = { problem: parsed.workedProblem, steps: parsed.workedSteps, answer: parsed.workedAnswer };
 
   const created = await Promise.all(
     MODES.map((mode) =>
@@ -130,11 +169,17 @@ export async function getOrGenerateExplanations(
           mode,
           body: bodies[mode],
           diagram: mode === "picture" ? (diagram as unknown as object) : undefined,
+          workedExample: mode === "worked" ? (workedExample as unknown as object) : undefined,
           status: options?.status ?? "published",
         },
       }),
     ),
   );
 
-  return created.map((e) => ({ mode: e.mode, body: e.body, diagram: e.diagram as unknown as PictureDiagram | null }));
+  return created.map((e) => ({
+    mode: e.mode,
+    body: e.body,
+    diagram: e.diagram as unknown as PictureDiagram | null,
+    workedExample: e.workedExample as unknown as WorkedExample | null,
+  }));
 }

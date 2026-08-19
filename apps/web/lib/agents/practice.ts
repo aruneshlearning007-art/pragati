@@ -35,6 +35,7 @@ export async function getOrGenerateQuiz(
   });
 
   const subConceptList = topic.subConcepts.map((s) => `${s.id}:${s.name}`).join("; ");
+  const isMath = topic.chapter.subject.nameEn.toLowerCase().includes("math");
 
   const system = withBaseInstructions(
     "You are the Practice Agent. Write a topic quiz that genuinely diagnoses understanding, not just memorized " +
@@ -51,10 +52,21 @@ export async function getOrGenerateQuiz(
       "happen\") rather than making every question the same style. " +
       "For every question, write realistic wrong options — each one should be what a student with a specific, " +
       "genuine misunderstanding would actually pick, not a random distractor. " +
+      "A \"numeric\" question has NO options array (send an empty array) and no correctIndex (send null) — " +
+      "instead it has a correctValue (the right number) and a tolerance (acceptable rounding margin either " +
+      "side of it, 0 for an exact integer answer). " +
+      (isMath
+        ? "Since this is a Math topic, include at least 2 numeric free-response questions (kind: \"numeric\") " +
+          "per quiz — typed numeric answers reduce guessing far more than multiple choice for calculation-style " +
+          "questions. "
+        : "") +
       'Respond ONLY with strict JSON, no markdown, no code fences. Shape: {"questions":[{"kind":"mcq or ' +
-      'assertion_reason or picture","text":"string","options":["a","b","c","d"],"correctIndex":0,' +
+      'assertion_reason or picture or numeric","text":"string","options":["a","b","c","d"],"correctIndex":' +
+      "0 or null if kind is numeric,\"correctValue\":number or null unless kind is numeric," +
+      '"tolerance":number or null unless kind is numeric,' +
       '"optionMisconceptions":["a short phrase describing the misunderstanding a student who picks this ' +
-      'option holds, or null for the correct option — one entry per option, same order as options"],' +
+      'option holds, or null for the correct option — one entry per option, same order as options, empty ' +
+      'array if kind is numeric"],' +
       '"subConceptName":"the closest matching sub-concept name from the list given, or null",' +
       '"imageLabel":"a short placeholder caption if kind is picture, else null"}]} with 6-8 items. ' +
       "Use kind \"picture\" for at most one question, and only if it genuinely helps (the imageLabel describes " +
@@ -76,7 +88,9 @@ export async function getOrGenerateQuiz(
       kind: string;
       text: string;
       options: string[];
-      correctIndex: number;
+      correctIndex: number | null;
+      correctValue?: number | null;
+      tolerance?: number | null;
       optionMisconceptions?: (string | null)[];
       subConceptName: string | null;
       imageLabel: string | null;
@@ -88,6 +102,7 @@ export async function getOrGenerateQuiz(
     mcq: "mcq",
     assertion_reason: "assertion_reason",
     picture: "picture",
+    numeric: "numeric",
   };
 
   const created = await Promise.all(
@@ -101,8 +116,10 @@ export async function getOrGenerateQuiz(
           schoolId: scope.schoolId,
           kind: kindMap[q.kind] ?? "mcq",
           text: q.text,
-          options: q.options as unknown as object,
-          correctIndex: q.correctIndex,
+          options: (q.options ?? []) as unknown as object,
+          correctIndex: q.correctIndex ?? null,
+          correctValue: q.correctValue ?? null,
+          tolerance: q.tolerance ?? 0,
           optionMisconceptions: q.optionMisconceptions ? (q.optionMisconceptions as unknown as object) : undefined,
           imageLabel: q.imageLabel,
           status: options?.status ?? "published",

@@ -2,6 +2,7 @@ import { prisma } from "@pragati/db";
 import { generate, extractJson, withBaseInstructions } from "@pragati/shared";
 import type { NotesSection } from "./notes";
 import type { ExplainVariant, DiagramStep } from "./pedagogy";
+import { checkArithmetic } from "./arithmetic-checker";
 
 export interface VerifierFlagView {
   quote: string;
@@ -57,10 +58,15 @@ export async function verifyExplanations(
   const system = withBaseInstructions(
     VERIFIER_TASK +
       " The picture-mode entry has a \"diagram\" with ordered steps and connector labels between them instead " +
-      "of a body paragraph — check and correct the steps/connectors the same way you would body text. " +
+      "of a body paragraph — check and correct the steps/connectors the same way you would body text. The " +
+      "worked-mode entry has a \"workedExample\" with a problem, step-by-step reasoning, and calculations " +
+      "instead of a body paragraph — verify each step's arithmetic actually computes to what's claimed and " +
+      "that the final answer is correct, correcting exactly like body text. " +
       'Respond ONLY with strict JSON, no markdown, no code fences. Shape: {"variants":[{"mode":"story|picture|' +
-      'realworld|gofurther","body":"string","diagram":{"steps":[{"icon":"emoji","label":"string",' +
-      '"description":"string"}],"connectors":["string"]} or null for non-picture modes}],' +
+      'realworld|gofurther|worked","body":"string","diagram":{"steps":[{"icon":"emoji","label":"string",' +
+      '"description":"string"}],"connectors":["string"]} or null unless mode is picture,' +
+      '"workedExample":{"problem":"string","steps":[{"explanation":"string","work":"string"}],' +
+      '"answer":"string"} or null unless mode is worked}],' +
       '"flags":[{"quote":"string","reason":"string"}]}. ' +
       `Text must stay in ${language === "hi" ? "Hindi (Devanagari script)" : "English"}.`,
   );
@@ -83,7 +89,9 @@ export interface QuizQuestionDraft {
   kind: string;
   text: string;
   options: string[];
-  correctIndex: number;
+  correctIndex: number | null;
+  correctValue: number | null;
+  tolerance: number | null;
   imageLabel: string | null;
 }
 
@@ -97,9 +105,13 @@ export async function verifyQuiz(
   const system = withBaseInstructions(
     VERIFIER_TASK +
       " Also double-check correctIndex genuinely points at the right option after any edit you make — a quiz " +
-      "with a wrong answer key is worse than no quiz. Keep the same number of questions in the same order. " +
+      "with a wrong answer key is worse than no quiz. For kind \"numeric\" questions, options is empty and " +
+      "there is no correctIndex — instead verify correctValue is the actual right numeric answer (re-compute " +
+      "it yourself) and tolerance is a reasonable rounding margin, correcting either if the arithmetic is " +
+      "wrong. Keep the same number of questions in the same order. " +
       'Respond ONLY with strict JSON, no markdown, no code fences. Shape: {"questions":[{"kind":"string",' +
-      '"text":"string","options":["string"],"correctIndex":0,"imageLabel":"string or null"}],' +
+      '"text":"string","options":["string"],"correctIndex":number or null,"correctValue":number or null,' +
+      '"tolerance":number or null,"imageLabel":"string or null"}],' +
       '"flags":[{"quote":"string","reason":"string"}]}. ' +
       `Text must stay in ${language === "hi" ? "Hindi (Devanagari script)" : "English"}.`,
   );
@@ -155,25 +167,32 @@ export async function verifyAndCorrectChapter(
   // instead of losing the whole concept.
 
   if (notes) {
+    let finalSections = notes.sections as unknown as NotesSection[];
     try {
-      const { sections, flags } = await verifyNotes(notes.sections as unknown as NotesSection[], sourceText, cls, language);
+      const { sections, flags } = await verifyNotes(finalSections, sourceText, cls, language);
       if (flags.length > 0) {
         await prisma.notes.update({ where: { id: notes.id }, data: { sections: sections as unknown as object } });
         allFlags.push(...flags.map((f) => ({ section: "notes" as const, ...f })));
       }
+      finalSections = sections;
     } catch (err) {
       console.error("Verifier: notes check failed, keeping unverified draft", err);
     }
+    // Deterministic double-check on the final (possibly LLM-corrected)
+    // content — catches real calculation mistakes the LLM verifier missed.
+    const arithmeticFlags = finalSections.flatMap((s) => checkArithmetic(s.body));
+    allFlags.push(...arithmeticFlags.map((f) => ({ section: "notes" as const, ...f })));
   }
 
   if (explanations.length > 0) {
+    let finalVariants: ExplainVariant[] = explanations.map((e) => ({
+      mode: e.mode,
+      body: e.body,
+      diagram: e.diagram as unknown as ExplainVariant["diagram"],
+      workedExample: e.workedExample as unknown as ExplainVariant["workedExample"],
+    }));
     try {
-      const draftVariants: ExplainVariant[] = explanations.map((e) => ({
-        mode: e.mode,
-        body: e.body,
-        diagram: e.diagram as unknown as ExplainVariant["diagram"],
-      }));
-      const { variants, flags } = await verifyExplanations(draftVariants, sourceText, cls, language);
+      const { variants, flags } = await verifyExplanations(finalVariants, sourceText, cls, language);
       if (flags.length > 0) {
         await Promise.all(
           variants.map((v) => {
@@ -186,41 +205,66 @@ export async function verifyAndCorrectChapter(
             // same as "the body should be cleared").
             return prisma.explanation.update({
               where: { id: original.id },
-              data: { body: v.body || original.body, diagram: v.diagram ? (v.diagram as unknown as object) : undefined },
+              data: {
+                body: v.body || original.body,
+                diagram: v.diagram ? (v.diagram as unknown as object) : undefined,
+                workedExample: v.workedExample ? (v.workedExample as unknown as object) : undefined,
+              },
             });
           }),
         );
         allFlags.push(...flags.map((f) => ({ section: "explain" as const, ...f })));
       }
+      finalVariants = variants;
     } catch (err) {
       console.error("Verifier: explain check failed, keeping unverified draft", err);
     }
+    // Deterministic double-check, including worked-example steps — this is
+    // exactly where a live-tested Gemini arithmetic mistake would get
+    // caught even if the LLM verifier missed it.
+    const arithmeticFlags = finalVariants.flatMap((v) => {
+      const workedText = v.workedExample ? v.workedExample.steps.map((s) => s.work).join("\n") : "";
+      return [...checkArithmetic(v.body), ...checkArithmetic(workedText)];
+    });
+    allFlags.push(...arithmeticFlags.map((f) => ({ section: "explain" as const, ...f })));
   }
 
   if (questions.length > 0) {
+    let finalQuestions: QuizQuestionDraft[] = questions.map((q) => ({
+      kind: q.kind,
+      text: q.text,
+      options: q.options as unknown as string[],
+      correctIndex: q.correctIndex,
+      correctValue: q.correctValue,
+      tolerance: q.tolerance,
+      imageLabel: q.imageLabel,
+    }));
     try {
-      const draftQuestions: QuizQuestionDraft[] = questions.map((q) => ({
-        kind: q.kind,
-        text: q.text,
-        options: q.options as unknown as string[],
-        correctIndex: q.correctIndex,
-        imageLabel: q.imageLabel,
-      }));
-      const { questions: corrected, flags } = await verifyQuiz(draftQuestions, sourceText, cls, language);
+      const { questions: corrected, flags } = await verifyQuiz(finalQuestions, sourceText, cls, language);
       if (flags.length > 0 && corrected.length === questions.length) {
         await Promise.all(
           corrected.map((q, i) =>
             prisma.quizQuestion.update({
               where: { id: questions[i].id },
-              data: { text: q.text, options: q.options as unknown as object, correctIndex: q.correctIndex, imageLabel: q.imageLabel },
+              data: {
+                text: q.text,
+                options: q.options as unknown as object,
+                correctIndex: q.correctIndex,
+                correctValue: q.correctValue,
+                tolerance: q.tolerance ?? 0,
+                imageLabel: q.imageLabel,
+              },
             }),
           ),
         );
         allFlags.push(...flags.map((f) => ({ section: "practice" as const, ...f })));
       }
+      if (corrected.length === questions.length) finalQuestions = corrected;
     } catch (err) {
       console.error("Verifier: practice check failed, keeping unverified draft", err);
     }
+    const arithmeticFlags = finalQuestions.flatMap((q) => checkArithmetic([q.text, ...q.options].join("\n")));
+    allFlags.push(...arithmeticFlags.map((f) => ({ section: "practice" as const, ...f })));
   }
 
   // The model occasionally returns a flags-array entry missing quote/reason

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { RichText } from "@/components/RichText";
 import { UI, type Language } from "@/lib/i18n";
 
 interface Message {
@@ -111,14 +112,14 @@ export function DoubtChat({ topicId, language }: { topicId: string; language: La
             {displayMessages.map((m) => (
               <div
                 key={m.id}
-                className="max-w-[85%] px-3.5 py-2.5 rounded-xl text-[13.5px] leading-relaxed whitespace-pre-wrap"
+                className="max-w-[85%] px-3.5 py-2.5 rounded-xl"
                 style={{
                   alignSelf: m.role === "user" ? "flex-end" : "flex-start",
                   background: m.role === "user" ? "var(--color-primary)" : "var(--color-bg)",
                   color: m.role === "user" ? "white" : "var(--color-text)",
                 }}
               >
-                {m.text}
+                <RichText text={m.text} className="text-[13.5px] leading-relaxed whitespace-pre-wrap" />
               </div>
             ))}
             {thinking && (
