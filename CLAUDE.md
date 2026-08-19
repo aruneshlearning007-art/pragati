@@ -260,6 +260,28 @@ machine. Feel free to use them normally instead of the workarounds above.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
+- **Phase 8 — Admin / AI Ops Panel** — not started, requested by user
+  2026-08-19 (not yet prioritized against Phases 3-7). Two things in one
+  panel:
+  1. **Model switcher** — pick which LLM (currently: `gemini-3.5-flash-lite`
+     vs Groq's `openai/gpt-oss-120b`, both free-tier, see the live
+     comparison run 2026-08-19) powers `generate()` in
+     `packages/shared/src/llm.ts`, without a code deploy. Needs the model
+     choice stored somewhere `generate()` reads at runtime (DB-backed config
+     row, not just the `GEMINI_MODEL` env var it falls back to today) —
+     also needs a matching Groq code path added to `llm.ts`, which today
+     only calls the Gemini endpoint.
+  2. **Agent instruction visibility/control** — surface and let the founder
+     edit the system prompts that (a) generate study material (Notes,
+     Pedagogy/Explain, Practice, Video/Image curation) and (b) enforce child
+     safety (`CHILD_AUDIENCE_INSTRUCTION`, `TEACH_NOT_ROTE_INSTRUCTION`,
+     `SAFETY_MODERATION_INSTRUCTION` in `packages/shared/src/prompts.ts`).
+     These are hardcoded constants today — moving them to editable config
+     needs real care: the safety instruction especially should probably be
+     locked/reviewed-only rather than freely editable, so a well-meaning
+     edit can't accidentally weaken the moderation check. Needs its own
+     auth (this is founder-only, not a role the current stub session system
+     has — `UserRole` is student/parent/teacher only).
 
 ## Data model
 
