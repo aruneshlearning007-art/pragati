@@ -52,7 +52,11 @@ applies in this repo.
 ## Product philosophy (must be baked into every agent prompt, not bolted on)
 
 1. **Subject-agnostic pipeline** — Notes → Verifier → Pedagogy → Practice →
-   Video Curator agents take subject/topic as parameters, never hardcode Science.
+   Video Curator agents take subject/topic as parameters, never hardcode
+   Science. Video Curator (built 2026-08-18) is deterministic — no LLM call,
+   just a real YouTube Data API v3 search cached in the `Video` table — since
+   there's no way to generate real video and a hallucinated link would be
+   worse than none.
 2. **Teach, don't rote** — every agent's system prompt must build genuine
    conceptual understanding (the *why*, multiple framings), never just facts
    to memorize. This is the investor-facing differentiator.
@@ -186,6 +190,21 @@ machine. Feel free to use them normally instead of the workarounds above.
   philosophy above is not implemented. That lands naturally once Phase 3
   (teacher panel) and Phase 5 (parent dashboard) exist; the data is already
   there for them to query.
+- **Video Curator + Explain picture-mode caption fix** ✅ done (verified live
+  2026-08-18), added mid-Phase-2 after the user noticed Explain's "Picture"
+  mode was a placeholder-only box with no real image/video anywhere. Decided
+  (with user): no paid image-gen API (breaks the no-paid-API cost
+  constraint) and no per-topic custom diagrams (breaks subject-agnosticism)
+  — Picture mode keeps its text-placeholder box, but the caption is now
+  topic-specific (was hardcoded to the same generic string for every topic).
+  New: `apps/web/lib/agents/video.ts` searches YouTube Data API v3
+  (`YOUTUBE_API_KEY` in Vercel + `.secrets/youtube_api_key.md`) for up to 3
+  real videos per topic, caches them in the existing `Video` table, and a
+  new Videos tab (`apps/web/components/VideosTab.tsx`) embeds them.
+  Confirmed live: 3 real, relevant videos with correct durations for the
+  seed Light topic, playable embeds, and HTML-entity-decoded titles (fixed
+  a "BYJU&#39;S" → "BYJU'S" display bug, self-healing for already-cached
+  rows too, no migration needed).
 - **Phase 3 — Teacher Content Panel** — not started. Also needs to resolve a
   known schema gap: `Chapter` currently has no `schoolId`, needed for the
   class 3-5 school-scoped upload path.
