@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma, Prisma } from "@pragati/db";
+import { getContentScope } from "@pragati/shared";
 import { getCurrentStudent } from "@/lib/session-server";
 import { getChapterStatus, type TopicStatus } from "@/lib/agents/diagnostic";
 import { UI, STATUS_STYLES, type Language } from "@/lib/i18n";
@@ -28,8 +29,20 @@ export default async function StudentHomePage({
       return <p style={{ color: "var(--color-text-muted)" }}>No subjects yet.</p>;
     }
 
+    const scope = getContentScope({
+      studentClass: student.class ?? "Class 6",
+      board: student.board ?? "CBSE",
+      schoolId: student.schoolId,
+    });
+
     const chapters = await prisma.chapter.findMany({
-      where: { subjectId: activeSubject.id, class: student.class ?? undefined, board: student.board ?? undefined },
+      where: {
+        subjectId: activeSubject.id,
+        class: student.class ?? undefined,
+        board: student.board ?? undefined,
+        schoolId: scope.schoolId,
+        status: "published",
+      },
       include: { topics: true },
       orderBy: { createdAt: "asc" },
     });

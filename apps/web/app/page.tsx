@@ -14,6 +14,9 @@ export default async function Home() {
     );
   }
 
+  if (session?.role === "teacher") {
+    redirect("/teacher");
+  }
   if (session) {
     redirect("/student");
   }

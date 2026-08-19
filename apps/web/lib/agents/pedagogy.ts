@@ -1,4 +1,4 @@
-import { prisma, ExplainMode } from "@pragati/db";
+import { prisma, ExplainMode, ContentStatus } from "@pragati/db";
 import { generate, extractJson, withBaseInstructions, type ContentScope } from "@pragati/shared";
 
 export interface DiagramStep {
@@ -35,14 +35,29 @@ const MODES: ExplainMode[] = ["story", "picture", "realworld", "gofurther"];
  * arrow between them, which the UI renders as a real labeled flow diagram.
  * This is always accurate, since it's exactly what the model intends to
  * teach rather than a search result gambled on keyword overlap.
+ *
+ * `options.sourceText` grounds generation in a teacher-uploaded chapter
+ * instead of the topic title alone (Phase 3); `options.status` lets that
+ * path create content as `awaiting_review` instead of immediately
+ * `published`. The existing-content lookup always filters to `published`
+ * regardless, so an in-review draft can never leak to a student browsing
+ * the same topic/scope.
  */
 export async function getOrGenerateExplanations(
   topicId: string,
   scope: ContentScope,
   language: string,
+  options?: { sourceText?: string; status?: ContentStatus },
 ): Promise<ExplainVariant[]> {
   const existing = await prisma.explanation.findMany({
-    where: { topicId, board: scope.board, class: scope.class, schoolId: scope.schoolId, language },
+    where: {
+      topicId,
+      board: scope.board,
+      class: scope.class,
+      schoolId: scope.schoolId,
+      language,
+      status: "published",
+    },
   });
   if (existing.length === MODES.length) {
     return existing.map((e) => ({ mode: e.mode, body: e.body, diagram: e.diagram as unknown as PictureDiagram | null }));
@@ -62,6 +77,9 @@ export async function getOrGenerateExplanations(
       "consecutive steps has a short label describing that transition (e.g. \"blocks light\", \"heats up\"). " +
       "Make the sequence specific to this exact topic, never generic filler, and order it the way the process " +
       "or idea actually flows. " +
+      (options?.sourceText
+        ? "Ground every explanation strictly in the source chapter text provided — never invent facts beyond it. "
+        : "") +
       'Respond ONLY with strict JSON, no markdown, no code fences. Shape: {"story":"a short relatable narrative ' +
       'that introduces the idea","picture":"one short sentence introducing what the diagram below shows",' +
       '"pictureSteps":[{"icon":"single emoji","label":"short label","description":"one sentence"}, ...2 to 5],' +
@@ -70,9 +88,13 @@ export async function getOrGenerateExplanations(
       `Write all text in ${language === "hi" ? "Hindi (Devanagari script)" : "English"}.`,
   );
 
+  const userContent = options?.sourceText
+    ? `Topic: ${title}\n\nSource chapter text:\n${options.sourceText.slice(0, 12000)}`
+    : `Topic: ${title}`;
+
   const raw = await generate({
     system,
-    messages: [{ role: "user", content: `Topic: ${title}` }],
+    messages: [{ role: "user", content: userContent }],
     json: true,
   });
 
@@ -106,6 +128,7 @@ export async function getOrGenerateExplanations(
           mode,
           body: bodies[mode],
           diagram: mode === "picture" ? (diagram as unknown as object) : undefined,
+          status: options?.status ?? "published",
         },
       }),
     ),

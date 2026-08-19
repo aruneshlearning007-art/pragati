@@ -1,4 +1,4 @@
-import { prisma, QuestionKind } from "@pragati/db";
+import { prisma, QuestionKind, ContentStatus } from "@pragati/db";
 import { generate, extractJson, withBaseInstructions, type ContentScope } from "@pragati/shared";
 
 export interface QuizQuestionView {
@@ -13,10 +13,17 @@ export interface QuizQuestionView {
  * Practice Agent (topic quiz mode). Generates a small balanced question
  * bank once per scope and caches it — exam-prep mode (Phase 1+ later) reuses
  * this same bank, weighted by MasteryScore, instead of generating separately.
+ *
+ * `options.sourceText`/`status` support the teacher-upload review workflow —
+ * see the matching comment in notes.ts.
  */
-export async function getOrGenerateQuiz(topicId: string, scope: ContentScope): Promise<QuizQuestionView[]> {
+export async function getOrGenerateQuiz(
+  topicId: string,
+  scope: ContentScope,
+  options?: { sourceText?: string; status?: ContentStatus },
+): Promise<QuizQuestionView[]> {
   const existing = await prisma.quizQuestion.findMany({
-    where: { topicId, board: scope.board, class: scope.class, schoolId: scope.schoolId },
+    where: { topicId, board: scope.board, class: scope.class, schoolId: scope.schoolId, status: "published" },
   });
   if (existing.length > 0) {
     return existing.map(toView);
@@ -31,6 +38,9 @@ export async function getOrGenerateQuiz(topicId: string, scope: ContentScope): P
 
   const system = withBaseInstructions(
     "You are the Practice Agent. Write a short topic quiz that checks real understanding, not memorized wording. " +
+      (options?.sourceText
+        ? "Base every question strictly on the source chapter text provided — never invent facts beyond it. "
+        : "") +
       'Respond ONLY with strict JSON, no markdown, no code fences. Shape: {"questions":[{"kind":"mcq or ' +
       'assertion_reason or picture","text":"string","options":["a","b","c","d"],"correctIndex":0,' +
       '"subConceptName":"the closest matching sub-concept name from the list given, or null",' +
@@ -39,14 +49,13 @@ export async function getOrGenerateQuiz(topicId: string, scope: ContentScope): P
       "what a diagram/photo placeholder would show).",
   );
 
+  const userContent = options?.sourceText
+    ? `Topic: ${topic.titleEn}\nSub-concepts (id:name): ${subConceptList || "(none)"}\n\nSource chapter text:\n${options.sourceText.slice(0, 12000)}`
+    : `Topic: ${topic.titleEn}\nSub-concepts (id:name): ${subConceptList || "(none)"}`;
+
   const raw = await generate({
     system,
-    messages: [
-      {
-        role: "user",
-        content: `Topic: ${topic.titleEn}\nSub-concepts (id:name): ${subConceptList || "(none)"}`,
-      },
-    ],
+    messages: [{ role: "user", content: userContent }],
     json: true,
   });
 
@@ -82,6 +91,7 @@ export async function getOrGenerateQuiz(topicId: string, scope: ContentScope): P
           options: q.options as unknown as object,
           correctIndex: q.correctIndex,
           imageLabel: q.imageLabel,
+          status: options?.status ?? "published",
         },
       }),
     ),

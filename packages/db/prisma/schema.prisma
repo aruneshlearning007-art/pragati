@@ -71,6 +71,7 @@ model School {
   notes           Notes[]
   explanations    Explanation[]
   quizQuestions   QuizQuestion[]
+  chapters        Chapter[]
 
   @@index([state, city])
 }
@@ -93,6 +94,7 @@ model User {
   studentLinks ParentStudentLink[] @relation("StudentLinks")
 
   uploadedSources   UploadedSource[]
+  chaptersUploaded  Chapter[]
   quizAttempts      QuizAttempt[]
   masteryScores     MasteryScore[]
   misconceptionTags MisconceptionTag[]
@@ -127,18 +129,34 @@ model Subject {
 }
 
 model Chapter {
-  id        String   @id @default(cuid())
+  id        String        @id @default(cuid())
   subjectId String
   titleEn   String
   titleHi   String?
   class     String
   board     String
-  createdAt DateTime @default(now())
+  // Only set for teacher-uploaded chapters targeting Class 3-5 (school-scoped
+  // content — see getContentScope in @pragati/shared). Null for system-seeded
+  // chapters and any Class 6-12 (board-scoped) upload.
+  schoolId  String?
+  // Null for system-seeded chapters (e.g. the Light seed data); required for
+  // any chapter created via the Teacher Content Panel.
+  teacherId String?
+  // Source of truth for the teacher review workflow. System-seeded chapters
+  // default to published (already live); teacher uploads are created
+  // awaiting_review and flip to published only once the teacher approves —
+  // at which point every Notes/Explanation/QuizQuestion row under it also
+  // flips, so this and their individual status never drift apart.
+  status    ContentStatus @default(published)
+  createdAt DateTime      @default(now())
 
   subject Subject @relation(fields: [subjectId], references: [id])
+  school  School? @relation(fields: [schoolId], references: [id])
+  teacher User?   @relation(fields: [teacherId], references: [id])
   topics  Topic[]
 
   @@index([subjectId, class, board])
+  @@index([teacherId])
 }
 
 model Topic {
@@ -252,6 +270,11 @@ model Explanation {
   // modes. Once Phase 3 extracts images from teacher uploads, those should
   // display alongside this, not replace it.
   diagram    Json?
+  // Same review-workflow role as Chapter.status: system-generated content
+  // defaults to published (immediately live); teacher-upload-triggered
+  // generation is created awaiting_review and flips to published only when
+  // the teacher approves the whole chapter.
+  status     ContentStatus @default(published)
   createdAt  DateTime    @default(now())
 
   topic  Topic   @relation(fields: [topicId], references: [id])
@@ -272,6 +295,8 @@ model QuizQuestion {
   options      Json
   correctIndex Int
   imageLabel   String?
+  // Same review-workflow role as Chapter.status — see Explanation.status.
+  status       ContentStatus @default(published)
   createdAt    DateTime     @default(now())
 
   topic      Topic       @relation(fields: [topicId], references: [id])

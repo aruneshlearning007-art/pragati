@@ -19,3 +19,9 @@ export async function getCurrentStudent() {
   if (!session || session.role !== "student") return null;
   return prisma.user.findUnique({ where: { id: session.userId }, include: { school: true } });
 }
+
+export async function getCurrentTeacher() {
+  const session = await getSession();
+  if (!session || session.role !== "teacher") return null;
+  return prisma.user.findUnique({ where: { id: session.userId }, include: { school: true } });
+}
