@@ -150,28 +150,54 @@ async function NotesPane({
   } catch (err) {
     return <ErrorCard title="Could not generate notes for this topic" error={err} />;
   }
+  const NOTE_COLORS = 6;
   return (
     <div className="max-w-3xl flex flex-col gap-4">
-      {sections.map((s, i) => (
-        <div
-          key={i}
-          className="p-5.5 rounded-card"
-          style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-        >
-          <div className="font-heading font-semibold text-[15px] mb-2">{s.heading}</div>
-          <div className="text-[14.5px] leading-relaxed whitespace-pre-wrap">{s.body}</div>
-        </div>
-      ))}
+      {sections.map((s, i) => {
+        const c = (i % NOTE_COLORS) + 1;
+        const bg = `var(--color-note-${c}-bg)`;
+        const fg = `var(--color-note-${c}-fg)`;
+        return (
+          <div
+            key={i}
+            className="p-5.5 rounded-card flex gap-4 transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-md"
+            style={{ background: bg, border: `1px solid ${fg}22` }}
+          >
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+              style={{ background: "white", color: fg }}
+            >
+              {i + 1}
+            </div>
+            <div>
+              <div className="font-heading font-semibold text-[15px] mb-1.5" style={{ color: fg }}>
+                {s.heading}
+              </div>
+              <div className="text-[14.5px] leading-relaxed whitespace-pre-wrap" style={{ color: "var(--color-text)" }}>
+                {s.body}
+              </div>
+            </div>
+          </div>
+        );
+      })}
       {keyTerms.length > 0 && (
         <div
           className="p-5.5 rounded-card"
-          style={{ background: "var(--color-bg)", border: "1px solid var(--color-border)" }}
+          style={{ background: "var(--color-keyterm-bg)", border: "1px solid var(--color-keyterm-border)" }}
         >
-          <div className="font-heading font-semibold text-[15px] mb-3">{t.keyTermsTitle}</div>
-          <div className="flex flex-col gap-2.5">
+          <div className="font-heading font-semibold text-[15px] mb-3" style={{ color: "var(--color-keyterm-fg)" }}>
+            📘 {t.keyTermsTitle}
+          </div>
+          <div className="grid gap-2.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))" }}>
             {keyTerms.map((kt, i) => (
-              <div key={i} className="text-[14px]">
-                <span className="font-bold">{kt.term}</span>
+              <div
+                key={i}
+                className="p-3 rounded-xl text-[13.5px] transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-sm"
+                style={{ background: "white", border: "1px solid var(--color-keyterm-border)" }}
+              >
+                <span className="font-bold" style={{ color: "var(--color-keyterm-fg)" }}>
+                  {kt.term}
+                </span>
                 <span style={{ color: "var(--color-text-muted)" }}> — {kt.meaning}</span>
               </div>
             ))}

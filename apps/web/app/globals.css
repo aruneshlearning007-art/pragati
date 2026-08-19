@@ -23,6 +23,26 @@
   --color-notstarted-bg: oklch(93% 0.04 240);
   --color-notstarted-fg: oklch(40% 0.1 240);
   --color-notstarted-dot: oklch(55% 0.13 240);
+
+  /* A small rotating palette for Notes section cards — distinct hues from
+     the status colors above (green/orange/blue) so a colorful note card is
+     never mistaken for a mastery/revision signal. */
+  --color-note-1-bg: oklch(95% 0.045 25);
+  --color-note-1-fg: oklch(42% 0.13 25);
+  --color-note-2-bg: oklch(95% 0.05 95);
+  --color-note-2-fg: oklch(40% 0.11 95);
+  --color-note-3-bg: oklch(95% 0.045 190);
+  --color-note-3-fg: oklch(40% 0.1 190);
+  --color-note-4-bg: oklch(95% 0.045 265);
+  --color-note-4-fg: oklch(42% 0.12 265);
+  --color-note-5-bg: oklch(95% 0.05 330);
+  --color-note-5-fg: oklch(42% 0.13 330);
+  --color-note-6-bg: oklch(95% 0.05 55);
+  --color-note-6-fg: oklch(40% 0.12 55);
+
+  --color-keyterm-bg: oklch(96% 0.03 95);
+  --color-keyterm-fg: oklch(38% 0.1 95);
+  --color-keyterm-border: oklch(88% 0.05 95);
 }
 
 body {
