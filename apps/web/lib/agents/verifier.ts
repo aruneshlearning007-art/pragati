@@ -165,9 +165,14 @@ export async function verifyAndCorrectChapter(
         variants.map((v) => {
           const original = explanations.find((e) => e.mode === v.mode);
           if (!original) return Promise.resolve();
+          // The model occasionally omits body for the picture-mode variant
+          // when it only had a diagram fix to make — fall back to the
+          // original rather than writing a null body (Prisma rejects it,
+          // and it would also just be wrong: "no body returned" isn't the
+          // same as "the body should be cleared").
           return prisma.explanation.update({
             where: { id: original.id },
-            data: { body: v.body, diagram: v.diagram ? (v.diagram as unknown as object) : undefined },
+            data: { body: v.body || original.body, diagram: v.diagram ? (v.diagram as unknown as object) : undefined },
           });
         }),
       );
