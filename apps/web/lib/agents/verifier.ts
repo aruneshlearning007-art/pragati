@@ -145,60 +145,81 @@ export async function verifyAndCorrectChapter(
 
   const allFlags: { section: "notes" | "explain" | "practice"; quote: string; reason: string }[] = [];
 
+  // Each section's verification is independently best-effort: the model
+  // occasionally returns malformed JSON (seen live: an over-escaped
+  // response that fails to parse), and a parsing failure in one section
+  // must not discard the other two sections' corrections, and definitely
+  // must not throw away the base Notes/Explain/Practice content that was
+  // already generated and saved before this function ever ran — a skipped
+  // verification just means that section keeps its unverified draft
+  // instead of losing the whole concept.
+
   if (notes) {
-    const { sections, flags } = await verifyNotes(notes.sections as unknown as NotesSection[], sourceText, cls, language);
-    if (flags.length > 0) {
-      await prisma.notes.update({ where: { id: notes.id }, data: { sections: sections as unknown as object } });
-      allFlags.push(...flags.map((f) => ({ section: "notes" as const, ...f })));
+    try {
+      const { sections, flags } = await verifyNotes(notes.sections as unknown as NotesSection[], sourceText, cls, language);
+      if (flags.length > 0) {
+        await prisma.notes.update({ where: { id: notes.id }, data: { sections: sections as unknown as object } });
+        allFlags.push(...flags.map((f) => ({ section: "notes" as const, ...f })));
+      }
+    } catch (err) {
+      console.error("Verifier: notes check failed, keeping unverified draft", err);
     }
   }
 
   if (explanations.length > 0) {
-    const draftVariants: ExplainVariant[] = explanations.map((e) => ({
-      mode: e.mode,
-      body: e.body,
-      diagram: e.diagram as unknown as ExplainVariant["diagram"],
-    }));
-    const { variants, flags } = await verifyExplanations(draftVariants, sourceText, cls, language);
-    if (flags.length > 0) {
-      await Promise.all(
-        variants.map((v) => {
-          const original = explanations.find((e) => e.mode === v.mode);
-          if (!original) return Promise.resolve();
-          // The model occasionally omits body for the picture-mode variant
-          // when it only had a diagram fix to make — fall back to the
-          // original rather than writing a null body (Prisma rejects it,
-          // and it would also just be wrong: "no body returned" isn't the
-          // same as "the body should be cleared").
-          return prisma.explanation.update({
-            where: { id: original.id },
-            data: { body: v.body || original.body, diagram: v.diagram ? (v.diagram as unknown as object) : undefined },
-          });
-        }),
-      );
-      allFlags.push(...flags.map((f) => ({ section: "explain" as const, ...f })));
+    try {
+      const draftVariants: ExplainVariant[] = explanations.map((e) => ({
+        mode: e.mode,
+        body: e.body,
+        diagram: e.diagram as unknown as ExplainVariant["diagram"],
+      }));
+      const { variants, flags } = await verifyExplanations(draftVariants, sourceText, cls, language);
+      if (flags.length > 0) {
+        await Promise.all(
+          variants.map((v) => {
+            const original = explanations.find((e) => e.mode === v.mode);
+            if (!original) return Promise.resolve();
+            // The model occasionally omits body for the picture-mode variant
+            // when it only had a diagram fix to make — fall back to the
+            // original rather than writing a null body (Prisma rejects it,
+            // and it would also just be wrong: "no body returned" isn't the
+            // same as "the body should be cleared").
+            return prisma.explanation.update({
+              where: { id: original.id },
+              data: { body: v.body || original.body, diagram: v.diagram ? (v.diagram as unknown as object) : undefined },
+            });
+          }),
+        );
+        allFlags.push(...flags.map((f) => ({ section: "explain" as const, ...f })));
+      }
+    } catch (err) {
+      console.error("Verifier: explain check failed, keeping unverified draft", err);
     }
   }
 
   if (questions.length > 0) {
-    const draftQuestions: QuizQuestionDraft[] = questions.map((q) => ({
-      kind: q.kind,
-      text: q.text,
-      options: q.options as unknown as string[],
-      correctIndex: q.correctIndex,
-      imageLabel: q.imageLabel,
-    }));
-    const { questions: corrected, flags } = await verifyQuiz(draftQuestions, sourceText, cls, language);
-    if (flags.length > 0 && corrected.length === questions.length) {
-      await Promise.all(
-        corrected.map((q, i) =>
-          prisma.quizQuestion.update({
-            where: { id: questions[i].id },
-            data: { text: q.text, options: q.options as unknown as object, correctIndex: q.correctIndex, imageLabel: q.imageLabel },
-          }),
-        ),
-      );
-      allFlags.push(...flags.map((f) => ({ section: "practice" as const, ...f })));
+    try {
+      const draftQuestions: QuizQuestionDraft[] = questions.map((q) => ({
+        kind: q.kind,
+        text: q.text,
+        options: q.options as unknown as string[],
+        correctIndex: q.correctIndex,
+        imageLabel: q.imageLabel,
+      }));
+      const { questions: corrected, flags } = await verifyQuiz(draftQuestions, sourceText, cls, language);
+      if (flags.length > 0 && corrected.length === questions.length) {
+        await Promise.all(
+          corrected.map((q, i) =>
+            prisma.quizQuestion.update({
+              where: { id: questions[i].id },
+              data: { text: q.text, options: q.options as unknown as object, correctIndex: q.correctIndex, imageLabel: q.imageLabel },
+            }),
+          ),
+        );
+        allFlags.push(...flags.map((f) => ({ section: "practice" as const, ...f })));
+      }
+    } catch (err) {
+      console.error("Verifier: practice check failed, keeping unverified draft", err);
     }
   }
 
