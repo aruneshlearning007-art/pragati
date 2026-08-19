@@ -283,6 +283,23 @@ machine. Feel free to use them normally instead of the workarounds above.
   *alongside* the generated Picture-mode diagram, never replacing it — is
   also not built; when it lands, `UploadedSource` will need actual image
   storage, since it currently only has a `sourceText` string field.
+  **Verifier Agent** ✅ added same day, user-requested: checks Notes/Explain/
+  Practice against the source text (hallucination) and the target class
+  level (age-appropriateness) after generation, *auto-corrects* anything
+  wrong, and logs each fix as a `VerifierFlag` (redesigned chapter-scoped
+  with a `section` field — it was schema-only before, notesId-linked, never
+  written to by any code) so the review page shows the teacher exactly what
+  the AI caught and changed. Tested live with a deliberately mismatched
+  case: a Class 3 chapter ("How Plants Make Food") sourced from
+  college-level biochemistry text (chlorophyll, thylakoid membranes,
+  stoichiometric equations, trophic structure). The first-pass Notes
+  generation already simplified well on its own (the base child-audience
+  instruction earns its keep) — the Verifier still found and fixed one real
+  issue in a Practice question (reworded to match the source's own
+  "by-product" phrasing) rather than inventing flags to have something to
+  show, matching the instruction to report nothing when nothing's wrong.
+  Only ever runs for the teacher-upload path — system auto-generated
+  content is never verified (no source text to check against).
 - **Phase 4 — Personalization/misconception layer** — not started.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
