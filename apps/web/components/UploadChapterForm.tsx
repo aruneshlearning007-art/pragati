@@ -23,10 +23,42 @@ export function UploadChapterForm({ subjects, language }: { subjects: Subject[];
   const [sourceText, setSourceText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const [fileName, setFileName] = useState("");
 
   const isNewSubject = subjectId === NEW_SUBJECT_VALUE;
   const canSubmit =
-    title.trim() && sourceText.trim() && (isNewSubject ? newSubjectName.trim() : subjectId) && !submitting;
+    title.trim() && sourceText.trim() && (isNewSubject ? newSubjectName.trim() : subjectId) && !submitting && !extracting;
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file after an error
+    if (!file) return;
+    setFileName(file.name);
+    setError(null);
+
+    if (file.type === "text/plain") {
+      const reader = new FileReader();
+      reader.onload = () => setSourceText(String(reader.result || ""));
+      reader.readAsText(file);
+      return;
+    }
+
+    setExtracting(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/teacher/extract-source", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Could not read this file.");
+      setSourceText(data.text);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not read this file.");
+      setFileName("");
+    } finally {
+      setExtracting(false);
+    }
+  }
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -127,6 +159,31 @@ export function UploadChapterForm({ subjects, language }: { subjects: Subject[];
           placeholder={t.chapterTitlePlaceholder}
         />
       </Field>
+
+      <Field label={t.uploadFileLabel}>
+        <input
+          type="file"
+          accept=".pdf,application/pdf,.txt,text/plain,image/jpeg,image/png,image/webp,.heic"
+          onChange={handleFileChange}
+          disabled={extracting}
+          className="input"
+          style={{ padding: 8 }}
+        />
+        {extracting && (
+          <div className="text-xs mt-1.5 font-semibold" style={{ color: "var(--color-primary)" }}>
+            {t.extracting}
+          </div>
+        )}
+        {fileName && !extracting && (
+          <div className="text-xs mt-1.5" style={{ color: "var(--color-text-muted)" }}>
+            {fileName} ✓
+          </div>
+        )}
+      </Field>
+
+      <div className="text-xs mb-2" style={{ color: "var(--color-text-muted)" }}>
+        {t.uploadFileHint}
+      </div>
 
       <Field label={t.pasteSourceLabel}>
         <textarea

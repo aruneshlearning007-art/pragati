@@ -8,6 +8,8 @@
 export interface LlmMessage {
   role: "user" | "assistant";
   content: string;
+  /** Inline file (PDF or image) attached to this message — Gemini reads it natively, no separate OCR step. */
+  file?: { base64: string; mimeType: string };
 }
 
 export interface GenerateOptions {
@@ -33,7 +35,9 @@ export async function generate(options: GenerateOptions): Promise<string> {
 
   const contents = options.messages.map((m) => ({
     role: m.role === "assistant" ? "model" : "user",
-    parts: [{ text: m.content }],
+    parts: m.file
+      ? [{ inline_data: { mime_type: m.file.mimeType, data: m.file.base64 } }, { text: m.content }]
+      : [{ text: m.content }],
   }));
 
   const body: Record<string, unknown> = {
