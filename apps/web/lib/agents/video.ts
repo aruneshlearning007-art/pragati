@@ -23,7 +23,7 @@ export async function getOrCurateVideos(
 ): Promise<VideoView[]> {
   const existing = await prisma.video.findMany({ where: { topicId }, orderBy: { order: "asc" } });
   if (existing.length > 0) {
-    return existing.map((v) => ({ id: v.id, title: v.title, url: v.url, duration: v.duration }));
+    return existing.map((v) => ({ id: v.id, title: decodeHtmlEntities(v.title), url: v.url, duration: v.duration }));
   }
 
   const apiKey = process.env.YOUTUBE_API_KEY;
@@ -64,7 +64,7 @@ export async function getOrCurateVideos(
       prisma.video.create({
         data: {
           topicId,
-          title: item.snippet.title,
+          title: decodeHtmlEntities(item.snippet.title),
           url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
           duration: durationByVideoId.get(item.id.videoId) ?? "",
           order: index,
@@ -74,6 +74,19 @@ export async function getOrCurateVideos(
   );
 
   return created.map((v) => ({ id: v.id, title: v.title, url: v.url, duration: v.duration }));
+}
+
+const HTML_ENTITIES: Record<string, string> = {
+  "&amp;": "&",
+  "&#39;": "'",
+  "&quot;": '"',
+  "&lt;": "<",
+  "&gt;": ">",
+};
+
+/** YouTube API titles/descriptions are HTML-encoded; decode the common entities before storing. */
+function decodeHtmlEntities(text: string): string {
+  return text.replace(/&(amp|#39|quot|lt|gt);/g, (m) => HTML_ENTITIES[m] ?? m);
 }
 
 /** "PT12M34S" -> "12:34" */
