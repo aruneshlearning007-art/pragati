@@ -245,17 +245,44 @@ machine. Feel free to use them normally instead of the workarounds above.
   **Still open**: once Phase 3 extracts images from teacher uploads, show
   those alongside this generated diagram, not as a replacement (see Phase 3
   note below) — not yet implemented, Phase 3 hasn't started.
-- **Phase 3 — Teacher Content Panel** — not started. Also needs to resolve a
-  known schema gap: `Chapter` currently has no `schoolId`, needed for the
-  class 3-5 school-scoped upload path.
-  **Design decision (2026-08-19, not yet implemented)**: `UploadedSource`
-  currently only stores `sourceText` — no image extraction/storage exists
-  yet. When this phase is built, extract embedded images from uploaded
-  chapters too (best-case source: real, curriculum-accurate, free) and
-  display them **alongside** the generated Picture-mode diagram, not as a
-  replacement for it — the teacher's real image and the generated
-  labeled-diagram breakdown complement each other rather than one
-  superseding the other.
+- **Phase 3 — Teacher Content Panel** ✅ core loop done (verified live
+  2026-08-19): teacher signup (`/teacher-onboarding`, role=teacher, own
+  `School` like a student), a content panel (`/teacher`) listing uploaded
+  chapters with review status, an upload flow (`/teacher/upload` — pick or
+  name a `Subject`, class, board, chapter title, paste source text) that
+  runs Notes/Pedagogy/Practice generation concurrently grounded in that
+  text, and a review page (`/teacher/chapters/[id]`) where the teacher reads
+  the draft before publishing.
+  Tested live end-to-end with a **brand-new subject** ("Social Studies",
+  never used before — Science was the only subject that existed) and a
+  chapter on the Indian freedom struggle, deliberately picked to prove the
+  pipeline is genuinely subject-agnostic, not just tuned for Science: every
+  fact in the generated Notes/Explain/Practice/Picture-diagram output
+  traced back to the pasted source (Congress 1885, Satyagraha 1915, Salt
+  March 1930, Quit India 1942, independence 1947) with nothing invented,
+  and the Picture-mode diagram
+  (🏛️ Congress → 🌿 Satyagraha → 🧂 Salt March → ✊ Quit India → 🇮🇳
+  Independence) worked as well for a history timeline as it did for the
+  Light/physics topic. After publish, confirmed the new subject and
+  chapter appeared correctly in a student's sidebar and all four tabs.
+  **Two real bugs found and fixed while wiring this up**: (1) the
+  Explain/Practice agents' "does this already exist" cache lookups had no
+  `status` filter at all —
+  an `awaiting_review` teacher draft could have been served to any student
+  browsing the same topic/scope before approval. Notes already filtered
+  correctly; Explanation and QuizQuestion didn't even have a `status`
+  column until this phase added one. (2) the student subject page's
+  chapter listing had no `status` filter and no school-scoping either —
+  same leak, plus a class 3-5 chapter from one school could have shown up
+  to students at a different school. Schema: `Chapter` gained `schoolId`
+  (sourced from the uploading teacher's own school via `getContentScope`)
+  + `teacherId` + `status`.
+  **Known gap, deferred**: file upload (PDF/photo) with OCR/text
+  extraction — v1 ships paste-text only, matching the Teacher Design
+  prototype's fallback path. Image extraction from uploads — to display
+  *alongside* the generated Picture-mode diagram, never replacing it — is
+  also not built; when it lands, `UploadedSource` will need actual image
+  storage, since it currently only has a `sourceText` string field.
 - **Phase 4 — Personalization/misconception layer** — not started.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
