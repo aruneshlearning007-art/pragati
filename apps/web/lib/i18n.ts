@@ -59,6 +59,9 @@ export const UI = {
     publishCta: "Publish to students",
     published: "Published! Students can now see this chapter.",
     backToPanel: "← Back to Content Panel",
+    conceptsInChapter: "Concepts in this chapter",
+    concept: "Concept",
+    keyTermsTitle: "Key Terms",
   },
   hi: {
     appName: "प्रगति",
@@ -120,6 +123,9 @@ export const UI = {
     publishCta: "छात्रों के लिए प्रकाशित करें",
     published: "प्रकाशित हो गया! छात्र अब यह अध्याय देख सकते हैं।",
     backToPanel: "← कंटेंट पैनल पर वापस जाएं",
+    conceptsInChapter: "इस अध्याय के विषय-वस्तु",
+    concept: "विषय-वस्तु",
+    keyTermsTitle: "मुख्य शब्द",
   },
 } as const;
 

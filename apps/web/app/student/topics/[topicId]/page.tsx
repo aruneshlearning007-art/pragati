@@ -32,12 +32,17 @@ export default async function TopicPage({
     tabParam === "explain" || tabParam === "practice" || tabParam === "videos" ? tabParam : "notes";
 
   let topic: Awaited<ReturnType<typeof prisma.topic.findUnique>> & {
-    chapter: { titleEn: string; titleHi: string | null; subject: { nameEn: string } };
+    chapter: {
+      titleEn: string;
+      titleHi: string | null;
+      subject: { nameEn: string };
+      topics: { id: string; titleEn: string; titleHi: string | null }[];
+    };
   };
   try {
     const found = await prisma.topic.findUnique({
       where: { id: topicId },
-      include: { chapter: { include: { subject: true } } },
+      include: { chapter: { include: { subject: true, topics: { orderBy: { createdAt: "asc" } } } } },
     });
     if (!found) {
       return <p style={{ color: "var(--color-text-muted)" }}>Topic not found.</p>;
@@ -69,7 +74,30 @@ export default async function TopicPage({
       <div className="mb-1 text-xs font-semibold" style={{ color: "var(--color-text-muted)" }}>
         {chapterTitle}
       </div>
-      <h1 className="font-heading text-[26px] font-semibold mb-5">{title}</h1>
+      <h1 className="font-heading text-[26px] font-semibold mb-3">{title}</h1>
+
+      {topic.chapter.topics.length > 1 && (
+        <div className="flex flex-wrap gap-1.5 mb-5">
+          {topic.chapter.topics.map((sibling, i) => {
+            const siblingTitle = language === "hi" ? sibling.titleHi || sibling.titleEn : sibling.titleEn;
+            const active = sibling.id === topicId;
+            return (
+              <Link
+                key={sibling.id}
+                href={`/student/topics/${sibling.id}`}
+                className="px-3 py-1.5 rounded-full text-xs font-bold"
+                style={
+                  active
+                    ? { background: "var(--color-primary)", color: "white" }
+                    : { background: "var(--color-surface)", color: "var(--color-text-muted)", border: "1px solid var(--color-border)" }
+                }
+              >
+                {i + 1}. {siblingTitle}
+              </Link>
+            );
+          })}
+        </div>
+      )}
 
       <div className="flex gap-2 mb-6 border-b" style={{ borderColor: "var(--color-border)" }}>
         {tabs.map((tb) => (
@@ -114,9 +142,11 @@ async function NotesPane({
   scope: ReturnType<typeof getContentScope>;
   language: Language;
 }) {
-  let sections: Awaited<ReturnType<typeof getOrGenerateNotes>>;
+  const t = UI[language];
+  let sections: Awaited<ReturnType<typeof getOrGenerateNotes>>["sections"];
+  let keyTerms: Awaited<ReturnType<typeof getOrGenerateNotes>>["keyTerms"];
   try {
-    sections = await getOrGenerateNotes(topicId, scope, language);
+    ({ sections, keyTerms } = await getOrGenerateNotes(topicId, scope, language));
   } catch (err) {
     return <ErrorCard title="Could not generate notes for this topic" error={err} />;
   }
@@ -132,6 +162,22 @@ async function NotesPane({
           <div className="text-[14.5px] leading-relaxed whitespace-pre-wrap">{s.body}</div>
         </div>
       ))}
+      {keyTerms.length > 0 && (
+        <div
+          className="p-5.5 rounded-card"
+          style={{ background: "var(--color-bg)", border: "1px solid var(--color-border)" }}
+        >
+          <div className="font-heading font-semibold text-[15px] mb-3">{t.keyTermsTitle}</div>
+          <div className="flex flex-col gap-2.5">
+            {keyTerms.map((kt, i) => (
+              <div key={i} className="text-[14px]">
+                <span className="font-bold">{kt.term}</span>
+                <span style={{ color: "var(--color-text-muted)" }}> — {kt.meaning}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -146,12 +192,19 @@ async function ExplainPane({
   language: Language;
 }) {
   let variants: Awaited<ReturnType<typeof getOrGenerateExplanations>>;
+  let keyTerms: Awaited<ReturnType<typeof getOrGenerateNotes>>["keyTerms"];
   try {
-    variants = await getOrGenerateExplanations(topicId, scope, language);
+    // getOrGenerateNotes is cache-first (a cheap DB read once Notes exist,
+    // not a second LLM call) — reused here purely to grab the same
+    // glossary for inline tooltips in Explain text.
+    [variants, { keyTerms }] = await Promise.all([
+      getOrGenerateExplanations(topicId, scope, language),
+      getOrGenerateNotes(topicId, scope, language),
+    ]);
   } catch (err) {
     return <ErrorCard title="Could not generate explanations for this topic" error={err} />;
   }
-  return <ExplainTab variants={variants} language={language} />;
+  return <ExplainTab variants={variants} keyTerms={keyTerms} language={language} />;
 }
 
 async function VideosPane({

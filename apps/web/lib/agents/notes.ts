@@ -6,19 +6,32 @@ export interface NotesSection {
   body: string;
 }
 
+export interface KeyTerm {
+  term: string;
+  meaning: string;
+}
+
+export interface NotesResult {
+  sections: NotesSection[];
+  keyTerms: KeyTerm[];
+}
+
 /**
  * Notes Agent — generic across any subject. For system-seeded topics (no
  * teacher UploadedSource), notes are generated straight from the topic's
  * own title/sub-concepts and published directly. The teacher-upload path
  * (Phase 3, `options.sourceId`/`sourceText`) grounds this in an
- * UploadedSource and gates on review instead (`options.status`).
+ * UploadedSource and gates on review instead (`options.status`). Every
+ * topic — source-grounded or not — also gets a small key-terms glossary,
+ * since that's a generically useful pedagogy feature, not a teacher-upload
+ * specific one.
  */
 export async function getOrGenerateNotes(
   topicId: string,
   scope: ContentScope,
   language: string,
   options?: { sourceId?: string; sourceText?: string; status?: ContentStatus },
-): Promise<NotesSection[]> {
+): Promise<NotesResult> {
   const existing = await prisma.notes.findFirst({
     where: {
       topicId,
@@ -31,7 +44,10 @@ export async function getOrGenerateNotes(
     orderBy: { version: "desc" },
   });
   if (existing) {
-    return existing.sections as unknown as NotesSection[];
+    return {
+      sections: existing.sections as unknown as NotesSection[],
+      keyTerms: (existing.keyTerms as unknown as KeyTerm[] | null) ?? [],
+    };
   }
 
   const topic = await prisma.topic.findUniqueOrThrow({
@@ -48,15 +64,21 @@ export async function getOrGenerateNotes(
     "You are the Notes Agent for an Indian school learning app. Write structured study notes for one topic, " +
       "grounded in trusted, verified reference material appropriate for the class level — never invent facts. " +
       (options?.sourceText
-        ? "Base the notes strictly on the source chapter text provided — never invent facts beyond it. "
+        ? "The source chapter text provided may cover multiple topics/concepts — base the notes strictly on " +
+          "the source, but write ONLY about this specific topic, ignoring parts of the source about other " +
+          "concepts in the same chapter. Never invent facts beyond the source. "
         : "") +
+      "Also extract 3-6 important vocabulary terms a student would need explained — words specific to this " +
+      "topic that a class-appropriate student might not already know — each with a one-sentence, simple " +
+      "meaning in their own words (not a dictionary definition). " +
       'Respond ONLY with strict JSON, no markdown, no commentary, no code fences. Shape: {"sections":' +
-      '[{"heading":"string","body":"string"}]} with 3-5 sections. ' +
+      '[{"heading":"string","body":"string"}], "keyTerms":[{"term":"string","meaning":"string"}]} with 3-5 ' +
+      "sections and 3-6 key terms. " +
       `Write all text in ${language === "hi" ? "Hindi (Devanagari script)" : "English"}.`,
   );
 
   const userContent = options?.sourceText
-    ? `Subject: ${subjectName}\nTopic: ${title}\nBoard: ${scope.board}, ${scope.class}\nSub-concepts to cover: ${subConceptNames || "(none specified)"}\n\nSource chapter text:\n${options.sourceText.slice(0, 12000)}`
+    ? `Subject: ${subjectName}\nTopic: ${title}\nBoard: ${scope.board}, ${scope.class}\nSub-concepts to cover: ${subConceptNames || "(none specified)"}\n\nSource chapter text:\n${options.sourceText.slice(0, 30000)}`
     : `Subject: ${subjectName}\nTopic: ${title}\nBoard: ${scope.board}, ${scope.class}\nSub-concepts to cover: ${subConceptNames || "(none specified)"}`;
 
   const raw = await generate({
@@ -65,7 +87,8 @@ export async function getOrGenerateNotes(
     json: true,
   });
 
-  const parsed = extractJson<{ sections: NotesSection[] }>(raw);
+  const parsed = extractJson<{ sections: NotesSection[]; keyTerms?: KeyTerm[] }>(raw);
+  const keyTerms = parsed.keyTerms ?? [];
 
   await prisma.notes.create({
     data: {
@@ -76,9 +99,10 @@ export async function getOrGenerateNotes(
       schoolId: scope.schoolId,
       language,
       sections: parsed.sections as unknown as object,
+      keyTerms: keyTerms as unknown as object,
       status: options?.status ?? "published",
     },
   });
 
-  return parsed.sections;
+  return { sections: parsed.sections, keyTerms };
 }

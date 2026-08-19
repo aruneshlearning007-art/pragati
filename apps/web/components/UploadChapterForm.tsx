@@ -106,7 +106,8 @@ export function UploadChapterForm({ subjects, language }: { subjects: Subject[];
       >
         <div className="font-heading font-bold text-[15px] mb-1.5">{t.generating}</div>
         <div className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-          Notes, explanations and a quiz are being generated from your chapter — this can take up to a minute.
+          Your chapter is being split into concepts, with notes, explanations and a quiz generated for each one —
+          this can take a few minutes for a longer chapter.
         </div>
       </div>
     );

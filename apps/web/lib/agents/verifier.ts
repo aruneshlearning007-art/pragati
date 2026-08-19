@@ -38,7 +38,7 @@ export async function verifyNotes(
     messages: [
       {
         role: "user",
-        content: `Class: ${cls}\n\nSource chapter text:\n${sourceText.slice(0, 12000)}\n\nDraft notes:\n${JSON.stringify(sections)}`,
+        content: `Class: ${cls}\n\nSource chapter text:\n${sourceText.slice(0, 30000)}\n\nDraft notes:\n${JSON.stringify(sections)}`,
       },
     ],
     json: true,
@@ -70,7 +70,7 @@ export async function verifyExplanations(
     messages: [
       {
         role: "user",
-        content: `Class: ${cls}\n\nSource chapter text:\n${sourceText.slice(0, 12000)}\n\nDraft variants:\n${JSON.stringify(variants)}`,
+        content: `Class: ${cls}\n\nSource chapter text:\n${sourceText.slice(0, 30000)}\n\nDraft variants:\n${JSON.stringify(variants)}`,
       },
     ],
     json: true,
@@ -109,7 +109,7 @@ export async function verifyQuiz(
     messages: [
       {
         role: "user",
-        content: `Class: ${cls}\n\nSource chapter text:\n${sourceText.slice(0, 12000)}\n\nDraft questions:\n${JSON.stringify(questions)}`,
+        content: `Class: ${cls}\n\nSource chapter text:\n${sourceText.slice(0, 30000)}\n\nDraft questions:\n${JSON.stringify(questions)}`,
       },
     ],
     json: true,
@@ -199,7 +199,7 @@ export async function verifyAndCorrectChapter(
 
   if (allFlags.length > 0) {
     await prisma.verifierFlag.createMany({
-      data: allFlags.map((f) => ({ chapterId, section: f.section, quote: f.quote, reason: f.reason })),
+      data: allFlags.map((f) => ({ chapterId, topicId, section: f.section, quote: f.quote, reason: f.reason })),
     });
   }
 }

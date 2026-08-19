@@ -182,6 +182,7 @@ model Topic {
   videos          Video[]
   doubtMessages   DoubtMessage[]
   uploadedSources UploadedSource[]
+  flags           VerifierFlag[]
 
   @@index([chapterId])
 }
@@ -234,6 +235,11 @@ model Notes {
   class     String
   language  String
   sections  Json
+  // Important vocabulary for this concept — {term, meaning}[] — shown as a
+  // glossary card on the Notes tab and used to tooltip matching words
+  // inline wherever they appear in Explain text. Nullable so pre-existing
+  // rows generated before this field don't need a backfill.
+  keyTerms  Json?
   status    ContentStatus @default(draft)
   version   Int           @default(1)
   createdAt DateTime      @default(now())
@@ -247,23 +253,27 @@ model Notes {
 }
 
 // Written by the Verifier Agent (Phase 3 teacher-upload path only — never
-// runs for system auto-generated content). Chapter-scoped rather than
-// linked to one Notes/Explanation/QuizQuestion row, since one verification
-// pass covers all three content types for a chapter at once and the
-// teacher review page shows them together. `quote` holds the corrected
-// text (not the original mistake) so a teacher scanning flags sees what
-// the content now says, not what it used to say.
+// runs for system auto-generated content). One verification pass covers all
+// three content types for a single concept (Topic) at once — `topicId`
+// lets the teacher review page group flags per concept; `chapterId` is kept
+// too since the review page still needs "every flag in this chapter" for
+// the top-level publish gate. `quote` holds the corrected text (not the
+// original mistake) so a teacher scanning flags sees what the content now
+// says, not what it used to say.
 model VerifierFlag {
   id        String   @id @default(cuid())
   chapterId String
+  topicId   String
   section   VerifierSection
   quote     String
   reason    String
   createdAt DateTime @default(now())
 
   chapter Chapter @relation(fields: [chapterId], references: [id])
+  topic   Topic   @relation(fields: [topicId], references: [id])
 
   @@index([chapterId])
+  @@index([topicId])
 }
 
 model Explanation {

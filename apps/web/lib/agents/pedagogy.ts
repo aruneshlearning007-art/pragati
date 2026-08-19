@@ -78,7 +78,9 @@ export async function getOrGenerateExplanations(
       "Make the sequence specific to this exact topic, never generic filler, and order it the way the process " +
       "or idea actually flows. " +
       (options?.sourceText
-        ? "Ground every explanation strictly in the source chapter text provided — never invent facts beyond it. "
+        ? "The source chapter text provided may cover multiple topics/concepts — ground every explanation " +
+          "strictly in the source, but explain ONLY this specific topic, ignoring parts of the source about " +
+          "other concepts in the same chapter. Never invent facts beyond the source. "
         : "") +
       'Respond ONLY with strict JSON, no markdown, no code fences. Shape: {"story":"a short relatable narrative ' +
       'that introduces the idea","picture":"one short sentence introducing what the diagram below shows",' +
@@ -89,7 +91,7 @@ export async function getOrGenerateExplanations(
   );
 
   const userContent = options?.sourceText
-    ? `Topic: ${title}\n\nSource chapter text:\n${options.sourceText.slice(0, 12000)}`
+    ? `Topic: ${title}\n\nSource chapter text:\n${options.sourceText.slice(0, 30000)}`
     : `Topic: ${title}`;
 
   const raw = await generate({

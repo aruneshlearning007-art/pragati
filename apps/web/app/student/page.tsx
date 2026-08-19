@@ -100,7 +100,7 @@ export default async function StudentHomePage({
                 </div>
                 {firstTopic && (
                   <Link
-                    href={`/student/topics/${firstTopic.id}`}
+                    href={`/student/chapters/${chapter.id}`}
                     className="mt-1 text-center py-2.5 rounded-xl text-white font-heading font-semibold text-sm"
                     style={{ background: "var(--color-primary)" }}
                   >

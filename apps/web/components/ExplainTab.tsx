@@ -20,6 +20,38 @@ interface ExplainVariant {
   diagram: PictureDiagram | null;
 }
 
+interface KeyTerm {
+  term: string;
+  meaning: string;
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Wraps whole-word, case-insensitive matches of any key term in a tooltip span. */
+function renderWithTooltips(text: string, keyTerms: KeyTerm[]) {
+  if (keyTerms.length === 0) return text;
+  const sorted = [...keyTerms].sort((a, b) => b.term.length - a.term.length);
+  const pattern = sorted.map((kt) => escapeRegExp(kt.term)).join("|");
+  const regex = new RegExp(`\\b(${pattern})\\b`, "gi");
+  const meaningByLower = new Map(keyTerms.map((kt) => [kt.term.toLowerCase(), kt.meaning]));
+
+  return text.split(regex).map((part, i) => {
+    const meaning = meaningByLower.get(part.toLowerCase());
+    if (!meaning) return part;
+    return (
+      <span
+        key={i}
+        title={meaning}
+        style={{ borderBottom: "1.5px dotted var(--color-primary)", cursor: "help" }}
+      >
+        {part}
+      </span>
+    );
+  });
+}
+
 function DiagramView({ diagram }: { diagram: PictureDiagram }) {
   return (
     <div className="flex flex-wrap items-stretch gap-1">
@@ -58,13 +90,15 @@ const MODE_LABEL: Record<string, { en: string; hi: string }> = {
   gofurther: { en: "Go further", hi: "और आगे" },
 };
 
-function VariantCard({ variant, language }: { variant: ExplainVariant; language: Language }) {
+function VariantCard({ variant, keyTerms, language }: { variant: ExplainVariant; keyTerms: KeyTerm[]; language: Language }) {
   return (
     <div className="p-5.5 rounded-card" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
       <div className="text-[11px] font-bold uppercase tracking-wide mb-3" style={{ color: "var(--color-primary)" }}>
         {MODE_LABEL[variant.mode]?.[language] ?? variant.mode}
       </div>
-      <div className="text-[14.5px] leading-relaxed whitespace-pre-wrap mb-3.5">{variant.body}</div>
+      <div className="text-[14.5px] leading-relaxed whitespace-pre-wrap mb-3.5">
+        {renderWithTooltips(variant.body, keyTerms)}
+      </div>
       {variant.mode === "picture" && variant.diagram && variant.diagram.steps.length > 0 && (
         <div className="overflow-x-auto">
           <DiagramView diagram={variant.diagram} />
@@ -74,7 +108,15 @@ function VariantCard({ variant, language }: { variant: ExplainVariant; language:
   );
 }
 
-export function ExplainTab({ variants, language }: { variants: ExplainVariant[]; language: Language }) {
+export function ExplainTab({
+  variants,
+  keyTerms,
+  language,
+}: {
+  variants: ExplainVariant[];
+  keyTerms: KeyTerm[];
+  language: Language;
+}) {
   const t = UI[language];
   const [activeMode, setActiveMode] = useState(variants[0]?.mode ?? "story");
   const [compare, setCompare] = useState(false);
@@ -108,7 +150,7 @@ export function ExplainTab({ variants, language }: { variants: ExplainVariant[];
         </label>
       </div>
 
-      {!compare && active && <VariantCard variant={active} language={language} />}
+      {!compare && active && <VariantCard variant={active} keyTerms={keyTerms} language={language} />}
 
       {compare && (
         <div className="grid gap-4" style={{ gridTemplateColumns: "1fr 1fr" }}>
@@ -116,7 +158,7 @@ export function ExplainTab({ variants, language }: { variants: ExplainVariant[];
             <div className="text-xs font-semibold mb-2" style={{ color: "var(--color-text-muted)" }}>
               {MODE_LABEL[activeMode]?.[language] ?? activeMode}
             </div>
-            {active && <VariantCard variant={active} language={language} />}
+            {active && <VariantCard variant={active} keyTerms={keyTerms} language={language} />}
           </div>
           <div>
             <select
@@ -132,7 +174,7 @@ export function ExplainTab({ variants, language }: { variants: ExplainVariant[];
                   </option>
                 ))}
             </select>
-            {secondary && <VariantCard variant={secondary} language={language} />}
+            {secondary && <VariantCard variant={secondary} keyTerms={keyTerms} language={language} />}
           </div>
         </div>
       )}

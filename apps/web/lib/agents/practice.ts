@@ -39,7 +39,9 @@ export async function getOrGenerateQuiz(
   const system = withBaseInstructions(
     "You are the Practice Agent. Write a short topic quiz that checks real understanding, not memorized wording. " +
       (options?.sourceText
-        ? "Base every question strictly on the source chapter text provided — never invent facts beyond it. "
+        ? "The source chapter text provided may cover multiple topics/concepts — base every question strictly " +
+          "on the source, but only on material relevant to THIS topic, ignoring parts of the source about " +
+          "other concepts in the same chapter. Never invent facts beyond the source. "
         : "") +
       'Respond ONLY with strict JSON, no markdown, no code fences. Shape: {"questions":[{"kind":"mcq or ' +
       'assertion_reason or picture","text":"string","options":["a","b","c","d"],"correctIndex":0,' +
@@ -50,7 +52,7 @@ export async function getOrGenerateQuiz(
   );
 
   const userContent = options?.sourceText
-    ? `Topic: ${topic.titleEn}\nSub-concepts (id:name): ${subConceptList || "(none)"}\n\nSource chapter text:\n${options.sourceText.slice(0, 12000)}`
+    ? `Topic: ${topic.titleEn}\nSub-concepts (id:name): ${subConceptList || "(none)"}\n\nSource chapter text:\n${options.sourceText.slice(0, 30000)}`
     : `Topic: ${topic.titleEn}\nSub-concepts (id:name): ${subConceptList || "(none)"}`;
 
   const raw = await generate({
