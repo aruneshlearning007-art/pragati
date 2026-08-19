@@ -6,6 +6,15 @@ export interface TopicImageView {
   credit: string | null;
 }
 
+type CommonsPage = {
+  title: string;
+  imageinfo?: {
+    url: string;
+    thumburl?: string;
+    extmetadata?: { ImageDescription?: { value: string }; Artist?: { value: string } };
+  }[];
+};
+
 /**
  * Image Curator — no LLM call, no generation. Searches real, existing
  * diagrams/photos on Wikimedia Commons (the same media library behind
@@ -22,47 +31,31 @@ export async function getOrCurateImage(
     return { url: existing.url, caption: existing.caption, credit: existing.credit };
   }
 
-  // filetype:bitmap|drawing excludes scanned-book/PDF/djvu results that
-  // Commons' full-text search otherwise happily matches on OCR'd body text —
-  // without it, a query like "light reflection diagram" returns 19th-century
-  // book scans, not actual diagrams.
-  const query = `${topicTitle} ${subjectName} diagram filetype:bitmap|drawing`;
-  const searchUrl =
-    `https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*` +
-    `&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrnamespace=6&gsrlimit=5` +
-    `&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=800`;
+  // Commons' search effectively ANDs every term, so the most specific query
+  // (topic + subject + "diagram") can easily return zero hits for a
+  // multi-word topic title — try it first, then fall back to progressively
+  // looser queries until one actually returns something.
+  const queryCandidates = [
+    `${topicTitle} ${subjectName} diagram`,
+    `${topicTitle} ${subjectName}`,
+    topicTitle,
+  ];
 
-  const res = await fetch(searchUrl, { headers: { "User-Agent": "Pragati-EdTech-App/1.0 (pilot)" } });
-  if (!res.ok) {
-    throw new Error(`Wikimedia Commons API error ${res.status}: ${await res.text()}`);
+  let firstUsable: CommonsPage | undefined;
+  for (const base of queryCandidates) {
+    const pages = await searchCommons(`${base} filetype:bitmap|drawing`);
+    firstUsable = pages.find((p) => {
+      const info = p.imageinfo?.[0];
+      if (!info) return false;
+      // Check the ORIGINAL file's extension, not the thumbnail's — a scanned
+      // PDF/djvu still gets a .jpg thumbnail rendering of its first page, so
+      // thumburl alone doesn't catch it. filetype:bitmap|drawing in the query
+      // already excludes these; this is a defense-in-depth backstop.
+      const url = info.url.split("?")[0].toLowerCase();
+      return /\.(jpe?g|png|gif|svg)$/.test(url);
+    });
+    if (firstUsable) break;
   }
-  const data = (await res.json()) as {
-    query?: {
-      pages?: Record<
-        string,
-        {
-          title: string;
-          imageinfo?: {
-            url: string;
-            thumburl?: string;
-            extmetadata?: { ImageDescription?: { value: string }; Artist?: { value: string } };
-          }[];
-        }
-      >;
-    };
-  };
-
-  const pages = Object.values(data.query?.pages ?? {});
-  const firstUsable = pages.find((p) => {
-    const info = p.imageinfo?.[0];
-    if (!info) return false;
-    // Check the ORIGINAL file's extension, not the thumbnail's — a scanned
-    // PDF/djvu still gets a .jpg thumbnail rendering of its first page, so
-    // thumburl alone doesn't catch it. filetype:bitmap|drawing in the query
-    // already excludes these; this is a defense-in-depth backstop.
-    const url = info.url.split("?")[0].toLowerCase();
-    return /\.(jpe?g|png|gif|svg)$/.test(url);
-  });
   if (!firstUsable) return null;
 
   const info = firstUsable.imageinfo![0];
@@ -79,4 +72,18 @@ export async function getOrCurateImage(
 
 function stripHtml(text: string): string {
   return text.replace(/<[^>]*>/g, "").trim();
+}
+
+async function searchCommons(query: string): Promise<CommonsPage[]> {
+  const searchUrl =
+    `https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*` +
+    `&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrnamespace=6&gsrlimit=5` +
+    `&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=800`;
+
+  const res = await fetch(searchUrl, { headers: { "User-Agent": "Pragati-EdTech-App/1.0 (pilot)" } });
+  if (!res.ok) {
+    throw new Error(`Wikimedia Commons API error ${res.status}: ${await res.text()}`);
+  }
+  const data = (await res.json()) as { query?: { pages?: Record<string, CommonsPage> } };
+  return Object.values(data.query?.pages ?? {});
 }
