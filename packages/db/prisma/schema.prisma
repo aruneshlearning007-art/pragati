@@ -155,7 +155,6 @@ model Topic {
   explanations    Explanation[]
   quizQuestions   QuizQuestion[]
   videos          Video[]
-  images          TopicImage[]
   doubtMessages   DoubtMessage[]
   uploadedSources UploadedSource[]
 
@@ -245,6 +244,12 @@ model Explanation {
   mode       ExplainMode
   body       String
   imageLabel String?
+  // Structured visual for "picture" mode: an array of {icon, title,
+  // description} panels the LLM writes and the UI renders as cards —
+  // replaces an earlier attempt to source a real image from Wikimedia
+  // Commons, which couldn't reliably return a *relevant* result (see
+  // CLAUDE.md). Null for the other three modes.
+  panels     Json?
   createdAt  DateTime    @default(now())
 
   topic  Topic   @relation(fields: [topicId], references: [id])
@@ -344,20 +349,6 @@ model Video {
   @@index([topicId])
 }
 
-// Curated from Wikimedia Commons, not generated — topic-scoped only, same
-// reasoning as Video: a real diagram isn't board/class/language-scoped.
-model TopicImage {
-  id        String   @id @default(cuid())
-  topicId   String
-  url       String
-  caption   String
-  credit    String?
-  createdAt DateTime @default(now())
-
-  topic Topic @relation(fields: [topicId], references: [id])
-
-  @@index([topicId])
-}
 
 model DoubtMessage {
   id        String    @id @default(cuid())
