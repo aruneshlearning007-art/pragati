@@ -18,7 +18,10 @@ export const TEACH_NOT_ROTE_INSTRUCTION =
 export const MATH_NOTATION_INSTRUCTION =
   "When writing a mathematical expression or equation, wrap it in single dollar signs, e.g. " +
   "$3 \\times 4 = 12$ or $\\frac{3}{4}$, so it renders properly as real math notation instead of " +
-  "plain text - never use a dollar sign for currency (use ₹ instead).";
+  "plain text - never use a dollar sign for currency (use ₹ instead). Since your response is JSON, " +
+  "every backslash inside a LaTeX command must be written DOUBLED - e.g. the JSON string value must " +
+  'contain $3 \\\\times 4$ and $\\\\frac{3}{4}$ (two backslashes), not $3 \\times 4$ (one) - a single ' +
+  "backslash breaks JSON parsing.";
 
 export function withBaseInstructions(taskSpecificPrompt: string): string {
   return `${CHILD_AUDIENCE_INSTRUCTION}\n\n${TEACH_NOT_ROTE_INSTRUCTION}\n\n${MATH_NOTATION_INSTRUCTION}\n\n${taskSpecificPrompt}`;

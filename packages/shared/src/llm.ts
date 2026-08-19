@@ -69,6 +69,23 @@ export async function generate(options: GenerateOptions): Promise<string> {
   return parts.map((p) => p.text ?? "").join("");
 }
 
+// The model is instructed to write LaTeX math like \frac{1}{2} or
+// \times inside JSON string values, but routinely forgets that a literal
+// backslash must be double-escaped as \\ in JSON — it writes \f/\t instead
+// of \\f/\\t. \f, \b, and \t are all valid single-char JSON escapes
+// (form-feed, backspace, tab), so JSON.parse silently "succeeds" while
+// eating the backslash: \frac{1}{2} decodes to a form-feed character
+// followed by "rac{1}{2}", not the literal text "\frac{1}{2}" — and
+// \times decodes to a tab followed by "imes". None of these three control
+// characters is ever intentionally produced by any agent in this app, so
+// it's safe to assume any \f/\b/\t in the raw response is a mis-escaped
+// LaTeX command (\frac, \beta, \bmod, \times, \theta, \tan, ...) and
+// repair it before parsing — the negative lookbehind avoids double-fixing
+// a backslash that was already correctly escaped as \\f/\\b/\\t.
+function repairLatexEscapes(jsonStr: string): string {
+  return jsonStr.replace(/(?<!\\)\\([fbt])/g, "\\\\$1");
+}
+
 /** Pull the first {...} JSON object out of a raw model response and parse it. */
 export function extractJson<T>(raw: string): T {
   let jsonStr = raw.trim();
@@ -77,5 +94,5 @@ export function extractJson<T>(raw: string): T {
   if (start >= 0 && end > start) {
     jsonStr = jsonStr.slice(start, end + 1);
   }
-  return JSON.parse(jsonStr) as T;
+  return JSON.parse(repairLatexEscapes(jsonStr)) as T;
 }
