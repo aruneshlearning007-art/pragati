@@ -35,11 +35,13 @@ export async function getOrGenerateExplanations(
 
   const system = withBaseInstructions(
     "You are the Pedagogy Agent. Explain the same topic four different ways so every kind of learner finds one " +
-      "that clicks — never just four rewordings of the same explanation. " +
+      "that clicks — never just four rewordings of the same explanation. There is no real diagram image yet, so " +
+      "the picture mode shows a text placeholder captioned with pictureCaption — make that caption specific to " +
+      "this exact topic (e.g. what the diagram would show and label), never generic. " +
       'Respond ONLY with strict JSON, no markdown, no code fences. Shape: {"story":"a short relatable narrative ' +
-      'that introduces the idea","picture":"a description of a labeled diagram for visual learners, plus a short ' +
-      'imageLabel caption for the diagram placeholder","realworld":"how the concept shows up in daily life",' +
-      '"gofurther":"a deeper insight for curious minds"}. ' +
+      'that introduces the idea","picture":"a description of a labeled diagram for visual learners",' +
+      '"pictureCaption":"a short, specific caption for that diagram placeholder",' +
+      '"realworld":"how the concept shows up in daily life","gofurther":"a deeper insight for curious minds"}. ' +
       `Write all text in ${language === "hi" ? "Hindi (Devanagari script)" : "English"}.`,
   );
 
@@ -52,6 +54,7 @@ export async function getOrGenerateExplanations(
   const parsed = extractJson<{
     story: string;
     picture: string;
+    pictureCaption: string;
     realworld: string;
     gofurther: string;
   }>(raw);
@@ -74,7 +77,7 @@ export async function getOrGenerateExplanations(
           language,
           mode,
           body: bodies[mode],
-          imageLabel: mode === "picture" ? "diagram illustrating the concept" : null,
+          imageLabel: mode === "picture" ? parsed.pictureCaption : null,
         },
       }),
     ),

@@ -4,13 +4,15 @@ import { getContentScope } from "@pragati/shared";
 import { getCurrentStudent } from "@/lib/session-server";
 import { getOrGenerateNotes } from "@/lib/agents/notes";
 import { getOrGenerateExplanations } from "@/lib/agents/pedagogy";
+import { getOrCurateVideos } from "@/lib/agents/video";
 import { ExplainTab } from "@/components/ExplainTab";
 import { PracticeTab } from "@/components/PracticeTab";
+import { VideosTab } from "@/components/VideosTab";
 import { DoubtChat } from "@/components/DoubtChat";
 import { UI, type Language } from "@/lib/i18n";
 import { ErrorCard } from "@/components/ErrorCard";
 
-type Tab = "notes" | "explain" | "practice";
+type Tab = "notes" | "explain" | "practice" | "videos";
 
 export default async function TopicPage({
   params,
@@ -26,10 +28,11 @@ export default async function TopicPage({
 
   const { topicId } = await params;
   const { tab: tabParam } = await searchParams;
-  const tab: Tab = tabParam === "explain" || tabParam === "practice" ? tabParam : "notes";
+  const tab: Tab =
+    tabParam === "explain" || tabParam === "practice" || tabParam === "videos" ? tabParam : "notes";
 
   let topic: Awaited<ReturnType<typeof prisma.topic.findUnique>> & {
-    chapter: { titleEn: string; titleHi: string | null };
+    chapter: { titleEn: string; titleHi: string | null; subject: { nameEn: string } };
   };
   try {
     const found = await prisma.topic.findUnique({
@@ -58,6 +61,7 @@ export default async function TopicPage({
     { key: "notes", label: t.tabNotes },
     { key: "explain", label: t.tabExplain },
     { key: "practice", label: t.tabPractice },
+    { key: "videos", label: t.tabVideos },
   ];
 
   return (
@@ -86,6 +90,15 @@ export default async function TopicPage({
       {tab === "notes" && <NotesPane topicId={topicId} scope={scope} language={language} />}
       {tab === "explain" && <ExplainPane topicId={topicId} scope={scope} language={language} />}
       {tab === "practice" && <PracticeTab topicId={topicId} language={language} />}
+      {tab === "videos" && (
+        <VideosPane
+          topicId={topicId}
+          subjectName={topic.chapter.subject.nameEn}
+          topicTitle={topic.titleEn}
+          studentClass={student.class ?? "Class 6"}
+          language={language}
+        />
+      )}
 
       <DoubtChat topicId={topicId} language={language} />
     </div>
@@ -139,4 +152,26 @@ async function ExplainPane({
     return <ErrorCard title="Could not generate explanations for this topic" error={err} />;
   }
   return <ExplainTab variants={variants} language={language} />;
+}
+
+async function VideosPane({
+  topicId,
+  subjectName,
+  topicTitle,
+  studentClass,
+  language,
+}: {
+  topicId: string;
+  subjectName: string;
+  topicTitle: string;
+  studentClass: string;
+  language: Language;
+}) {
+  let videos: Awaited<ReturnType<typeof getOrCurateVideos>>;
+  try {
+    videos = await getOrCurateVideos(topicId, subjectName, topicTitle, studentClass);
+  } catch (err) {
+    return <ErrorCard title="Could not load videos for this topic" error={err} />;
+  }
+  return <VideosTab videos={videos} language={language} />;
 }
