@@ -209,16 +209,25 @@ machine. Feel free to use them normally instead of the workarounds above.
   mentioned "reflection" and "shadow" in passing); tightening to a
   title-only match still surfaced a landscape photo an artist happened to
   title "Shadows and Reflections" — real and on-theme, but not an actual
-  teaching diagram. **Landed on**: the Pedagogy agent (`pedagogy.ts`) now
-  writes 2-4 structured panels (emoji icon + short title + one-sentence
-  description) directly instead of describing an image, rendered as cards
-  by `ExplainTab.tsx`. Always accurate since it's exactly what the model
-  intends to teach, not a search result gambled on keyword overlap — and
-  stays free and subject-agnostic like the rest of the pipeline. The
-  `TopicImage` table and `image.ts` were dropped; `Explanation` gained a
-  `panels` JSONB column. Confirmed live: 3 correct, well-labeled panels
-  (☀️ Straight Light Beams, 👤 Blocked Light = Shadow, 🪞 Bounced Light =
-  Reflection) for the seed topic.
+  teaching diagram. (3) A grid of cards (icon+title+description) — accurate
+  but had no spatial/relational meaning between cards, so it didn't actually
+  read as a "picture." **Landed on**: the Pedagogy agent (`pedagogy.ts`) now
+  writes an ordered sequence of 2-5 steps (icon + label + one-sentence
+  description) with a short label on each arrow between them, rendered by
+  `ExplainTab.tsx`'s `DiagramView` as real boxes connected by labeled
+  arrows — an actual flow diagram. Always accurate since it's exactly what
+  the model intends to teach, not a search result gambled on keyword
+  overlap — and stays free and subject-agnostic (the same
+  step-sequence-with-arrows shape covers comparisons, cause/effect, and
+  process flows across any subject). The `TopicImage` table and `image.ts`
+  were dropped; `Explanation.panels` was renamed to `.diagram` (JSONB).
+  Confirmed live at both narrow and desktop widths: a correct 5-step
+  diagram (🔦 Light Source → 🧍 Opaque Object → 👥 Dark Shadow → 🪞 Shiny
+  Mirror → 🖼️ Clear Reflection, each arrow labeled) for the seed topic,
+  wrapping cleanly to multiple rows on narrow viewports.
+  **Still open**: once Phase 3 extracts images from teacher uploads, show
+  those alongside this generated diagram, not as a replacement (see Phase 3
+  note below) — not yet implemented, Phase 3 hasn't started.
 - **Phase 3 — Teacher Content Panel** — not started. Also needs to resolve a
   known schema gap: `Chapter` currently has no `schoolId`, needed for the
   class 3-5 school-scoped upload path.
