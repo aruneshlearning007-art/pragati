@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@pragati/db";
 import { getCurrentStudent } from "@/lib/session-server";
-import { getTopicStatus } from "@/lib/agents/diagnostic";
+import { getTopicStatusesByChapter, type StatusResult } from "@/lib/agents/diagnostic";
 import { UI, STATUS_STYLES, type Language } from "@/lib/i18n";
 import { ErrorCard } from "@/components/ErrorCard";
 
@@ -15,7 +15,7 @@ export default async function ChapterOverviewPage({ params }: { params: Promise<
   const { chapterId } = await params;
 
   let chapter: Awaited<ReturnType<typeof prisma.chapter.findUnique>> & { topics: { id: string; titleEn: string; titleHi: string | null }[] };
-  let topicCards: { id: string; title: string; status: Awaited<ReturnType<typeof getTopicStatus>>["status"]; progress: number }[];
+  let topicCards: { id: string; title: string; status: StatusResult["status"]; progress: number }[];
   try {
     const found = await prisma.chapter.findUnique({
       where: { id: chapterId },
@@ -26,13 +26,12 @@ export default async function ChapterOverviewPage({ params }: { params: Promise<
     }
     chapter = found;
 
-    topicCards = await Promise.all(
-      chapter.topics.map(async (topic) => {
-        const { status, progress } = await getTopicStatus(student.id, topic.id);
-        const title = language === "hi" ? topic.titleHi || topic.titleEn : topic.titleEn;
-        return { id: topic.id, title, status, progress };
-      }),
-    );
+    const statusByTopic = await getTopicStatusesByChapter(student.id, chapterId);
+    topicCards = chapter.topics.map((topic) => {
+      const { status, progress } = statusByTopic.get(topic.id) ?? { status: "not-started" as const, progress: 0 };
+      const title = language === "hi" ? topic.titleHi || topic.titleEn : topic.titleEn;
+      return { id: topic.id, title, status, progress };
+    });
   } catch (err) {
     return <ErrorCard title="Could not load this chapter" error={err} />;
   }

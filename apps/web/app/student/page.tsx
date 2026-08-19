@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma, Prisma } from "@pragati/db";
 import { getContentScope } from "@pragati/shared";
 import { getCurrentStudent } from "@/lib/session-server";
-import { getChapterStatus, type TopicStatus } from "@/lib/agents/diagnostic";
+import { getChapterStatusesByIds, type TopicStatus } from "@/lib/agents/diagnostic";
 import { UI, STATUS_STYLES, type Language } from "@/lib/i18n";
 import { ErrorCard } from "@/components/ErrorCard";
 
@@ -47,12 +47,14 @@ export default async function StudentHomePage({
       orderBy: { createdAt: "asc" },
     });
 
-    chapterCards = await Promise.all(
-      chapters.map(async (ch) => {
-        const { status, progress } = await getChapterStatus(student.id, ch.id);
-        return { chapter: ch, status, progress };
-      }),
+    const statusByChapter = await getChapterStatusesByIds(
+      student.id,
+      chapters.map((ch) => ch.id),
     );
+    chapterCards = chapters.map((chapter) => {
+      const { status, progress } = statusByChapter.get(chapter.id) ?? { status: "not-started" as const, progress: 0 };
+      return { chapter, status, progress };
+    });
   } catch (err) {
     return <ErrorCard title="Could not load your subjects" error={err} />;
   }
