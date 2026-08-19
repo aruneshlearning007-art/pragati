@@ -91,11 +91,28 @@ applies in this repo.
     agent prompt instructions, stub session/auth helpers.
   - `project/` — the original Claude Design prototype (.dc.html files) kept
     as visual/UX reference only, not part of the running app.
-- **LLM provider**: Gemini (`gemini-3.6-flash`, free tier — cost-driven
+- **LLM provider**: Gemini (`gemini-3.5-flash-lite`, free tier — cost-driven
   choice, user explicitly cannot pay). All calls go through the single
   `generate()` function in `packages/shared/src/llm.ts` so swapping to Claude
   later is a one-file change (prompts will need re-tuning at that point,
   expected not hidden).
+  **Model choice matters a lot here — don't casually bump to the newest
+  model.** Originally used `gemini-3.6-flash` (the newest at the time); its
+  free tier turned out to be a hard **20 requests/DAY** ceiling (confirmed
+  from the literal 429 error body — `generate_content_free_tier_requests`,
+  `limit: 20`) that doesn't reset until the next day and is trivially
+  exhausted by normal use across Notes/Explain/Practice/Doubt-chat, let
+  alone real students. Switched to `gemini-3.5-flash-lite` (2026-08-19,
+  live-verified): its free tier is **15 requests/MINUTE** instead — recovers
+  continuously rather than resetting once a day, confirmed by hammering it
+  with 25 rapid calls (15 succeeded, then 429s citing the per-minute quota)
+  — and reply quality held up on real doubt-chat questions. **The general
+  pattern, worth rechecking if quota errors show up again**: a provider's
+  newest/flagship model tends to get a much stingier free-tier quota than
+  its own "-lite" or older sibling models — check the actual 429 error
+  body's quota metric/limit before assuming a model swap fixed anything,
+  since some limits are per-day (hard wall) and others are per-minute
+  (self-recovering, much more usable even at a lower number).
 - **Auth**: stubbed for the pilot — no OAuth/password. `packages/shared/src/session.ts`
   issues an HMAC-signed cookie token on onboarding. Explicitly flagged as a
   stand-in to replace before real launch.
