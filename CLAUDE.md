@@ -123,6 +123,9 @@ applies in this repo.
 GitHub (`aruneshlearning007-art/pragati`) → Vercel (project `pragati-web`,
 team `pragati20`) auto-deploys `apps/web` on every push to `main`. Postgres
 is Supabase (project ref `omdrsjlfgipgylcqcooc`, region ap-south-1).
+**Vercel serverless function region is pinned to `bom1` (Mumbai)** — see
+gotcha below, this must stay matched to Supabase's region or every DB-
+touching request pays a cross-continent round trip.
 
 `apps/web/package.json` build script runs migrations before building:
 `pnpm --filter @pragati/db generate && pnpm --filter @pragati/db migrate:deploy && next build`
@@ -140,6 +143,34 @@ never commit them):
 
 ## Known infra gotchas already hit once (don't re-debug from scratch)
 
+- **Every DB-touching page took 4.5-8 seconds, even simple cached reads**
+  (reported by user 2026-08-20, "kisi bhi tab ko click karne pe time le
+  raha hai"): live-tested by timing `fetch()` calls from the browser —
+  `/api/health` (no DB) was ~250-370ms, but any page touching Prisma was
+  consistently 4.5-8s **even on repeat requests to the same cached data**,
+  which ruled out cold-start as the sole explanation. Root cause found via
+  `curl https://api.vercel.com/v9/projects/pragati-web`: **Vercel's
+  serverless functions were running in `iad1` (US East) while Supabase is
+  in `ap-south-1` (Mumbai)** — a cross-continent round trip (TCP+TLS+
+  Postgres-auth handshake through PgBouncer, several round trips) on every
+  single query. Fixed by `PATCH`-ing the project's `serverlessFunctionRegion`
+  to `bom1` (Mumbai) via the Vercel API (matches `defaultResourceConfig.
+  functionDefaultRegions` on the project, which was already `["bom1"]` —
+  only `serverlessFunctionRegion` itself was still on the old default).
+  Confirmed live after redeploy: the same pages dropped to 130-400ms.
+  **If page loads ever feel slow again, check this first** — a Vercel
+  project/team change or a fresh project recreation could silently reset
+  it back to a default region again.
+  **A real, smaller bug found and fixed alongside this**: `getChapterStatus`/
+  `getTopicStatus` (`diagnostic.ts`) did 2 sequential DB queries **per
+  topic**, called in a `Promise.all` loop per chapter/topic — an N+1
+  pattern that was mostly harmless when every chapter had exactly one
+  topic, but got meaningfully worse once concept segmentation made 5-6
+  topics per chapter normal. Replaced with `getChapterStatusesByIds`/
+  `getTopicStatusesByChapter`, which batch-fetch topics + sub-concepts +
+  mastery scores for an entire chapter or chapter list in a fixed 3
+  queries total. Kept for correctness even though the region fix alone
+  accounted for most of the actual slowdown.
 - **Prisma query engine missing on Vercel** ("Query Engine for runtime
   rhel-openssl-3.0.x not found"): a custom Prisma `output` path breaks
   Next.js's file tracer in a pnpm monorepo — it silently drops the engine
