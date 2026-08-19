@@ -3,16 +3,52 @@
 import { useState } from "react";
 import { UI, type Language } from "@/lib/i18n";
 
-interface PicturePanel {
+interface DiagramStep {
   icon: string;
-  title: string;
+  label: string;
   description: string;
+}
+
+interface PictureDiagram {
+  steps: DiagramStep[];
+  connectors: string[];
 }
 
 interface ExplainVariant {
   mode: string;
   body: string;
-  panels: PicturePanel[] | null;
+  diagram: PictureDiagram | null;
+}
+
+function DiagramView({ diagram }: { diagram: PictureDiagram }) {
+  return (
+    <div className="flex flex-wrap items-stretch gap-1">
+      {diagram.steps.map((step, i) => (
+        <div key={i} className="flex items-center gap-1">
+          <div
+            className="w-32 p-3 rounded-[10px] text-center flex flex-col"
+            style={{ background: "var(--color-bg)", border: "1px solid var(--color-border)" }}
+          >
+            <div className="text-2xl mb-1.5">{step.icon}</div>
+            <div className="text-xs font-bold mb-1">{step.label}</div>
+            <div className="text-[11px] leading-snug" style={{ color: "var(--color-text-muted)" }}>
+              {step.description}
+            </div>
+          </div>
+          {i < diagram.connectors.length && (
+            <div className="flex flex-col items-center px-1" style={{ width: 56 }}>
+              <div className="text-lg" style={{ color: "var(--color-primary)" }}>
+                →
+              </div>
+              <div className="text-[10px] text-center leading-tight" style={{ color: "var(--color-text-muted)" }}>
+                {diagram.connectors[i]}
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 const MODE_LABEL: Record<string, { en: string; hi: string }> = {
@@ -29,24 +65,9 @@ function VariantCard({ variant, language }: { variant: ExplainVariant; language:
         {MODE_LABEL[variant.mode]?.[language] ?? variant.mode}
       </div>
       <div className="text-[14.5px] leading-relaxed whitespace-pre-wrap mb-3.5">{variant.body}</div>
-      {variant.mode === "picture" && variant.panels && variant.panels.length > 0 && (
-        <div
-          className="grid gap-3"
-          style={{ gridTemplateColumns: `repeat(${Math.min(variant.panels.length, 2)}, 1fr)` }}
-        >
-          {variant.panels.map((p, i) => (
-            <div
-              key={i}
-              className="p-4 rounded-[10px] text-center"
-              style={{ background: "var(--color-bg)", border: "1px solid var(--color-border)" }}
-            >
-              <div className="text-3xl mb-2">{p.icon}</div>
-              <div className="text-[13px] font-bold mb-1">{p.title}</div>
-              <div className="text-xs leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
-                {p.description}
-              </div>
-            </div>
-          ))}
+      {variant.mode === "picture" && variant.diagram && variant.diagram.steps.length > 0 && (
+        <div className="overflow-x-auto">
+          <DiagramView diagram={variant.diagram} />
         </div>
       )}
     </div>

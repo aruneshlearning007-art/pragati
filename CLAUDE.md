@@ -222,6 +222,14 @@ machine. Feel free to use them normally instead of the workarounds above.
 - **Phase 3 — Teacher Content Panel** — not started. Also needs to resolve a
   known schema gap: `Chapter` currently has no `schoolId`, needed for the
   class 3-5 school-scoped upload path.
+  **Design decision (2026-08-19, not yet implemented)**: `UploadedSource`
+  currently only stores `sourceText` — no image extraction/storage exists
+  yet. When this phase is built, extract embedded images from uploaded
+  chapters too (best-case source: real, curriculum-accurate, free) and
+  display them **alongside** the generated Picture-mode diagram, not as a
+  replacement for it — the teacher's real image and the generated
+  labeled-diagram breakdown complement each other rather than one
+  superseding the other.
 - **Phase 4 — Personalization/misconception layer** — not started.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.

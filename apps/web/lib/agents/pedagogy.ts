@@ -1,16 +1,22 @@
 import { prisma, ExplainMode } from "@pragati/db";
 import { generate, extractJson, withBaseInstructions, type ContentScope } from "@pragati/shared";
 
-export interface PicturePanel {
+export interface DiagramStep {
   icon: string;
-  title: string;
+  label: string;
   description: string;
+}
+
+export interface PictureDiagram {
+  steps: DiagramStep[];
+  /** connectors[i] labels the arrow from steps[i] to steps[i+1]; length is always steps.length - 1. */
+  connectors: string[];
 }
 
 export interface ExplainVariant {
   mode: ExplainMode;
   body: string;
-  panels: PicturePanel[] | null;
+  diagram: PictureDiagram | null;
 }
 
 const MODES: ExplainMode[] = ["story", "picture", "realworld", "gofurther"];
@@ -23,10 +29,12 @@ const MODES: ExplainMode[] = ["story", "picture", "realworld", "gofurther"];
  *
  * Picture mode has no real diagram image — an earlier attempt to source one
  * from Wikimedia Commons couldn't reliably return something *relevant* (see
- * CLAUDE.md), so the model instead writes 2-4 structured panels (an emoji
- * icon, a short title, a short description each) that the UI renders as
- * cards. This is always accurate, since it's exactly what the model intends
- * to teach rather than a search result gambled on keyword overlap.
+ * CLAUDE.md), and a follow-up "grid of cards" attempt didn't actually look
+ * like a picture. The model instead writes an ordered sequence of 2-5 steps
+ * (icon + label + one-sentence description) with a short label on each
+ * arrow between them, which the UI renders as a real labeled flow diagram.
+ * This is always accurate, since it's exactly what the model intends to
+ * teach rather than a search result gambled on keyword overlap.
  */
 export async function getOrGenerateExplanations(
   topicId: string,
@@ -37,7 +45,7 @@ export async function getOrGenerateExplanations(
     where: { topicId, board: scope.board, class: scope.class, schoolId: scope.schoolId, language },
   });
   if (existing.length === MODES.length) {
-    return existing.map((e) => ({ mode: e.mode, body: e.body, panels: e.panels as unknown as PicturePanel[] | null }));
+    return existing.map((e) => ({ mode: e.mode, body: e.body, diagram: e.diagram as unknown as PictureDiagram | null }));
   }
 
   const topic = await prisma.topic.findUniqueOrThrow({
@@ -49,12 +57,15 @@ export async function getOrGenerateExplanations(
   const system = withBaseInstructions(
     "You are the Pedagogy Agent. Explain the same topic four different ways so every kind of learner finds one " +
       "that clicks — never just four rewordings of the same explanation. There is no real diagram image, so the " +
-      "picture mode instead breaks the idea into 2-4 short labeled panels (like a simple infographic) — each " +
-      "with one emoji icon, a short title, and a one-sentence description. Make the panels specific to this " +
-      "exact topic, never generic filler. " +
+      "picture mode instead breaks the idea into an ordered sequence of 2-5 steps (like a flow diagram) — each " +
+      "step has one emoji icon, a short label, and a one-sentence description, and each arrow between " +
+      "consecutive steps has a short label describing that transition (e.g. \"blocks light\", \"heats up\"). " +
+      "Make the sequence specific to this exact topic, never generic filler, and order it the way the process " +
+      "or idea actually flows. " +
       'Respond ONLY with strict JSON, no markdown, no code fences. Shape: {"story":"a short relatable narrative ' +
-      'that introduces the idea","picture":"one short sentence introducing what the panels below show",' +
-      '"picturePanels":[{"icon":"single emoji","title":"short label","description":"one sentence"}, ...2 to 4 of these],' +
+      'that introduces the idea","picture":"one short sentence introducing what the diagram below shows",' +
+      '"pictureSteps":[{"icon":"single emoji","label":"short label","description":"one sentence"}, ...2 to 5],' +
+      '"pictureConnectors":["short arrow label", ... exactly one fewer than pictureSteps],' +
       '"realworld":"how the concept shows up in daily life","gofurther":"a deeper insight for curious minds"}. ' +
       `Write all text in ${language === "hi" ? "Hindi (Devanagari script)" : "English"}.`,
   );
@@ -68,7 +79,8 @@ export async function getOrGenerateExplanations(
   const parsed = extractJson<{
     story: string;
     picture: string;
-    picturePanels: PicturePanel[];
+    pictureSteps: DiagramStep[];
+    pictureConnectors: string[];
     realworld: string;
     gofurther: string;
   }>(raw);
@@ -79,6 +91,8 @@ export async function getOrGenerateExplanations(
     realworld: parsed.realworld,
     gofurther: parsed.gofurther,
   };
+
+  const diagram: PictureDiagram = { steps: parsed.pictureSteps, connectors: parsed.pictureConnectors };
 
   const created = await Promise.all(
     MODES.map((mode) =>
@@ -91,11 +105,11 @@ export async function getOrGenerateExplanations(
           language,
           mode,
           body: bodies[mode],
-          panels: mode === "picture" ? (parsed.picturePanels as unknown as object) : undefined,
+          diagram: mode === "picture" ? (diagram as unknown as object) : undefined,
         },
       }),
     ),
   );
 
-  return created.map((e) => ({ mode: e.mode, body: e.body, panels: e.panels as unknown as PicturePanel[] | null }));
+  return created.map((e) => ({ mode: e.mode, body: e.body, diagram: e.diagram as unknown as PictureDiagram | null }));
 }

@@ -244,12 +244,14 @@ model Explanation {
   mode       ExplainMode
   body       String
   imageLabel String?
-  // Structured visual for "picture" mode: an array of {icon, title,
-  // description} panels the LLM writes and the UI renders as cards —
-  // replaces an earlier attempt to source a real image from Wikimedia
-  // Commons, which couldn't reliably return a *relevant* result (see
-  // CLAUDE.md). Null for the other three modes.
-  panels     Json?
+  // Structured visual for "picture" mode: an ordered sequence of steps
+  // (icon/label/description) plus connector labels between them, which the
+  // UI renders as a real labeled flow diagram — replaces an earlier attempt
+  // to source a real image from Wikimedia Commons, which couldn't reliably
+  // return a *relevant* result (see CLAUDE.md). Null for the other three
+  // modes. Once Phase 3 extracts images from teacher uploads, those should
+  // display alongside this, not replace it.
+  diagram    Json?
   createdAt  DateTime    @default(now())
 
   topic  Topic   @relation(fields: [topicId], references: [id])
