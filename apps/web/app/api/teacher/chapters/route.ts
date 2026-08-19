@@ -2,16 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@pragati/db";
 import { getContentScope } from "@pragati/shared";
 import { getCurrentTeacher } from "@/lib/session-server";
-import { getOrGenerateNotes } from "@/lib/agents/notes";
-import { getOrGenerateExplanations } from "@/lib/agents/pedagogy";
-import { getOrGenerateQuiz } from "@/lib/agents/practice";
-import { verifyAndCorrectChapter } from "@/lib/agents/verifier";
 import { segmentIntoConcepts } from "@/lib/agents/segmentation";
-
-// Segmenting a chapter into several concepts and generating + verifying
-// each one sequentially (see POST below) can take a few minutes for a long
-// real-world chapter — well past the platform default.
-export const maxDuration = 300;
 
 export async function GET() {
   const teacher = await getCurrentTeacher();
@@ -96,39 +87,19 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Segmentation is a single Gemini call, fast regardless of chapter
+    // length — actual per-concept content generation happens one request
+    // at a time via POST /api/teacher/chapters/[chapterId]/concepts,
+    // driven by the client in a loop. Doing all of it here in one request
+    // was tried first and, live-tested, real chapters with several
+    // concepts took well past any reasonable serverless function timeout
+    // (each concept's Notes+Explain+Practice+Verifier sequence took several
+    // minutes, not the ~30-45s assumed) — splitting into one request per
+    // concept keeps each request fast and lets the teacher see real
+    // progress instead of staring at a spinner that might silently die.
     const concepts = await segmentIntoConcepts(source.sourceText, subject.nameEn, cls, teacher.language);
 
-    // Concepts are processed one at a time rather than in parallel: each
-    // concept already fires 3 concurrent Gemini calls (Notes/Explain/
-    // Practice) plus a sequential Verifier call, so doing all concepts at
-    // once could burst well past the free-tier per-minute quota on a
-    // chapter with several concepts. Sequential keeps peak concurrency
-    // constant regardless of chapter size.
-    for (const concept of concepts) {
-      const topic = await prisma.topic.create({
-        data: { chapterId: chapter.id, titleEn: concept.title },
-      });
-
-      if (concept.subConcepts.length > 0) {
-        await prisma.subConcept.createMany({
-          data: concept.subConcepts.map((name) => ({ topicId: topic.id, name })),
-        });
-      }
-
-      const genOptions = { sourceText: source.sourceText, status: "awaiting_review" as const };
-
-      await Promise.all([
-        getOrGenerateNotes(topic.id, scope, teacher.language, { ...genOptions, sourceId: source.id }),
-        getOrGenerateExplanations(topic.id, scope, teacher.language, genOptions),
-        getOrGenerateQuiz(topic.id, scope, genOptions),
-      ]);
-
-      // Verifier runs after generation, not concurrently with it — it needs
-      // to read back what was actually written to the DB.
-      await verifyAndCorrectChapter(chapter.id, topic.id, source.sourceText, cls, teacher.language);
-    }
-
-    return NextResponse.json({ chapterId: chapter.id, conceptCount: concepts.length });
+    return NextResponse.json({ chapterId: chapter.id, sourceId: source.id, concepts });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: message }, { status: 500 });

@@ -23,6 +23,7 @@ export function UploadChapterForm({ subjects, language }: { subjects: Subject[];
   const [title, setTitle] = useState("");
   const [sourceText, setSourceText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [progress, setProgress] = useState<{ current: number; total: number; conceptTitle: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [fileName, setFileName] = useState("");
@@ -76,6 +77,7 @@ export function UploadChapterForm({ subjects, language }: { subjects: Subject[];
     if (!canSubmit) return;
     setSubmitting(true);
     setError(null);
+    setProgress(null);
     try {
       const res = await fetch("/api/teacher/chapters", {
         method: "POST",
@@ -91,10 +93,40 @@ export function UploadChapterForm({ subjects, language }: { subjects: Subject[];
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Something went wrong generating this chapter. Please try again.");
-      router.push(`/teacher/chapters/${data.chapterId}`);
+
+      const { chapterId, sourceId, concepts } = data as {
+        chapterId: string;
+        sourceId: string;
+        concepts: { title: string; subConcepts: string[] }[];
+      };
+
+      // One request per concept, in sequence — each request stays fast
+      // regardless of how many concepts the chapter has, and this lets the
+      // teacher see real progress instead of one long silent wait. A
+      // single request covering every concept was tried first and, in
+      // testing, real chapters with several concepts took long enough to
+      // risk the server request being cut off partway through.
+      for (let i = 0; i < concepts.length; i++) {
+        const concept = concepts[i];
+        setProgress({ current: i + 1, total: concepts.length, conceptTitle: concept.title });
+        const conceptRes = await fetch(`/api/teacher/chapters/${chapterId}/concepts`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sourceId, title: concept.title, subConcepts: concept.subConcepts }),
+        });
+        if (!conceptRes.ok) {
+          const conceptData = await conceptRes.json().catch(() => null);
+          throw new Error(
+            `Generated ${i} of ${concepts.length} concepts, then stopped on "${concept.title}": ${conceptData?.error || "something went wrong"}. What's already generated is saved — you can find this chapter in the Content Panel.`,
+          );
+        }
+      }
+
+      router.push(`/teacher/chapters/${chapterId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setSubmitting(false);
+      setProgress(null);
     }
   }
 
@@ -106,8 +138,9 @@ export function UploadChapterForm({ subjects, language }: { subjects: Subject[];
       >
         <div className="font-heading font-bold text-[15px] mb-1.5">{t.generating}</div>
         <div className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-          Your chapter is being split into concepts, with notes, explanations and a quiz generated for each one —
-          this can take a few minutes for a longer chapter.
+          {progress
+            ? `Generating concept ${progress.current} of ${progress.total}: "${progress.conceptTitle}"…`
+            : "Splitting your chapter into concepts…"}
         </div>
       </div>
     );
