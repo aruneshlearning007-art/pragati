@@ -155,6 +155,7 @@ model Topic {
   explanations    Explanation[]
   quizQuestions   QuizQuestion[]
   videos          Video[]
+  images          TopicImage[]
   doubtMessages   DoubtMessage[]
   uploadedSources UploadedSource[]
 
@@ -337,6 +338,21 @@ model Video {
   url      String
   duration String
   order    Int    @default(0)
+
+  topic Topic @relation(fields: [topicId], references: [id])
+
+  @@index([topicId])
+}
+
+// Curated from Wikimedia Commons, not generated — topic-scoped only, same
+// reasoning as Video: a real diagram isn't board/class/language-scoped.
+model TopicImage {
+  id        String   @id @default(cuid())
+  topicId   String
+  url       String
+  caption   String
+  credit    String?
+  createdAt DateTime @default(now())
 
   topic Topic @relation(fields: [topicId], references: [id])
 

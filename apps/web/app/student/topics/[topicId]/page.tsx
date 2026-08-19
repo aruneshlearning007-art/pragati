@@ -5,6 +5,7 @@ import { getCurrentStudent } from "@/lib/session-server";
 import { getOrGenerateNotes } from "@/lib/agents/notes";
 import { getOrGenerateExplanations } from "@/lib/agents/pedagogy";
 import { getOrCurateVideos } from "@/lib/agents/video";
+import { getOrCurateImage } from "@/lib/agents/image";
 import { ExplainTab } from "@/components/ExplainTab";
 import { PracticeTab } from "@/components/PracticeTab";
 import { VideosTab } from "@/components/VideosTab";
@@ -88,7 +89,15 @@ export default async function TopicPage({
       </div>
 
       {tab === "notes" && <NotesPane topicId={topicId} scope={scope} language={language} />}
-      {tab === "explain" && <ExplainPane topicId={topicId} scope={scope} language={language} />}
+      {tab === "explain" && (
+        <ExplainPane
+          topicId={topicId}
+          scope={scope}
+          language={language}
+          subjectName={topic.chapter.subject.nameEn}
+          topicTitle={topic.titleEn}
+        />
+      )}
       {tab === "practice" && <PracticeTab topicId={topicId} language={language} />}
       {tab === "videos" && (
         <VideosPane
@@ -140,10 +149,14 @@ async function ExplainPane({
   topicId,
   scope,
   language,
+  subjectName,
+  topicTitle,
 }: {
   topicId: string;
   scope: ReturnType<typeof getContentScope>;
   language: Language;
+  subjectName: string;
+  topicTitle: string;
 }) {
   let variants: Awaited<ReturnType<typeof getOrGenerateExplanations>>;
   try {
@@ -151,7 +164,17 @@ async function ExplainPane({
   } catch (err) {
     return <ErrorCard title="Could not generate explanations for this topic" error={err} />;
   }
-  return <ExplainTab variants={variants} language={language} />;
+
+  // Image lookup is best-effort — Picture mode's text placeholder is still a
+  // fine fallback, so a Wikimedia hiccup shouldn't take down the whole tab.
+  let image: Awaited<ReturnType<typeof getOrCurateImage>> = null;
+  try {
+    image = await getOrCurateImage(topicId, subjectName, topicTitle);
+  } catch {
+    image = null;
+  }
+
+  return <ExplainTab variants={variants} language={language} image={image} />;
 }
 
 async function VideosPane({
