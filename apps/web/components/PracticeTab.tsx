@@ -161,10 +161,11 @@ export function PracticeTab({ topicId, subjectName, language }: { topicId: strin
                   <div key={q.id} className="text-[13px]">
                     <RichText text={q.text} className="font-semibold mb-1" />
                     <div style={{ color: "var(--color-text-muted)" }}>
-                      {isNumeric ? t.yourTypedAnswer : t.yourAnswer}: {yourAnswerDisplay}
+                      {isNumeric ? t.yourTypedAnswer : t.yourAnswer}:{" "}
+                      <RichText text={yourAnswerDisplay} className="inline" />
                     </div>
                     <div style={{ color: "var(--color-mastered-fg)" }}>
-                      {t.correctAnswer}: {correctAnswerDisplay}
+                      {t.correctAnswer}: <RichText text={correctAnswerDisplay} className="inline" />
                     </div>
                     {feedback.misconception && (
                       <div className="italic mt-0.5" style={{ color: "var(--color-revision-fg)" }}>
@@ -222,7 +223,7 @@ export function PracticeTab({ topicId, subjectName, language }: { topicId: strin
                     background: answers[q.id] === idx ? "var(--color-mastered-bg)" : "white",
                   }}
                 >
-                  {opt}
+                  <RichText text={opt} className="inline" />
                 </button>
               ))}
             </div>

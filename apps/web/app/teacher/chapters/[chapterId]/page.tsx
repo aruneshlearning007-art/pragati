@@ -181,7 +181,7 @@ export default async function ChapterReviewPage({ params }: { params: Promise<{ 
                               : { color: "var(--color-text-muted)" }
                           }
                         >
-                          {opt} {idx === q.correctIndex && "✓"}
+                          <RichText text={opt} className="inline" /> {idx === q.correctIndex && "✓"}
                         </div>
                       ))}
                     </div>
