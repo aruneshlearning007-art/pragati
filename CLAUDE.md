@@ -190,21 +190,35 @@ machine. Feel free to use them normally instead of the workarounds above.
   philosophy above is not implemented. That lands naturally once Phase 3
   (teacher panel) and Phase 5 (parent dashboard) exist; the data is already
   there for them to query.
-- **Video Curator + Explain picture-mode caption fix** ✅ done (verified live
-  2026-08-18), added mid-Phase-2 after the user noticed Explain's "Picture"
-  mode was a placeholder-only box with no real image/video anywhere. Decided
-  (with user): no paid image-gen API (breaks the no-paid-API cost
-  constraint) and no per-topic custom diagrams (breaks subject-agnosticism)
-  — Picture mode keeps its text-placeholder box, but the caption is now
-  topic-specific (was hardcoded to the same generic string for every topic).
-  New: `apps/web/lib/agents/video.ts` searches YouTube Data API v3
+- **Video Curator + Explain picture-mode visuals** ✅ done (verified live
+  2026-08-19), added mid-Phase-2 after the user noticed Explain's "Picture"
+  mode was a placeholder-only box with no real image/video anywhere.
+  **Video**: `apps/web/lib/agents/video.ts` searches YouTube Data API v3
   (`YOUTUBE_API_KEY` in Vercel + `.secrets/youtube_api_key.md`) for up to 3
-  real videos per topic, caches them in the existing `Video` table, and a
-  new Videos tab (`apps/web/components/VideosTab.tsx`) embeds them.
-  Confirmed live: 3 real, relevant videos with correct durations for the
-  seed Light topic, playable embeds, and HTML-entity-decoded titles (fixed
-  a "BYJU&#39;S" → "BYJU'S" display bug, self-healing for already-cached
-  rows too, no migration needed).
+  real videos per topic, caches them in the `Video` table, and a Videos tab
+  (`apps/web/components/VideosTab.tsx`) embeds them. Confirmed live: 3 real,
+  relevant videos with correct durations for the seed Light topic, playable
+  embeds, HTML-entity-decoded titles.
+  **Picture mode**: two failed attempts before landing on the real fix.
+  (1) A generic hardcoded caption for every topic — made it topic-specific
+  instead. (2) Sourcing a real image from Wikimedia Commons
+  (`TopicImage` table + `image.ts` agent) — abandoned after live testing
+  showed Commons' full-text search matches keywords anywhere in a file's
+  prose description, not just its title: a query for "Shadows and
+  Reflections Science" returned an Apollo moon-landing photo (caption
+  mentioned "reflection" and "shadow" in passing); tightening to a
+  title-only match still surfaced a landscape photo an artist happened to
+  title "Shadows and Reflections" — real and on-theme, but not an actual
+  teaching diagram. **Landed on**: the Pedagogy agent (`pedagogy.ts`) now
+  writes 2-4 structured panels (emoji icon + short title + one-sentence
+  description) directly instead of describing an image, rendered as cards
+  by `ExplainTab.tsx`. Always accurate since it's exactly what the model
+  intends to teach, not a search result gambled on keyword overlap — and
+  stays free and subject-agnostic like the rest of the pipeline. The
+  `TopicImage` table and `image.ts` were dropped; `Explanation` gained a
+  `panels` JSONB column. Confirmed live: 3 correct, well-labeled panels
+  (☀️ Straight Light Beams, 👤 Blocked Light = Shadow, 🪞 Bounced Light =
+  Reflection) for the seed topic.
 - **Phase 3 — Teacher Content Panel** — not started. Also needs to resolve a
   known schema gap: `Chapter` currently has no `schoolId`, needed for the
   class 3-5 school-scoped upload path.
