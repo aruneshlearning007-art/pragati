@@ -282,6 +282,21 @@ machine. Feel free to use them normally instead of the workarounds above.
      edit can't accidentally weaken the moderation check. Needs its own
      auth (this is founder-only, not a role the current stub session system
      has — `UserRole` is student/parent/teacher only).
+- **Idea, not yet a phase — Read-aloud (TTS) for Notes/Story content**
+  (raised 2026-08-19): for students who struggle with reading, add a
+  "🔊 Listen" button that reads Notes/Story text aloud in a natural voice,
+  like a teacher explaining rather than a robotic reader. Researched free
+  options: **Google Cloud TTS is the strongest fit** — 1M characters/month
+  free with no expiry (unlike Amazon Polly's 12-month-only free tier),
+  WaveNet voices sound genuinely natural (unlike free browser
+  SpeechSynthesis, which is free but robotic-sounding, zero setup, could
+  still be a zero-cost stopgap). ElevenLabs has the most human-like voices
+  but only ~10,000 free characters/month — not enough for real use.
+  **Paused before setup**: Google Cloud requires entering card details to
+  activate the API (even though usage would stay in the free tier — a
+  budget alert was the planned safeguard against surprise charges), and the
+  user wasn't comfortable with that yet. Revisit when the user is ready to
+  add a card, or if a genuinely free-with-no-card TTS option turns up.
 
 ## Data model
 
