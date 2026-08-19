@@ -17,7 +17,13 @@ export interface GenerateOptions {
   json?: boolean;
 }
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+// gemini-3.6-flash's free tier is capped at 20 requests/DAY (a hard wall
+// that doesn't reset until the next day) — trivially exhausted by normal
+// use across Notes/Explain/Practice/Doubt-chat. gemini-3.5-flash-lite's
+// free tier is 15 requests/MINUTE instead, which recovers continuously and
+// is far more usable for a pilot. Verified live against the real API
+// before switching (see CLAUDE.md).
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 
 export async function generate(options: GenerateOptions): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
