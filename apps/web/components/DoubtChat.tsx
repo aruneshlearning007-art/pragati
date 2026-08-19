@@ -72,12 +72,8 @@ export function DoubtChat({ topicId, language }: { topicId: string; language: La
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label={t.doubtTitle}
-        className="fixed rounded-full text-white text-xl shadow-lg"
+        className="fixed rounded-full text-white text-xl shadow-lg right-5 bottom-5 sm:right-9 sm:bottom-7 w-14 h-14"
         style={{
-          bottom: 28,
-          right: 36,
-          width: 56,
-          height: 56,
           border: "none",
           background: "var(--color-primary)",
           cursor: "pointer",
@@ -89,12 +85,14 @@ export function DoubtChat({ topicId, language }: { topicId: string; language: La
 
       {open && (
         <div
-          className="fixed flex flex-col overflow-hidden rounded-2xl shadow-2xl"
+          // Fixed 360px-right-anchored on desktop; on narrow screens (the
+          // panel doesn't fit in 390px viewport width otherwise, which was
+          // silently clipping the input off-screen) it spans full width
+          // minus a small inset instead, and height is viewport-relative
+          // rather than a fixed px so it can't overflow a short mobile
+          // viewport when the on-screen keyboard is open.
+          className="fixed flex flex-col overflow-hidden rounded-2xl shadow-2xl left-3 right-3 bottom-20 max-h-[70vh] sm:left-auto sm:right-9 sm:bottom-24 sm:w-[360px] sm:h-[460px] sm:max-h-[460px]"
           style={{
-            bottom: 96,
-            right: 36,
-            width: 360,
-            height: 460,
             background: "var(--color-surface)",
             border: "1px solid var(--color-border)",
             zIndex: 20,
