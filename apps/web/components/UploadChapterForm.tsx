@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { upload } from "@vercel/blob/client";
 import { UI, CLASS_OPTIONS, BOARD_OPTIONS, type Language } from "@/lib/i18n";
 
 interface Subject {
@@ -46,9 +47,20 @@ export function UploadChapterForm({ subjects, language }: { subjects: Subject[];
 
     setExtracting(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/teacher/extract-source", { method: "POST", body: formData });
+      // Uploads straight from the browser to Vercel Blob — Vercel's 4.5MB
+      // serverless request-body limit is a hard platform ceiling, and a
+      // real chapter PDF (8-10MB+) can't fit through a normal route
+      // handler at all, regardless of any size check in our own code.
+      const blob = await upload(file.name, file, {
+        access: "private",
+        handleUploadUrl: "/api/teacher/upload-token",
+      });
+
+      const res = await fetch("/api/teacher/extract-source", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blobUrl: blob.url }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Could not read this file.");
       setSourceText(data.text);
