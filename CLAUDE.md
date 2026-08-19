@@ -433,7 +433,51 @@ machine. Feel free to use them normally instead of the workarounds above.
   glossary entry "Cotyledon" — required a follow-up regex fix to allow a
   trailing "s", since Explain text almost never reuses a term's *exact*
   singular form) all worked correctly.
-- **Phase 4 — Personalization/misconception layer** — not started.
+- **Phase 4 — Personalization/misconception layer** — first slice ✅ done
+  (verified live 2026-08-20). Until now the Diagnostic Engine was pure
+  right/wrong scoring — `MisconceptionTag`/`PedagogyPreference` existed in
+  the schema (Phase 0) but zero code touched either. Researched question-
+  design best practice first (two-tier/multi-tier diagnostic questions are
+  the standard way to tell a real misconception from a guess — Pragati's
+  existing `assertion_reason` question kind is structurally exactly that,
+  just never used diagnostically) before building anything.
+  Practice Agent (`practice.ts`) now generates 6-8 questions per concept
+  (was 4-5) with explicit type/difficulty mix (~50% `mcq`, ~25-30%
+  `assertion_reason`, at least one pure-recall and one application-level
+  question), and labels every wrong option at generation time with the
+  specific misunderstanding a student holds if they pick it
+  (`QuizQuestion.optionMisconceptions`, parallel array to `options`) — free
+  at grading time, no second LLM call. `submitQuizAnswers`
+  (`diagnostic.ts`) upserts a `MisconceptionTag` when a labeled wrong
+  option is picked (`count` + unique constraint, so repeats bump a counter
+  instead of growing rows — "recurring" is just `count >= 2`) and returns
+  per-question feedback (correct answer + misconception) to the client.
+  `PracticeTab.tsx` shows a "What you got wrong" review after submitting.
+  **Personalization deliberately does NOT touch Notes/Explain content**:
+  those are cached per scope (`topicId+board+class+schoolId+language`) and
+  shared across every student in that cohort ("Never per student" per the
+  schema comment) — splicing a per-student hint into that generation
+  prompt would leak one student's hint into every other student's cached
+  copy. The two genuinely per-student surfaces are the Practice review
+  screen (above) and Doubt-chat: `answerDoubt` (`doubt.ts`) now pulls
+  recurring (`count >= 2`) misconceptions for the topic via new
+  `getActiveMisconceptions()` and splices a one-line nudge into its system
+  prompt. `PedagogyPreference` (personalizing which Explain mode shows by
+  default) stays unused — no clean signal exists yet for which mode a
+  student actually read before a quiz attempt; revisit once that signal
+  exists rather than building on a guess.
+  Verified live end-to-end with a real "Water Cycle" test chapter: Practice
+  generated 6 questions (3 `mcq` + 2 `assertion_reason` + 1 application-
+  style) with genuinely specific per-option misconception labels (e.g.
+  "Thinks wind causes water to heat up and turn into vapor", "Confuses
+  evaporation with condensation"); submitting the same wrong answers twice
+  correctly triggered the `count >= 2` threshold; the Practice review
+  screen showed the right/wrong breakdown with mix-up labels; and asking
+  Doubt-chat an unrelated "explain evaporation simply" question produced a
+  reply that organically corrected the tagged wind-vs-sun misconception
+  ("Even though wind helps move the air around, it's really the sun's
+  cozy heat doing the main job...") — confirming the nudge actually
+  changes the model's behavior, not just that the code path executes.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
