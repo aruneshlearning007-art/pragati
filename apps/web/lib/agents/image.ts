@@ -21,6 +21,16 @@ type CommonsPage = {
  * Wikipedia) and caches the first safe, relevant hit. Topic-scoped only,
  * same reasoning as Video — a real diagram isn't board/class/language-scoped.
  */
+const STOPWORDS = new Set(["and", "the", "with", "for", "from", "into", "onto", "your", "this", "that"]);
+
+/** Words worth requiring a title match on — drops short/common words like "and". */
+function significantWords(text: string): string[] {
+  return text
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .filter((w) => w.length >= 4 && !STOPWORDS.has(w));
+}
+
 export async function getOrCurateImage(
   topicId: string,
   subjectName: string,
@@ -31,10 +41,18 @@ export async function getOrCurateImage(
     return { url: existing.url, caption: existing.caption, credit: existing.credit };
   }
 
-  // Commons' search effectively ANDs every term, so the most specific query
-  // (topic + subject + "diagram") can easily return zero hits for a
+  // Commons' full-text search matches keywords anywhere in a file's rich
+  // prose description — a query for "Shadows and Reflections Science" once
+  // returned an Apollo moon-landing photo because its caption happened to
+  // mention "reflection" and "shadow" in passing. Relevance requires the
+  // MATCH to be in the file's own title (how contributors actually labeled
+  // the image), which is far more precise than description text.
+  const topicWords = significantWords(topicTitle);
+
+  // Commons' search also effectively ANDs every term, so the most specific
+  // query (topic + subject + "diagram") can easily return zero hits for a
   // multi-word topic title — try it first, then fall back to progressively
-  // looser queries until one actually returns something.
+  // looser queries, still gated by the title-relevance check above.
   const queryCandidates = [
     `${topicTitle} ${subjectName} diagram`,
     `${topicTitle} ${subjectName}`,
@@ -52,7 +70,10 @@ export async function getOrCurateImage(
       // thumburl alone doesn't catch it. filetype:bitmap|drawing in the query
       // already excludes these; this is a defense-in-depth backstop.
       const url = info.url.split("?")[0].toLowerCase();
-      return /\.(jpe?g|png|gif|svg)$/.test(url);
+      if (!/\.(jpe?g|png|gif|svg)$/.test(url)) return false;
+
+      const title = p.title.toLowerCase();
+      return topicWords.some((w) => title.includes(w));
     });
     if (firstUsable) break;
   }
