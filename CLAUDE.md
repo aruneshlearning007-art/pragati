@@ -277,12 +277,34 @@ machine. Feel free to use them normally instead of the workarounds above.
   to students at a different school. Schema: `Chapter` gained `schoolId`
   (sourced from the uploading teacher's own school via `getContentScope`)
   + `teacherId` + `status`.
-  **Known gap, deferred**: file upload (PDF/photo) with OCR/text
-  extraction — v1 ships paste-text only, matching the Teacher Design
-  prototype's fallback path. Image extraction from uploads — to display
-  *alongside* the generated Picture-mode diagram, never replacing it — is
-  also not built; when it lands, `UploadedSource` will need actual image
-  storage, since it currently only has a `sourceText` string field.
+  **PDF/photo upload** ✅ added 2026-08-19, verified live with a real
+  file: the teacher upload form (`UploadChapterForm.tsx`) initially only
+  took pasted text; the user pointed out real teachers will upload a PDF or
+  photo of the chapter, not retype it. First implementation (multipart
+  upload straight through a Next.js route, 4MB cap in app code) was wrong —
+  live-tested with a real 8.9MB/91-page Class 5 Science chapter PDF and hit
+  Vercel's **hard 4.5MB serverless request-body ceiling**, which isn't
+  configurable and isn't the same thing as any size check in our own code.
+  Fixed by moving to **client-side direct upload to Vercel Blob**
+  (`@vercel/blob`): the browser uploads straight to Blob storage via a
+  short-lived token (`/api/teacher/upload-token`, `onBeforeGenerateToken`
+  gated on `getCurrentTeacher()`), the file never passes through a route
+  handler body at all, then `/api/teacher/extract-source` fetches the blob
+  server-side and hands it to Gemini's native multimodal input (inline
+  base64, no separate OCR library) via `extractSourceText()` in
+  `lib/agents/extractor.ts` — a transcribe-only prompt that returns the
+  literal string `"EXTRACTION_FAILED"` rather than inventing text if a file
+  is unreadable. Confirmed live end-to-end with that real 91-page PDF:
+  extraction produced ~19,000 characters of clean, accurate, structured
+  text (matched the real chapter content — aquatic plants, vegetative
+  propagation, seed germination, seed dispersal, crops), which then fed the
+  normal Notes/Explain/Practice generation and Verifier pass — the Verifier
+  caught and fixed two real issues grounded in that source text (an
+  overcomplicated story analogy, a Practice question tightened to the
+  source's own crop/agriculture vocabulary). Image extraction *alongside*
+  the generated Picture-mode diagram (rather than as its replacement) is
+  still not built — `UploadedSource` only stores the extracted `sourceText`
+  string, no image itself.
   **Verifier Agent** ✅ added same day, user-requested: checks Notes/Explain/
   Practice against the source text (hallucination) and the target class
   level (age-appropriateness) after generation, *auto-corrects* anything
