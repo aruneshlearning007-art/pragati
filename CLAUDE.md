@@ -322,6 +322,86 @@ machine. Feel free to use them normally instead of the workarounds above.
   show, matching the instruction to report nothing when nothing's wrong.
   Only ever runs for the teacher-upload path — system auto-generated
   content is never verified (no source text to check against).
+  **Concept segmentation + Key Terms glossary** ✅ added 2026-08-20,
+  user-requested: a chapter always became exactly one `Topic` with
+  Notes/Explain/Practice generated as one undifferentiated blob, even
+  though a real chapter (e.g. the "Growing Plants" test PDF) clearly covers
+  several distinct concepts (aquatic plants, vegetative propagation, seed
+  germination, seed dispersal, crops). The schema already supported many
+  `Topic` rows per `Chapter` — `getChapterStatus`/`getTopicStatus`
+  (`diagnostic.ts`) and the publish route already looped over
+  `chapter.topics` generically — it had just never been exercised as more
+  than one. New `lib/agents/segmentation.ts` (`segmentIntoConcepts`) makes
+  one Gemini call over the full source text and returns 2-6 concept titles
+  + 2-4 sub-concept names each (names only, never reproduced excerpts —
+  cheap and reliable vs. expensive/error-prone verbatim quoting); each
+  per-concept Notes/Explain/Practice call gets the *full* source text again
+  plus a "focus on this concept" instruction rather than a hand-built
+  excerpt. Also fixed a real adjacent bug this surfaced: the teacher-upload
+  path never created `SubConcept` rows, so `practice.ts`'s existing
+  name-based subConcept-linking silently always produced
+  `subConceptId: null` and `getTopicStatus`'s mastery calc (keyed on
+  `SubConcept`) could never score teacher-uploaded content — segmentation
+  now populates real `SubConcept` rows per concept, closing that gap.
+  Every `Notes` row also gets a `keyTerms Json?` glossary (3-6
+  `{term, meaning}` pairs, generated in the same Gemini call as the notes
+  sections, not source-grounding-gated — useful for any topic) rendered as
+  a "Key Terms" card on the Notes tab; `ExplainTab.tsx` tooltips matching
+  terms inline in Explain body text via a client-side, case-insensitive,
+  whole-word regex match (native `title` attribute, dotted-underline span
+  — no new markup format for the model to get wrong). New student
+  `/student/chapters/[chapterId]` overview page lists a multi-concept
+  chapter's concepts with per-concept mastery status (single-topic chapters
+  redirect straight through, unchanged); the topic page gained a
+  concept-switcher pill row; the teacher review page groups Notes/Explain/
+  Practice/Verifier flags per concept (`VerifierFlag` gained a `topicId`
+  column, backfilled via migration, so flags are attributable to their
+  concept instead of dumped in one flat chapter-wide list).
+  **Two real bugs found via live testing with the actual 91-page PDF, both
+  fixed same day:**
+  (1) **Architecture bug — whole chapter in one request doesn't survive
+  contact with reality.** First implementation ran segmentation + every
+  concept's generation sequentially inside one POST request
+  (`maxDuration = 300`). Live-tested with the real 5-concept chapter: each
+  concept's Notes+Explain+Practice+Verifier sequence took ~2.5+ minutes
+  (not the ~30-45s assumed), so the whole request silently stalled past any
+  reasonable serverless timeout — confirmed via `vercel logs` and repeated
+  no-progress checks against the review page, with the client `fetch`
+  simply hanging with no error. Fixed by splitting into two endpoints:
+  `POST /api/teacher/chapters` now only creates the Chapter/UploadedSource
+  and runs segmentation (one fast call), returning the concept list; a new
+  `POST /api/teacher/chapters/[chapterId]/concepts` generates+verifies
+  exactly one concept per call. `UploadChapterForm.tsx` calls the second
+  endpoint once per concept in a loop, showing real "Generating concept 2
+  of 5" progress. Re-tested: each concept call now takes ~20s, whole
+  5-concept chapter finishes in under 2 minutes.
+  (2) **Verifier crash on malformed model output, discarding good content.**
+  `verifyAndCorrectChapter` had no error handling around any of its three
+  verify calls — live testing hit a real Gemini JSON-formatting slip (an
+  over-escaped response that failed `JSON.parse`) on the Explain
+  verification step, which crashed the *entire* concept-generation request,
+  discarding that concept's already-successfully-generated Notes/Explain/
+  Practice along with it, even though only the optional verification step
+  failed. Also hit a related null-body crash: the model occasionally omits
+  `body` for the picture-mode variant when it only had a diagram fix to
+  make, which Prisma rejected outright. Fixed by wrapping each of the three
+  verify calls (notes/explain/practice) independently in try/catch —
+  logged, not thrown — and falling back to the original body instead of
+  writing null. Verification is now genuinely best-effort per section:
+  base content generated before the Verifier ever runs is never lost to an
+  optional QA step's failure.
+  Confirmed live end-to-end with the real 91-page PDF: 5 accurate concepts
+  (Aquatic Plants, Vegetative Propagation, Seeds & Germination, Seed
+  Dispersal, Crops & Agriculture), each with its own correct Notes + Key
+  Terms glossary + Explain (4 modes) + Practice, Verifier catching and
+  fixing real issues in some concepts (e.g. a hallucinated carrot detail
+  not in the source, imprecise vocabulary) and correctly reporting "no
+  issues" in others; published, then confirmed as a student: the concept
+  overview page, concept-switcher navigation, and Explain-tab tooltips
+  (including matching the plural "cotyledons" against the singular
+  glossary entry "Cotyledon" — required a follow-up regex fix to allow a
+  trailing "s", since Explain text almost never reuses a term's *exact*
+  singular form) all worked correctly.
 - **Phase 4 — Personalization/misconception layer** — not started.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
