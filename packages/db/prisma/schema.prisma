@@ -37,6 +37,12 @@ enum ContentStatus {
   needs_changes
 }
 
+enum VerifierSection {
+  notes
+  explain
+  practice
+}
+
 enum QuestionKind {
   mcq
   assertion_reason
@@ -154,6 +160,7 @@ model Chapter {
   school  School? @relation(fields: [schoolId], references: [id])
   teacher User?   @relation(fields: [teacherId], references: [id])
   topics  Topic[]
+  flags   VerifierFlag[]
 
   @@index([subjectId, class, board])
   @@index([teacherId])
@@ -236,20 +243,27 @@ model Notes {
   source UploadedSource? @relation(fields: [sourceId], references: [id])
   school School?         @relation(fields: [schoolId], references: [id])
 
-  flags VerifierFlag[]
-
   @@index([topicId, board, class, schoolId, language])
 }
 
+// Written by the Verifier Agent (Phase 3 teacher-upload path only — never
+// runs for system auto-generated content). Chapter-scoped rather than
+// linked to one Notes/Explanation/QuizQuestion row, since one verification
+// pass covers all three content types for a chapter at once and the
+// teacher review page shows them together. `quote` holds the corrected
+// text (not the original mistake) so a teacher scanning flags sees what
+// the content now says, not what it used to say.
 model VerifierFlag {
-  id      String @id @default(cuid())
-  notesId String
-  quote   String
-  reason  String
+  id        String   @id @default(cuid())
+  chapterId String
+  section   VerifierSection
+  quote     String
+  reason    String
+  createdAt DateTime @default(now())
 
-  notes Notes @relation(fields: [notesId], references: [id])
+  chapter Chapter @relation(fields: [chapterId], references: [id])
 
-  @@index([notesId])
+  @@index([chapterId])
 }
 
 model Explanation {

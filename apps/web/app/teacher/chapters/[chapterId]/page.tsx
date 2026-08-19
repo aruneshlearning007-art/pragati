@@ -20,13 +20,16 @@ export default async function ChapterReviewPage({ params }: { params: Promise<{ 
   if (!chapter || chapter.teacherId !== teacher.id) notFound();
 
   const topicId = chapter.topics[0]?.id;
-  const [notes, explanations, questions] = topicId
+  const [notes, explanations, questions, flags] = topicId
     ? await Promise.all([
         prisma.notes.findFirst({ where: { topicId }, orderBy: { createdAt: "desc" } }),
         prisma.explanation.findMany({ where: { topicId } }),
         prisma.quizQuestion.findMany({ where: { topicId } }),
+        prisma.verifierFlag.findMany({ where: { chapterId }, orderBy: { createdAt: "asc" } }),
       ])
-    : [null, [], []];
+    : [null, [], [], []];
+
+  const sectionLabel: Record<string, string> = { notes: "Notes", explain: "Explain", practice: "Practice" };
 
   const sections = (notes?.sections as unknown as { heading: string; body: string }[]) ?? [];
 
@@ -52,6 +55,40 @@ export default async function ChapterReviewPage({ params }: { params: Promise<{ 
       <p className="text-sm mb-8" style={{ color: "var(--color-text-muted)" }}>
         {chapter.subject.nameEn} · {chapter.class} · {chapter.board}
       </p>
+
+      {flags.length > 0 ? (
+        <div
+          className="p-5 rounded-card mb-5"
+          style={{ background: "var(--color-revision-bg)", border: "1px solid var(--color-revision-dot)" }}
+        >
+          <div className="font-heading font-bold text-[14px] mb-3" style={{ color: "var(--color-revision-fg)" }}>
+            AI Verifier — {flags.length} thing{flags.length > 1 ? "s" : ""} checked and corrected
+          </div>
+          <div className="flex flex-col gap-3">
+            {flags.map((f) => (
+              <div key={f.id} className="text-[13px]">
+                <span
+                  className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded mr-1.5"
+                  style={{ background: "var(--color-surface)", color: "var(--color-revision-fg)" }}
+                >
+                  {sectionLabel[f.section] ?? f.section}
+                </span>
+                <span style={{ color: "var(--color-text)" }}>{f.reason}</span>
+                <div className="mt-1 italic" style={{ color: "var(--color-text-muted)" }}>
+                  Now reads: &ldquo;{f.quote}&rdquo;
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : topicId ? (
+        <div
+          className="p-4 rounded-card mb-5 text-[13.5px] font-semibold"
+          style={{ background: "var(--color-mastered-bg)", color: "var(--color-mastered-fg)" }}
+        >
+          ✓ AI Verifier found no issues — nothing needed correcting.
+        </div>
+      ) : null}
 
       <Section title="Notes">
         <div className="flex flex-col gap-3">

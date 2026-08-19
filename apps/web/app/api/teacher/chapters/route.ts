@@ -5,6 +5,7 @@ import { getCurrentTeacher } from "@/lib/session-server";
 import { getOrGenerateNotes } from "@/lib/agents/notes";
 import { getOrGenerateExplanations } from "@/lib/agents/pedagogy";
 import { getOrGenerateQuiz } from "@/lib/agents/practice";
+import { verifyAndCorrectChapter } from "@/lib/agents/verifier";
 
 export async function GET() {
   const teacher = await getCurrentTeacher();
@@ -99,6 +100,10 @@ export async function POST(req: NextRequest) {
       getOrGenerateExplanations(topic.id, scope, teacher.language, genOptions),
       getOrGenerateQuiz(topic.id, scope, genOptions),
     ]);
+
+    // Verifier runs after generation, not concurrently with it — it needs
+    // to read back what was actually written to the DB.
+    await verifyAndCorrectChapter(chapter.id, topic.id, source.sourceText, cls, teacher.language);
 
     return NextResponse.json({ chapterId: chapter.id, topicId: topic.id });
   } catch (err) {
