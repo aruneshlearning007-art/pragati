@@ -223,9 +223,18 @@ export async function verifyAndCorrectChapter(
     }
   }
 
-  if (allFlags.length > 0) {
-    await prisma.verifierFlag.createMany({
-      data: allFlags.map((f) => ({ chapterId, topicId, section: f.section, quote: f.quote, reason: f.reason })),
-    });
+  // The model occasionally returns a flags-array entry missing quote/reason
+  // (both required columns) — drop those rather than letting one bad entry
+  // crash the whole batch insert and, with it, the concept generation
+  // request that already has genuinely valid content saved.
+  const validFlags = allFlags.filter((f) => f.quote && f.reason);
+  if (validFlags.length > 0) {
+    try {
+      await prisma.verifierFlag.createMany({
+        data: validFlags.map((f) => ({ chapterId, topicId, section: f.section, quote: f.quote, reason: f.reason })),
+      });
+    } catch (err) {
+      console.error("Verifier: failed to save flags, corrections were still applied", err);
+    }
   }
 }
