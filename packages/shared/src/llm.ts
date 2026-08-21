@@ -59,14 +59,24 @@ export async function generate(options: GenerateOptions): Promise<string> {
       : [{ text: m.content }],
   }));
 
+  // Without an explicit cap, Gemini falls back to a default output budget
+  // that has, live, cut a response off mid-array/mid-string well before any
+  // of these prompts' JSON would naturally end — surfacing as a cryptic
+  // "Expected ',' or ']'"/"Unexpected end of JSON input" parse error with
+  // no hint that truncation was the actual cause. None of this app's
+  // responses (a chapter's worth of Notes/Explain/Practice, or a handful of
+  // concept names) should ever need anywhere near this much room; set high
+  // enough that hitting it is a real signal something is wrong, not routine.
+  const generationConfig: Record<string, unknown> = { maxOutputTokens: 8192 };
+  if (options.json) {
+    generationConfig.responseMimeType = "application/json";
+  }
+
   const body: Record<string, unknown> = {
     contents,
     systemInstruction: { parts: [{ text: options.system }] },
+    generationConfig,
   };
-
-  if (options.json) {
-    body.generationConfig = { responseMimeType: "application/json" };
-  }
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
 
@@ -80,9 +90,15 @@ export async function generate(options: GenerateOptions): Promise<string> {
 
     if (response.ok) {
       const data = (await response.json()) as {
-        candidates?: { content?: { parts?: { text?: string }[] } }[];
+        candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
       };
-      const parts = data.candidates?.[0]?.content?.parts ?? [];
+      const candidate = data.candidates?.[0];
+      if (candidate?.finishReason === "MAX_TOKENS") {
+        throw new Error(
+          "Gemini response was truncated (hit the output token limit) before finishing — the content generated so far is incomplete, not just malformed.",
+        );
+      }
+      const parts = candidate?.content?.parts ?? [];
       return parts.map((p) => p.text ?? "").join("");
     }
 
