@@ -27,6 +27,25 @@ export interface GenerateOptions {
 // before switching (see CLAUDE.md).
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 
+// gemini-3.5-flash-lite's 15-requests/minute free tier recovers fast, but a
+// single chapter concept already fires ~3-6 calls back to back (Notes +
+// Explain + Practice concurrently, then the Verifier's own follow-up
+// calls) — comfortably enough to trip the limit on its own, before
+// counting any other student/teacher traffic hitting the same key at the
+// same time. Retrying a 429 after a short wait rides out that per-minute
+// window instead of surfacing a hard failure to whoever is waiting on a
+// generation call (a teacher mid-upload, a student's Doubt-chat message).
+const MAX_RETRIES = 3;
+
+function parseRetryDelaySeconds(errText: string): number | null {
+  const match = errText.match(/"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/);
+  return match ? parseFloat(match[1]) : null;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function generate(options: GenerateOptions): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -51,22 +70,33 @@ export async function generate(options: GenerateOptions): Promise<string> {
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  let lastError: Error = new Error("Gemini API call never attempted");
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
 
-  if (!response.ok) {
+    if (response.ok) {
+      const data = (await response.json()) as {
+        candidates?: { content?: { parts?: { text?: string }[] } }[];
+      };
+      const parts = data.candidates?.[0]?.content?.parts ?? [];
+      return parts.map((p) => p.text ?? "").join("");
+    }
+
     const errText = await response.text();
-    throw new Error(`Gemini API error ${response.status}: ${errText}`);
+    lastError = new Error(`Gemini API error ${response.status}: ${errText}`);
+
+    if (response.status !== 429 || attempt === MAX_RETRIES) {
+      throw lastError;
+    }
+    const retryDelay = parseRetryDelaySeconds(errText) ?? 5;
+    await sleep((retryDelay + 1) * 1000);
   }
 
-  const data = (await response.json()) as {
-    candidates?: { content?: { parts?: { text?: string }[] } }[];
-  };
-  const parts = data.candidates?.[0]?.content?.parts ?? [];
-  return parts.map((p) => p.text ?? "").join("");
+  throw lastError;
 }
 
 // The model is instructed to write LaTeX math like \frac{1}{2} or
