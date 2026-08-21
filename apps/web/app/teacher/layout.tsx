@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getCurrentTeacher } from "@/lib/session-server";
 import { UI, type Language } from "@/lib/i18n";
 import { ErrorCard } from "@/components/ErrorCard";
+import { LogoutButton } from "@/components/LogoutButton";
 
 export default async function TeacherLayout({ children }: { children: React.ReactNode }) {
   let teacher: Awaited<ReturnType<typeof getCurrentTeacher>>;
@@ -46,6 +47,7 @@ export default async function TeacherLayout({ children }: { children: React.Reac
               {teacher.school?.name ?? ""}
             </div>
           </div>
+          <LogoutButton language={language} />
         </div>
       </div>
       <div className="px-10 py-9">{children}</div>

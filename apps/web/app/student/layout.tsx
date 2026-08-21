@@ -4,6 +4,7 @@ import { prisma } from "@pragati/db";
 import { getCurrentStudent } from "@/lib/session-server";
 import { UI, type Language } from "@/lib/i18n";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { LogoutButton } from "@/components/LogoutButton";
 import { ErrorCard } from "@/components/ErrorCard";
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
@@ -82,7 +83,10 @@ export default async function StudentLayout({ children }: { children: React.Reac
               </div>
             </div>
           </div>
-          <LanguageToggle current={language} />
+          <div className="flex items-center gap-2.5">
+            <LanguageToggle current={language} />
+            <LogoutButton language={language} />
+          </div>
         </div>
 
         <div className="flex-1 overflow-auto px-10 py-9">{children}</div>

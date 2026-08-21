@@ -1,19 +1,15 @@
-// India-specific curriculum rule: Class 3-5 use school-specific textbooks (no
-// national standard book), Class 6-12 mostly follow NCERT and can share one
-// pool of content across every school on the same board. This is the single
-// place that rule lives — both content generation/caching and "what shows in
-// this student's sidebar" queries must go through it, so the rule can never
-// drift between the two.
+// Every class (3-8) is school-scoped: a student only ever sees
+// subjects/chapters uploaded by a teacher at their own school, regardless
+// of class. Each school owns and curates its own content — nothing is
+// shared across schools even when the curriculum happens to be the same
+// (e.g. NCERT for Class 6-8). This is the single place that rule lives —
+// both content generation/caching and "what shows in this student's
+// sidebar" queries must go through it, so the rule can never drift
+// between the two.
 export interface ContentScope {
   schoolId: string | null;
   board: string;
   class: string;
-}
-
-const SCHOOL_SCOPED_CLASSES = new Set(["Class 3", "Class 4", "Class 5"]);
-
-export function isSchoolScoped(studentClass: string): boolean {
-  return SCHOOL_SCOPED_CLASSES.has(studentClass);
 }
 
 export function getContentScope(params: {
@@ -21,9 +17,8 @@ export function getContentScope(params: {
   board: string;
   schoolId: string | null;
 }): ContentScope {
-  const schoolScoped = isSchoolScoped(params.studentClass);
   return {
-    schoolId: schoolScoped ? params.schoolId : null,
+    schoolId: params.schoolId,
     board: params.board,
     class: params.studentClass,
   };

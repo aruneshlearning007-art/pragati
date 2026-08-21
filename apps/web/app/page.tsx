@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session-server";
 import { ErrorCard } from "@/components/ErrorCard";
+import { LandingPage } from "@/components/LandingPage";
 
 export default async function Home() {
   let session: Awaited<ReturnType<typeof getSession>>;
@@ -20,5 +21,5 @@ export default async function Home() {
   if (session) {
     redirect("/student");
   }
-  redirect("/onboarding");
+  return <LandingPage />;
 }
