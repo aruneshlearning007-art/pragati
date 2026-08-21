@@ -6,6 +6,16 @@ import { renderWithTooltips, type KeyTerm } from "@/lib/richtext";
 // mistakenly split into two $...$ matches.
 const MATH_REGEX = /\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g;
 
+// The model reliably wraps math in $...$ inside prose (question stems,
+// notes body), but is inconsistent about it when an entire short string
+// IS the math — e.g. a quiz option that's just a fraction, written as the
+// bare LaTeX command with no $ delimiters at all. Rather than depend on
+// prompt compliance for every such case, treat a whole trimmed string as
+// math if it looks like nothing but a LaTeX command (starts with a
+// backslash, only letters/braces/digits/basic math punctuation after) —
+// this only matches short option-like strings, never normal prose.
+const BARE_LATEX_REGEX = /^\\[a-zA-Z]+(\{[^{}]*\}|\^|_|[0-9+\-*/., ])*$/;
+
 interface Segment {
   type: "text" | "math";
   value: string;
@@ -54,7 +64,8 @@ export function RichText({
   className?: string;
   style?: React.CSSProperties;
 }) {
-  const segments = splitSegments(text);
+  const trimmed = text.trim();
+  const segments = BARE_LATEX_REGEX.test(trimmed) ? [{ type: "math" as const, value: trimmed, display: false }] : splitSegments(text);
   return (
     <div className={className} style={style}>
       {segments.map((seg, i) => {

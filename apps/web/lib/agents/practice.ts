@@ -58,7 +58,8 @@ export async function getOrGenerateQuiz(
       (isMath
         ? "Since this is a Math topic, include at least 2 numeric free-response questions (kind: \"numeric\") " +
           "per quiz — typed numeric answers reduce guessing far more than multiple choice for calculation-style " +
-          "questions. "
+          "questions. Wrap math in $...$ even when an option is ENTIRELY a math expression (e.g. an option must " +
+          "be \"$\\\\frac{1}{4}$\", not bare \"\\\\frac{1}{4}\" with no dollar signs). "
         : "") +
       'Respond ONLY with strict JSON, no markdown, no code fences. Shape: {"questions":[{"kind":"mcq or ' +
       'assertion_reason or picture or numeric","text":"string","options":["a","b","c","d"],"correctIndex":' +
