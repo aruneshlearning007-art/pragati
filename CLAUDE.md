@@ -478,6 +478,65 @@ machine. Feel free to use them normally instead of the workarounds above.
   ("Even though wind helps move the air around, it's really the sun's
   cozy heat doing the main job...") — confirming the nudge actually
   changes the model's behavior, not just that the code path executes.
+- **Math-specific learning features** ✅ done (verified live 2026-08-20),
+  requested after a live test with a real NCERT Class 5 Math PDF exposed
+  gaps Science/Social Studies never hit: math is procedural not just
+  conceptual, plain text can't show equations, MCQ under-tests real
+  calculation ability, and LLMs make real arithmetic mistakes. Researched
+  math pedagogy first (Concrete-Pictorial-Abstract/Singapore Math, the
+  worked-example effect, retrieval practice for fact fluency) before
+  building. Five pieces, kept subject-agnostic wherever possible:
+  1. **Math notation (KaTeX)** — `apps/web/components/RichText.tsx`
+     consolidated 5 duplicate `whitespace-pre-wrap` render sites into one
+     component that renders `$...$`/`$$...$$` LaTeX via `katex.renderToString`
+     (`trust:false`, safe even though the TeX is LLM-authored) composed with
+     the existing key-term tooltip logic (moved to `lib/richtext.tsx`).
+  2. **Worked examples** — a 5th `ExplainMode` (`worked`), generated
+     unconditionally every call like `Notes.keyTerms` — a fully solved,
+     step-by-step example with a "Show next step" reveal toggle (the
+     faded-worked-example effect) in `WorkedExampleView.tsx`.
+  3. **Numeric-answer questions** — a 4th `QuestionKind` (`numeric`);
+     `QuizQuestion` gained `correctValue`/`tolerance`, `QuizAttempt` gained
+     `numericResponse`; grading in `diagnostic.ts` branches on kind.
+  4. **Deterministic arithmetic checker** — `arithmetic-checker.ts`, a
+     narrow regex `A op B = C` detector (no LLM cost) wired into the
+     Verifier as an extra pass after the LLM check — a real safety net,
+     not just theoretical: the Verifier had already live-caught one Gemini
+     arithmetic mistake earlier the same day.
+  5. **Fact-fluency drill** — a stateless v1 (`lib/drill.ts` +
+     `DrillFlashcard.tsx`, no persistence, no spaced-repetition scheduling
+     — that's an explicit v2) nested as a "Quick Drill" toggle inside
+     `PracticeTab.tsx`, shown only when the topic's subject is Math.
+  **Three real bugs found and fixed via live testing, in order**: (a) the
+  Verifier's final `VerifierFlag.createMany` bulk insert crashed on a
+  flag entry missing `quote`/`reason` — now filtered out before the write,
+  wrapped in try/catch as a last-resort safety net. (b) The big one:
+  `$\frac{1}{2}$` rendered as literal "rac{1}{2}" — `\f` (and `\b`, `\t`)
+  are valid single-character JSON escapes (form-feed, backspace, tab), so
+  when the model wrote an under-escaped single backslash instead of `\\`,
+  `JSON.parse` silently "succeeded" while eating the backslash and the
+  letter that made it a valid escape (`\times` → tab + "imes"). Fixed at
+  the shared `extractJson` layer (`packages/shared/src/llm.ts`) — repairs
+  `\f`/`\b`/`\t` into `\\f`/`\\b`/`\\t` before parsing, since none of those
+  three control characters is ever intentionally produced by any agent in
+  this app. (c) A narrower residual case: the model reliably wraps math in
+  `$...$` inside prose, but was inconsistent when an entire short string
+  (like a quiz option) IS the math, sometimes omitting the dollar signs
+  entirely — `RichText` now also treats a whole trimmed string as math if
+  it looks like nothing but a bare LaTeX command, rather than depending
+  solely on prompt compliance. **Known remaining gap**: bare LaTeX
+  *embedded mid-sentence* (not the whole string) in old cached content
+  generated before this fix still renders as raw text — narrower and more
+  inconsistent than the other two, not yet worth the false-positive risk
+  of a more aggressive mid-string regex.
+  Verified live end-to-end on a real "Simple Fractions" Class 5 chapter:
+  correct stacked-fraction rendering (confirmed via actual KaTeX-generated
+  `<mfrac>` markup, not just visual inspection) in Notes/Explain/Practice;
+  a Worked Example with working step-reveal; numeric questions graded
+  correctly with tolerance and shown without leaking `correctValue` to the
+  client pre-submission; the Quick Drill toggle appearing only for Math
+  topics and a live multiplication problem graded correctly with a
+  streak counter.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
