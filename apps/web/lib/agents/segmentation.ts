@@ -45,8 +45,8 @@ export async function segmentIntoConcepts(
     json: true,
   });
 
-  const parsed = extractJson<{ concepts: ConceptSegment[] }>(raw);
-  const concepts = parsed.concepts.filter((c) => c.title?.trim()).slice(0, MAX_CONCEPTS);
+  const parsed = extractJson<{ concepts?: ConceptSegment[] }>(raw);
+  const concepts = (parsed.concepts ?? []).filter((c) => c.title?.trim()).slice(0, MAX_CONCEPTS);
 
   return concepts.length > 0 ? concepts : [{ title: "Overview", subConcepts: [] }];
 }

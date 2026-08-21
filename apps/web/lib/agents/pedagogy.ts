@@ -134,28 +134,34 @@ export async function getOrGenerateExplanations(
   });
 
   const parsed = extractJson<{
-    story: string;
-    picture: string;
-    pictureSteps: DiagramStep[];
-    pictureConnectors: string[];
-    realworld: string;
-    gofurther: string;
-    worked: string;
-    workedProblem: string;
-    workedSteps: WorkedExampleStep[];
-    workedAnswer: string;
+    story?: string;
+    picture?: string;
+    pictureSteps?: DiagramStep[];
+    pictureConnectors?: string[];
+    realworld?: string;
+    gofurther?: string;
+    worked?: string;
+    workedProblem?: string;
+    workedSteps?: WorkedExampleStep[];
+    workedAnswer?: string;
   }>(raw);
 
+  // Same defensive fallback as everywhere else this pattern shows up: valid
+  // JSON doesn't guarantee every expected key was actually present.
   const bodies: Record<ExplainMode, string> = {
-    story: parsed.story,
-    picture: parsed.picture,
-    realworld: parsed.realworld,
-    gofurther: parsed.gofurther,
-    worked: parsed.worked,
+    story: parsed.story ?? "",
+    picture: parsed.picture ?? "",
+    realworld: parsed.realworld ?? "",
+    gofurther: parsed.gofurther ?? "",
+    worked: parsed.worked ?? "",
   };
 
-  const diagram: PictureDiagram = { steps: parsed.pictureSteps, connectors: parsed.pictureConnectors };
-  const workedExample: WorkedExample = { problem: parsed.workedProblem, steps: parsed.workedSteps, answer: parsed.workedAnswer };
+  const diagram: PictureDiagram = { steps: parsed.pictureSteps ?? [], connectors: parsed.pictureConnectors ?? [] };
+  const workedExample: WorkedExample = {
+    problem: parsed.workedProblem ?? "",
+    steps: parsed.workedSteps ?? [],
+    answer: parsed.workedAnswer ?? "",
+  };
 
   const created = await Promise.all(
     MODES.map((mode) =>

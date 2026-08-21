@@ -87,7 +87,12 @@ export async function getOrGenerateNotes(
     json: true,
   });
 
-  const parsed = extractJson<{ sections: NotesSection[]; keyTerms?: KeyTerm[] }>(raw);
+  const parsed = extractJson<{ sections?: NotesSection[]; keyTerms?: KeyTerm[] }>(raw);
+  // The model is instructed to always include these, but "valid JSON" and
+  // "has every expected key" are two separate guarantees — falling back to
+  // empty rather than trusting the shape blindly turns a missing key into
+  // thin content instead of a crash that discards the whole concept.
+  const sections = parsed.sections ?? [];
   const keyTerms = parsed.keyTerms ?? [];
 
   await prisma.notes.create({
@@ -98,11 +103,11 @@ export async function getOrGenerateNotes(
       class: scope.class,
       schoolId: scope.schoolId,
       language,
-      sections: parsed.sections as unknown as object,
+      sections: sections as unknown as object,
       keyTerms: keyTerms as unknown as object,
       status: options?.status ?? "published",
     },
   });
 
-  return { sections: parsed.sections, keyTerms };
+  return { sections, keyTerms };
 }

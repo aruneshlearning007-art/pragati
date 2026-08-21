@@ -85,7 +85,7 @@ export async function getOrGenerateQuiz(
   });
 
   const parsed = extractJson<{
-    questions: {
+    questions?: {
       kind: string;
       text: string;
       options: string[];
@@ -107,7 +107,7 @@ export async function getOrGenerateQuiz(
   };
 
   const created = await Promise.all(
-    parsed.questions.map((q) =>
+    (parsed.questions ?? []).map((q) =>
       prisma.quizQuestion.create({
         data: {
           topicId,
