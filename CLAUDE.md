@@ -72,13 +72,17 @@ applies in this repo.
    after repeated incidents. The teacher/parent in-app dashboard alert on
    those incidents is not built yet — that's Phase 3/5 territory, once those
    dashboards exist at all.
-6. **India-specific curriculum scoping**: Class 3-5 content is
-   **school-scoped** (no national-standard book — every school uses a
-   different one); Class 6-12 content is **board-scoped**
-   (NCERT-standard, shared across schools on that board). This single rule
-   lives in `packages/shared/src/contentScope.ts` (`getContentScope()`) and
-   must be used everywhere content is cached or queried — never let this
-   logic drift to a second implementation.
+6. **India-specific curriculum scoping**: every class (3-8) is
+   **school-scoped** — a student only ever sees subjects/chapters uploaded
+   by a teacher at their *own* school, regardless of class or board
+   standardization. (Changed 2026-08-21, founder-requested: originally
+   Class 6-12 was board-scoped/shared board-wide on the reasoning that
+   NCERT is standardized past Class 5, but the founder wants each school to
+   own and curate its own content, full stop — see the landing page/auth
+   entry in Build sequence below.) This single rule lives in
+   `packages/shared/src/contentScope.ts` (`getContentScope()`) and must be
+   used everywhere content is cached or queried — never let this logic
+   drift to a second implementation.
 
 ## Architecture
 
@@ -113,9 +117,11 @@ applies in this repo.
   body's quota metric/limit before assuming a model swap fixed anything,
   since some limits are per-day (hard wall) and others are per-minute
   (self-recovering, much more usable even at a lower number).
-- **Auth**: stubbed for the pilot — no OAuth/password. `packages/shared/src/session.ts`
-  issues an HMAC-signed cookie token on onboarding. Explicitly flagged as a
-  stand-in to replace before real launch.
+- **Auth**: stubbed for the pilot — no OAuth/password, just email lookup
+  (see the landing page/auth entry in Build sequence below).
+  `packages/shared/src/session.ts` issues an HMAC-signed cookie token on
+  signup or login. Explicitly flagged as a stand-in to replace before real
+  launch — anyone who knows a registered email can log in as that person.
 - **Payments**: stubbed (`subscriptionStatus` field only), not built yet.
 
 ## Deployment
@@ -186,6 +192,33 @@ never commit them):
   grep for `rhel-openssl` — this is the same file list Vercel's builder uses
   to decide what ships in the serverless function, so it's a fast, honest
   local proxy for whether the fix actually works.
+- **`DATABASE_URL`/`DIRECT_URL`/etc. show as `[SENSITIVE]` (or similarly
+  blank/placeholder) no matter how you read them locally — this is not
+  corruption.** Discovered 2026-08-21 while debugging a local `next build`
+  failure (`P1013: scheme not recognized`): every local method of reading
+  `apps/web/.env.local` — raw byte dump, a fresh Node process, `dotenv-cli`,
+  even with the sandbox explicitly disabled — showed the same 11-character
+  placeholder for these vars, which looked exactly like the values had been
+  overwritten with garbage. They hadn't. Checking the Vercel dashboard
+  (Settings → Environment Variables) showed these vars are marked
+  **"Sensitive"** — a real Vercel feature that makes a variable *write-only
+  forever*: once saved, nobody (not the dashboard, not `vercel env pull`,
+  not the API) can ever read the real value back out again, by design.
+  Confirmed production itself is completely unaffected — Vercel still
+  injects the real value at build/runtime regardless of the Sensitive flag
+  (proven by watching a real deploy's build log actually connect to and
+  migrate the live Supabase DB). **If you need the real value locally
+  again** (e.g. to run `prisma migrate deploy` from this machine), the only
+  ways are: ask the founder for the real Supabase connection string
+  directly, or have them un-check "Sensitive" on that variable in the
+  Vercel dashboard (Environment Variables → the var's `...` menu → Edit)
+  so `vercel env pull` can fetch it normally again. Don't waste time
+  re-debugging this as file corruption — check the dashboard's Sensitive
+  flag first. For a local `next build` that doesn't need a real DB
+  connection (nothing in this app queries the DB at build time — every
+  route is dynamic), a harmless placeholder URL like
+  `postgresql://placeholder:placeholder@localhost:5432/placeholder` is
+  enough to satisfy Prisma's schema validation.
 
 ## Sandbox network limitations that no longer apply once running locally
 
@@ -537,6 +570,57 @@ machine. Feel free to use them normally instead of the workarounds above.
   client pre-submission; the Quick Drill toggle appearing only for Math
   topics and a live multiplication problem graded correctly with a
   streak counter.
+- **Landing page + student/teacher signup and login** ✅ done (verified
+  live 2026-08-21), user-requested: previously `/` was purely a
+  session-redirect router that sent anyone without a session straight into
+  `/onboarding`, which always created a **brand-new** User with a fake
+  generated email — there was no way for a returning student/teacher to get
+  back into their existing account after clearing cookies. Now `/`
+  (`apps/web/app/page.tsx`) renders a real `LandingPage.tsx` (hero + two
+  role cards) when there's no session; `/onboarding` and
+  `/teacher-onboarding` gained a `AuthModeToggle.tsx` signup/login tab
+  switcher. **Auth approach — explicitly chosen by the founder after being
+  told the tradeoff**: simple email lookup, no password (`User.email` was
+  already `@unique`) — sign-up now collects a real email, log-in is "enter
+  your email, we find your account, you're in." New
+  `/api/login`/`/api/logout` routes; a `LogoutButton.tsx` sits next to the
+  language toggle in both student/teacher layout headers.
+  **Alongside this, changed the content-scoping rule** (see product
+  philosophy #6 above): every class (3-8) is now school-scoped, not just
+  Class 3-5 — the founder wants each school to own and curate its own
+  content even where the curriculum (NCERT) happens to be standardized.
+  `packages/shared/src/contentScope.ts` simplified to an unconditional
+  passthrough; a backfill migration
+  (`20260820030000_school_scope_all_classes`) set `schoolId` on existing
+  Class 6-8 teacher-uploaded chapters that had it `null` under the old
+  rule. **Known, accepted side effect**: the system-seeded "Light" demo
+  chapter (no `teacherId`, so nothing to backfill `schoolId` from) stopped
+  appearing to real students, since content with no owning school can't
+  match any student's school anymore — consistent with the new rule, not a
+  bug.
+  Verified live end-to-end on production: landing page renders for a
+  no-session visitor with both entry cards working; signed up a fresh
+  Class 6 test student at a new school ("Auth Test School A") and confirmed
+  zero chapters visible (correct — brand-new school, nothing uploaded);
+  logged out via the new button, then logged back in with the same email
+  and landed on the *same* account (not a fresh one); tried signing up
+  again with that email — got the friendly "already registered, please log
+  in" message, not a raw DB error; tried logging in on the teacher page
+  with that student's email — got the friendly role-mismatch message;
+  tried logging in with a never-registered email — got the friendly
+  "no account found" message; signed up a second teacher at a *different*
+  new school ("Auth Test School B") and confirmed their content panel is
+  also empty and independent; signed up a fresh Class 5 student at the
+  *same* "Auth Test School A" and confirmed Class 5's pre-existing
+  school-scoping still behaves identically (no regression from the rule
+  change). The backfill migration itself was confirmed applied cleanly
+  against the live Supabase DB via the deploy's build log ("All migrations
+  have been successfully applied") — the pre-existing "Growing Plants"/
+  "Simple Fractions" Class 6 test chapters from earlier sessions weren't
+  re-checked live in-browser (their teacher accounts used the old
+  auto-generated pending email format, now unknown/unrecoverable for
+  login), but the backfill SQL is a simple, deterministic, unconditional
+  `UPDATE ... WHERE schoolId IS NULL` reviewed as safe.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
