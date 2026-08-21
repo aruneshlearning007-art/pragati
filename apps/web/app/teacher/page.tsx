@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@pragati/db";
 import { getCurrentTeacher } from "@/lib/session-server";
 import { UI, type Language } from "@/lib/i18n";
+import { DeleteChapterButton } from "@/components/DeleteChapterButton";
 
 export default async function TeacherPanelPage() {
   const teacher = await getCurrentTeacher();
@@ -46,32 +47,34 @@ export default async function TeacherPanelPage() {
       ) : (
         <div className="rounded-card overflow-hidden" style={{ border: "1px solid var(--color-border)" }}>
           {chapters.map((c, i) => (
-            <Link
+            <div
               key={c.id}
-              href={`/teacher/chapters/${c.id}`}
               className="flex items-center justify-between px-5 py-4"
               style={{
                 background: "var(--color-surface)",
                 borderTop: i > 0 ? "1px solid var(--color-border)" : undefined,
               }}
             >
-              <div>
+              <Link href={`/teacher/chapters/${c.id}`} className="flex-1 min-w-0">
                 <div className="font-semibold text-[14.5px]">{c.titleEn}</div>
                 <div className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
                   {c.subject.nameEn} · {c.class} · {c.board}
                 </div>
+              </Link>
+              <div className="flex items-center gap-2.5 flex-none">
+                <span
+                  className="text-xs font-bold px-3 py-1.5 rounded-full"
+                  style={
+                    c.status === "published"
+                      ? { background: "var(--color-mastered-bg)", color: "var(--color-mastered-fg)" }
+                      : { background: "var(--color-revision-bg)", color: "var(--color-revision-fg)" }
+                  }
+                >
+                  {c.status === "published" ? t.statusPublished : t.statusAwaitingReview}
+                </span>
+                <DeleteChapterButton chapterId={c.id} language={language} compact />
               </div>
-              <span
-                className="text-xs font-bold px-3 py-1.5 rounded-full"
-                style={
-                  c.status === "published"
-                    ? { background: "var(--color-mastered-bg)", color: "var(--color-mastered-fg)" }
-                    : { background: "var(--color-revision-bg)", color: "var(--color-revision-fg)" }
-                }
-              >
-                {c.status === "published" ? t.statusPublished : t.statusAwaitingReview}
-              </span>
-            </Link>
+            </div>
           ))}
         </div>
       )}

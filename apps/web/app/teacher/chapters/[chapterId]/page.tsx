@@ -3,6 +3,7 @@ import Link from "next/link";
 import { prisma } from "@pragati/db";
 import { getCurrentTeacher } from "@/lib/session-server";
 import { PublishButton } from "@/components/PublishButton";
+import { DeleteChapterButton } from "@/components/DeleteChapterButton";
 import { RichText } from "@/components/RichText";
 import { WorkedExampleView, type WorkedExample } from "@/components/WorkedExampleView";
 import { UI, type Language } from "@/lib/i18n";
@@ -51,16 +52,19 @@ export default async function ChapterReviewPage({ params }: { params: Promise<{ 
 
       <div className="flex items-center justify-between mb-2">
         <h1 className="font-heading text-[26px] font-semibold">{chapter.titleEn}</h1>
-        {chapter.status === "awaiting_review" ? (
-          <PublishButton chapterId={chapter.id} language={language} />
-        ) : (
-          <span
-            className="text-xs font-bold px-3 py-1.5 rounded-full"
-            style={{ background: "var(--color-mastered-bg)", color: "var(--color-mastered-fg)" }}
-          >
-            {t.statusPublished}
-          </span>
-        )}
+        <div className="flex items-center gap-2.5">
+          {chapter.status === "awaiting_review" ? (
+            <PublishButton chapterId={chapter.id} language={language} />
+          ) : (
+            <span
+              className="text-xs font-bold px-3 py-1.5 rounded-full"
+              style={{ background: "var(--color-mastered-bg)", color: "var(--color-mastered-fg)" }}
+            >
+              {t.statusPublished}
+            </span>
+          )}
+          <DeleteChapterButton chapterId={chapter.id} language={language} redirectAfter />
+        </div>
       </div>
       <p className="text-sm mb-8" style={{ color: "var(--color-text-muted)" }}>
         {chapter.subject.nameEn} · {chapter.class} · {chapter.board}

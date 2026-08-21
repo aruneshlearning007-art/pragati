@@ -102,6 +102,10 @@ export const UI = {
     landingTeacherDescription: "Upload a chapter and let Pragati generate study material for your students.",
     landingTeacherCta: "Get started",
     landingFooter: "Made for Class 3–8 students across India.",
+    deleteChapterCta: "Delete chapter",
+    deleteConfirmMessage: "Delete this chapter and everything in it? This cannot be undone.",
+    deleteConfirmYes: "Yes, delete",
+    cancel: "Cancel",
   },
   hi: {
     appName: "प्रगति",
@@ -206,6 +210,10 @@ export const UI = {
     landingTeacherDescription: "एक अध्याय अपलोड करें और प्रगति को अपने छात्रों के लिए अध्ययन सामग्री तैयार करने दें।",
     landingTeacherCta: "शुरू करें",
     landingFooter: "पूरे भारत में कक्षा 3-8 के छात्रों के लिए बनाया गया।",
+    deleteChapterCta: "अध्याय हटाएं",
+    deleteConfirmMessage: "इस अध्याय और इसमें मौजूद सब कुछ हटाएं? इसे वापस नहीं लाया जा सकता।",
+    deleteConfirmYes: "हां, हटाएं",
+    cancel: "रद्द करें",
   },
 } as const;
 
