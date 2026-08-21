@@ -621,6 +621,77 @@ machine. Feel free to use them normally instead of the workarounds above.
   auto-generated pending email format, now unknown/unrecoverable for
   login), but the backfill SQL is a simple, deterministic, unconditional
   `UPDATE ... WHERE schoolId IS NULL` reviewed as safe.
+- **Chapter generation reliability hardening + teacher delete-chapter**
+  ✅ done (verified live 2026-08-22), triggered by the founder reporting
+  "Gemini API is failing to generate content when teacher upload chapter."
+  Investigation turned into four distinct, real bugs found one after
+  another via repeated live re-testing on production — each fix uncovered
+  the next failure, all from the same root cause family: `generate()`/
+  `extractJson()` in `packages/shared/src/llm.ts` trusting the model's raw
+  response far more than an LLM's output actually deserves.
+  1. **No retry on Gemini's 429 rate limit** — a single concept's
+     generation already fires 3-6 calls back to back (Notes+Explain+
+     Practice concurrently, then the Verifier's follow-up calls), enough on
+     its own to trip the free tier's 15-requests/minute cap; any 429 just
+     crashed the whole concept. `generate()` now retries up to 3 times on
+     a 429, waiting the API's own suggested `retryDelay`.
+  2. **`extractJson` took the LAST "}" in the whole raw string, not the one
+     that actually closes the JSON object** — the moment the model added
+     anything after the JSON (a stray note, a code-fence artifact) that
+     itself contained a "}", the slice pulled in that trailing text too and
+     `JSON.parse` choked ("Unexpected non-whitespace character after
+     JSON"). Replaced with a proper string-aware brace-balance scan that
+     tracks quote state so it stops at the real end of the object
+     regardless of what the model appends afterward, tested against 6
+     synthetic edge cases (trailing prose with a brace, LaTeX braces inside
+     string values, markdown-fenced JSON, nested objects) before deploying.
+  3. **No `maxOutputTokens` set at all** — re-testing immediately surfaced
+     a different error from the same family ("Expected ',' or ']' after
+     array element"), a genuinely truncated response cut off mid-array by
+     Gemini's undocumented default output budget. Set `maxOutputTokens:
+     8192` (generous headroom for anything this app generates) and check
+     `candidate.finishReason === "MAX_TOKENS"`, throwing a clear
+     "response was truncated" error instead of a cryptic parse failure.
+  4. **Several `extractJson<T>()` call sites assumed the model's JSON
+     always included every expected top-level key** — re-testing again
+     surfaced a fourth, different crash ("Cannot read properties of
+     undefined (reading 'map')") on `practice.ts`'s `parsed.questions.map()`
+     when the model's JSON, while syntactically valid, omitted the
+     `questions` key. The same unguarded pattern existed in
+     `segmentation.ts` (`parsed.concepts`), `notes.ts` (`parsed.sections`),
+     and `pedagogy.ts` (several body/diagram/worked-example fields) — all
+     four now fall back to an empty array/string instead of crashing,
+     degrading that section to thin content rather than discarding a
+     concept's already-successful generation over one missing key
+     (consistent with how the Verifier's own per-section try/catch already
+     treats a bad response as best-effort, not fatal).
+  **Also added, same session, directly requested**: teachers can now
+  delete any chapter they created — draft (`awaiting_review`) or already
+  `published` — to redo a botched or stuck upload from scratch. New
+  `DELETE /api/teacher/chapters/[chapterId]` walks the full dependency
+  tree by hand in one transaction (quiz attempts → mastery scores →
+  misconception tags → questions → sub-concepts → explanations → notes →
+  videos → doubt messages → verifier flags → the uploaded source →
+  topics → the chapter itself), since no relation in the schema cascades
+  on delete. `DeleteChapterButton.tsx` adds an inline confirm step
+  ("Delete this chapter and everything in it? This cannot be undone.")
+  before calling it, wired into both the Content Panel's chapter list and
+  the chapter review page.
+  Verified live end-to-end on production, repeatedly, across all of the
+  above: uploaded the same small real test chapter (addition/subtraction)
+  four times in a row as each fix landed, watching a new distinct error
+  surface each time until the final pass generated **both concepts
+  completely clean** — Notes, all 5 Explain modes (including a full
+  Worked Example with step-reveal), Practice (mixed mcq/assertion_reason/
+  numeric questions) — with the Verifier genuinely catching and fixing
+  real issues along the way (a hallucinated detail removed, a missing
+  subtraction section restored from source, and three real arithmetic
+  errors in draft practice questions corrected). Also verified deleting a
+  chapter that was still mid-generation (stuck partway through, the exact
+  real-world scenario that motivated the feature) cleanly removed it with
+  no orphaned rows. All four test chapters created during this session
+  were deleted afterward via the new feature itself, leaving the teacher
+  account clean.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
