@@ -193,20 +193,24 @@ export async function verifyAndCorrectChapter(
     }));
     try {
       const { variants, flags } = await verifyExplanations(finalVariants, sourceText, cls, language);
+      // The model occasionally omits body for the picture-mode variant when
+      // it only had a diagram fix to make — fall back to the original
+      // rather than treating "no body returned" as "the body should be
+      // cleared". Applied here (not just at the DB write below) so the
+      // arithmetic double-check afterward never sees a null body either.
+      const normalized = variants.map((v) => {
+        const original = explanations.find((e) => e.mode === v.mode);
+        return original ? { ...v, body: v.body || original.body } : v;
+      });
       if (flags.length > 0) {
         await Promise.all(
-          variants.map((v) => {
+          normalized.map((v) => {
             const original = explanations.find((e) => e.mode === v.mode);
             if (!original) return Promise.resolve();
-            // The model occasionally omits body for the picture-mode variant
-            // when it only had a diagram fix to make — fall back to the
-            // original rather than writing a null body (Prisma rejects it,
-            // and it would also just be wrong: "no body returned" isn't the
-            // same as "the body should be cleared").
             return prisma.explanation.update({
               where: { id: original.id },
               data: {
-                body: v.body || original.body,
+                body: v.body,
                 diagram: v.diagram ? (v.diagram as unknown as object) : undefined,
                 workedExample: v.workedExample ? (v.workedExample as unknown as object) : undefined,
               },
@@ -215,7 +219,7 @@ export async function verifyAndCorrectChapter(
         );
         allFlags.push(...flags.map((f) => ({ section: "explain" as const, ...f })));
       }
-      finalVariants = variants;
+      finalVariants = normalized;
     } catch (err) {
       console.error("Verifier: explain check failed, keeping unverified draft", err);
     }

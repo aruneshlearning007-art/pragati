@@ -20,9 +20,9 @@ const EXPR_REGEX = /(-?\d[\d,]*(?:\.\d+)?)\s*([+\-×x*÷/])\s*(-?\d[\d,]*(?:\.\d
  * replacement for the LLM check — it only catches the narrow "A op B = C"
  * shape, not word problems or multi-step reasoning.
  */
-export function checkArithmetic(text: string): ArithmeticFlag[] {
+export function checkArithmetic(text: string | null | undefined): ArithmeticFlag[] {
   const flags: ArithmeticFlag[] = [];
-  for (const m of text.matchAll(EXPR_REGEX)) {
+  for (const m of (text ?? "").matchAll(EXPR_REGEX)) {
     const [full, aStr, op, bStr, resultStr] = m;
     const a = parseFloat(aStr.replace(/,/g, ""));
     const b = parseFloat(bStr.replace(/,/g, ""));
