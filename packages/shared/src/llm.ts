@@ -116,13 +116,50 @@ function repairLatexEscapes(jsonStr: string): string {
   return jsonStr.replace(/(?<!\\)\\([fbt])/g, "\\\\$1");
 }
 
-/** Pull the first {...} JSON object out of a raw model response and parse it. */
+// Finds the index of the "}" that closes the object opened at `start`,
+// tracking string literals (and escaped characters within them) so a "}"
+// that's just part of a quoted string — or, more importantly, part of any
+// trailing prose *after* the real JSON object — never gets mistaken for
+// the real closing brace. Returns -1 if the braces never balance.
+function findMatchingBrace(str: string, start: number): number {
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < str.length; i++) {
+    const ch = str[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Pull the first {...} JSON object out of a raw model response and parse
+ * it. Despite being told to respond with strict JSON only, the model
+ * sometimes wraps it in markdown fences or adds a trailing note — a naive
+ * "first { to last }" slice breaks the moment any such trailing text
+ * contains its own "}" (pulling in extra, non-JSON content and leaving
+ * JSON.parse to choke on it), so this scans for the brace that actually
+ * balances the first one instead of just grabbing the last one in the
+ * whole string.
+ */
 export function extractJson<T>(raw: string): T {
-  let jsonStr = raw.trim();
-  const start = jsonStr.indexOf("{");
-  const end = jsonStr.lastIndexOf("}");
-  if (start >= 0 && end > start) {
-    jsonStr = jsonStr.slice(start, end + 1);
+  const trimmed = raw.trim();
+  const start = trimmed.indexOf("{");
+  let jsonStr = trimmed;
+  if (start >= 0) {
+    const end = findMatchingBrace(trimmed, start);
+    jsonStr = end > start ? trimmed.slice(start, end + 1) : trimmed.slice(start);
   }
   return JSON.parse(repairLatexEscapes(jsonStr)) as T;
 }
