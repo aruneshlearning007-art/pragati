@@ -359,3 +359,73 @@ export async function getStudentStreak(studentId: string): Promise<number> {
   }
   return streak;
 }
+
+/**
+ * Longest-ever run of consecutive practice days — unlike getStudentStreak
+ * (the *current* run, which resets to 0 after a missed day), this is for
+ * a permanent badge: once earned it must never look "un-earned" again
+ * just because the student took a day off. Same IST-day source as
+ * getStudentStreak, walked forward across the full sorted day-set instead
+ * of backward from today.
+ */
+export async function getLongestStreak(studentId: string): Promise<number> {
+  const attempts = await prisma.quizAttempt.findMany({ where: { studentId }, select: { timestamp: true } });
+  if (attempts.length === 0) return 0;
+
+  const days = [...new Set(attempts.map((a) => istDateString(a.timestamp)))].sort();
+
+  let longest = 0;
+  let current = 0;
+  let prevDate: Date | null = null;
+  for (const dayStr of days) {
+    const day = new Date(`${dayStr}T00:00:00Z`);
+    current = prevDate && day.getTime() - prevDate.getTime() === 24 * 60 * 60 * 1000 ? current + 1 : 1;
+    longest = Math.max(longest, current);
+    prevDate = day;
+  }
+  return longest;
+}
+
+/**
+ * Count of topics (not chapters) at "mastered" status across every
+ * published chapter in the student's scope — for the "N topics mastered"
+ * badges. Mirrors getChapterStatusesByIds's query shape (topics ->
+ * subConcepts -> scores, batched) but returns a topic-level count
+ * directly instead of the chapter-level rollup that function returns.
+ */
+export async function getMasteredTopicCount(studentId: string, scope: ContentScope): Promise<number> {
+  const chapters = await prisma.chapter.findMany({
+    where: { class: scope.class, board: scope.board, schoolId: scope.schoolId, status: "published" },
+    select: { id: true },
+  });
+  if (chapters.length === 0) return 0;
+
+  const topics = await prisma.topic.findMany({ where: { chapterId: { in: chapters.map((c) => c.id) } } });
+  if (topics.length === 0) return 0;
+
+  const topicIds = topics.map((t) => t.id);
+  const subConcepts = await prisma.subConcept.findMany({ where: { topicId: { in: topicIds } } });
+  const scores =
+    subConcepts.length > 0
+      ? await prisma.masteryScore.findMany({ where: { studentId, subConceptId: { in: subConcepts.map((s) => s.id) } } })
+      : [];
+  const scoreMap = new Map(scores.map((s) => [s.subConceptId, s.score]));
+
+  const subConceptIdsByTopic = new Map<string, string[]>();
+  for (const sc of subConcepts) {
+    const list = subConceptIdsByTopic.get(sc.topicId) ?? [];
+    list.push(sc.id);
+    subConceptIdsByTopic.set(sc.topicId, list);
+  }
+
+  let masteredCount = 0;
+  for (const topic of topics) {
+    const { status } = computeStatus(subConceptIdsByTopic.get(topic.id) ?? [], scoreMap);
+    if (status === "mastered") masteredCount++;
+  }
+  return masteredCount;
+}
+
+export async function getTotalQuizAttempts(studentId: string): Promise<number> {
+  return prisma.quizAttempt.count({ where: { studentId } });
+}

@@ -115,6 +115,13 @@ export const UI = {
     weakAreasEmpty: "No repeated mix-ups yet — keep it up!",
     noProgressYet: "Nothing to show yet — start a topic to see your progress here.",
     viewSubjectCta: "View",
+    badgesTitle: "Badges",
+    badgeStreak3Title: "3-Day Streak",
+    badgeStreak7Title: "7-Day Streak",
+    badgeFirstMasteryTitle: "First Topic Mastered",
+    badgeFiveMasteryTitle: "5 Topics Mastered",
+    badgeSubjectMasterTitle: "Subject Master",
+    badgePracticeProTitle: "Practice Pro",
   },
   hi: {
     appName: "प्रगति",
@@ -232,6 +239,13 @@ export const UI = {
     weakAreasEmpty: "अभी तक कोई दोहराई गई गलती नहीं — ऐसे ही करते रहें!",
     noProgressYet: "अभी दिखाने के लिए कुछ नहीं है — अपनी प्रगति देखने के लिए कोई विषय शुरू करें।",
     viewSubjectCta: "देखें",
+    badgesTitle: "बैज",
+    badgeStreak3Title: "3-दिन की स्ट्रीक",
+    badgeStreak7Title: "7-दिन की स्ट्रीक",
+    badgeFirstMasteryTitle: "पहला विषय-वस्तु पूर्ण",
+    badgeFiveMasteryTitle: "5 विषय-वस्तु पूर्ण",
+    badgeSubjectMasterTitle: "विषय में महारत",
+    badgePracticeProTitle: "अभ्यास विशेषज्ञ",
   },
 } as const;
 

@@ -5,11 +5,30 @@ import {
   getProgressOverview,
   getWeakAreasForStudent,
   getStudentStreak,
+  getLongestStreak,
+  getMasteredTopicCount,
+  getTotalQuizAttempts,
   type SubjectProgress,
   type WeakArea,
 } from "@/lib/agents/diagnostic";
 import { UI, STATUS_STYLES, type Language } from "@/lib/i18n";
 import { ErrorCard } from "@/components/ErrorCard";
+
+interface BadgeInputs {
+  longestStreak: number;
+  masteredTopicCount: number;
+  masteredSubjectCount: number;
+  totalQuizAttempts: number;
+}
+
+const BADGE_DEFS: { id: string; icon: string; titleKey: keyof (typeof UI)["en"]; earned: (p: BadgeInputs) => boolean }[] = [
+  { id: "streak3", icon: "🔥", titleKey: "badgeStreak3Title", earned: (p) => p.longestStreak >= 3 },
+  { id: "streak7", icon: "🔥", titleKey: "badgeStreak7Title", earned: (p) => p.longestStreak >= 7 },
+  { id: "firstMastery", icon: "🌟", titleKey: "badgeFirstMasteryTitle", earned: (p) => p.masteredTopicCount >= 1 },
+  { id: "fiveMastery", icon: "🏆", titleKey: "badgeFiveMasteryTitle", earned: (p) => p.masteredTopicCount >= 5 },
+  { id: "subjectMaster", icon: "📚", titleKey: "badgeSubjectMasterTitle", earned: (p) => p.masteredSubjectCount >= 1 },
+  { id: "practicePro", icon: "✍️", titleKey: "badgePracticeProTitle", earned: (p) => p.totalQuizAttempts >= 50 },
+];
 
 export default async function StudentProgressPage() {
   const student = await getCurrentStudent();
@@ -20,17 +39,30 @@ export default async function StudentProgressPage() {
   let subjects: SubjectProgress[];
   let weakAreas: WeakArea[];
   let streak: number;
+  let badgeInputs: BadgeInputs;
   try {
     const scope = getContentScope({
       studentClass: student.class ?? "Class 6",
       board: student.board ?? "CBSE",
       schoolId: student.schoolId,
     });
-    [subjects, weakAreas, streak] = await Promise.all([
+    const [subjectsResult, weakAreasResult, streakResult, longestStreak, masteredTopicCount, totalQuizAttempts] = await Promise.all([
       getProgressOverview(student.id, scope, language),
       getWeakAreasForStudent(student.id, language),
       getStudentStreak(student.id),
+      getLongestStreak(student.id),
+      getMasteredTopicCount(student.id, scope),
+      getTotalQuizAttempts(student.id),
     ]);
+    subjects = subjectsResult;
+    weakAreas = weakAreasResult;
+    streak = streakResult;
+    badgeInputs = {
+      longestStreak,
+      masteredTopicCount,
+      masteredSubjectCount: subjectsResult.filter((s) => s.overallStatus === "mastered").length,
+      totalQuizAttempts,
+    };
   } catch (err) {
     return <ErrorCard title="Could not load your progress" error={err} />;
   }
@@ -65,6 +97,34 @@ export default async function StudentProgressPage() {
         ) : (
           <span className="font-semibold text-sm">{t.progressStreakZero}</span>
         )}
+      </div>
+
+      <div className="font-heading text-lg font-semibold mb-3">{t.badgesTitle}</div>
+      <div className="grid gap-3 mb-9" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))" }}>
+        {BADGE_DEFS.map((badge) => {
+          const earned = badge.earned(badgeInputs);
+          return (
+            <div
+              key={badge.id}
+              className="flex flex-col items-center text-center gap-1.5 p-4 rounded-card"
+              style={{
+                background: earned ? "var(--color-mastered-bg)" : "var(--color-surface)",
+                border: `1px solid ${earned ? "var(--color-mastered-dot)" : "var(--color-border)"}`,
+                opacity: earned ? 1 : 0.5,
+              }}
+            >
+              <span className="text-3xl" style={{ filter: earned ? "none" : "grayscale(1)" }}>
+                {badge.icon}
+              </span>
+              <span
+                className="text-xs font-bold leading-tight"
+                style={{ color: earned ? "var(--color-mastered-fg)" : "var(--color-text-muted)" }}
+              >
+                {t[badge.titleKey]}
+              </span>
+            </div>
+          );
+        })}
       </div>
 
       <div className="flex flex-col gap-3.5 mb-9">
