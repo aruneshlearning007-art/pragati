@@ -429,3 +429,86 @@ export async function getMasteredTopicCount(studentId: string, scope: ContentSco
 export async function getTotalQuizAttempts(studentId: string): Promise<number> {
   return prisma.quizAttempt.count({ where: { studentId } });
 }
+
+export interface RevisionReminder {
+  subConceptId: string;
+  subConceptName: string;
+  topicId: string;
+  topicTitle: string;
+  subjectName: string;
+  daysSincePractice: number;
+  reason: "weak" | "refresh";
+}
+
+const WEAK_REVISION_DAYS = 2;
+const MASTERED_REVISION_DAYS = 7;
+
+/**
+ * Lightweight, threshold-based spaced-repetition schedule (not a full
+ * SM-2/Leitner algorithm, which needs per-review ease-factor history this
+ * app doesn't track): a weak sub-concept (score < 80) is "due" 2 days after
+ * its last practice, a mastered one (score >= 80) is due after 7 days —
+ * the forgetting-curve insight that even mastered content quietly decays
+ * without review, faster still for weak content. Mirrors the batched
+ * query shape of getMasteredTopicCount/getProgressOverview (topics ->
+ * subConcepts -> scores, one pass, no N+1). Capped at `limit` so the
+ * banner never overwhelms the page even if dozens of sub-concepts are due.
+ */
+export async function getRevisionReminders(
+  studentId: string,
+  scope: ContentScope,
+  language: string,
+  limit = 5,
+): Promise<RevisionReminder[]> {
+  const chapters = await prisma.chapter.findMany({
+    where: { class: scope.class, board: scope.board, schoolId: scope.schoolId, status: "published" },
+    include: { subject: true },
+  });
+  if (chapters.length === 0) return [];
+  const chapterById = new Map(chapters.map((c) => [c.id, c]));
+
+  const topics = await prisma.topic.findMany({ where: { chapterId: { in: chapters.map((c) => c.id) } } });
+  if (topics.length === 0) return [];
+  const topicById = new Map(topics.map((t) => [t.id, t]));
+
+  const subConcepts = await prisma.subConcept.findMany({ where: { topicId: { in: topics.map((t) => t.id) } } });
+  if (subConcepts.length === 0) return [];
+  const subConceptById = new Map(subConcepts.map((sc) => [sc.id, sc]));
+
+  const scores = await prisma.masteryScore.findMany({
+    where: { studentId, subConceptId: { in: subConcepts.map((sc) => sc.id) } },
+  });
+
+  const now = Date.now();
+  const reminders: RevisionReminder[] = [];
+  for (const score of scores) {
+    const subConcept = subConceptById.get(score.subConceptId);
+    if (!subConcept) continue;
+    const topic = topicById.get(subConcept.topicId);
+    if (!topic) continue;
+    const chapter = chapterById.get(topic.chapterId);
+    if (!chapter) continue;
+
+    const daysSincePractice = Math.floor((now - score.lastUpdated.getTime()) / (24 * 60 * 60 * 1000));
+    const isWeak = score.score < 80;
+    const dueThreshold = isWeak ? WEAK_REVISION_DAYS : MASTERED_REVISION_DAYS;
+    if (daysSincePractice < dueThreshold) continue;
+
+    reminders.push({
+      subConceptId: subConcept.id,
+      subConceptName: subConcept.name,
+      topicId: topic.id,
+      topicTitle: language === "hi" ? topic.titleHi || topic.titleEn : topic.titleEn,
+      subjectName: language === "hi" ? chapter.subject.nameHi || chapter.subject.nameEn : chapter.subject.nameEn,
+      daysSincePractice,
+      reason: isWeak ? "weak" : "refresh",
+    });
+  }
+
+  reminders.sort((a, b) => {
+    if (a.reason !== b.reason) return a.reason === "weak" ? -1 : 1;
+    return b.daysSincePractice - a.daysSincePractice;
+  });
+
+  return reminders.slice(0, limit);
+}

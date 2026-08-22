@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma, Prisma } from "@pragati/db";
 import { getContentScope } from "@pragati/shared";
 import { getCurrentStudent } from "@/lib/session-server";
-import { getChapterStatusesByIds, type TopicStatus } from "@/lib/agents/diagnostic";
+import { getChapterStatusesByIds, getRevisionReminders, type TopicStatus, type RevisionReminder } from "@/lib/agents/diagnostic";
 import { UI, STATUS_STYLES, type Language } from "@/lib/i18n";
 import { ErrorCard } from "@/components/ErrorCard";
 
@@ -20,6 +20,7 @@ export default async function StudentHomePage({
 
   let activeSubject: Awaited<ReturnType<typeof prisma.subject.findMany>>[number] | undefined;
   let chapterCards: { chapter: ChapterWithTopics; status: TopicStatus; progress: number }[];
+  let reminders: RevisionReminder[];
   try {
     const { subject: subjectIdParam } = await searchParams;
     const subjects = await prisma.subject.findMany({ orderBy: { nameEn: "asc" } });
@@ -47,20 +48,61 @@ export default async function StudentHomePage({
       orderBy: { createdAt: "asc" },
     });
 
-    const statusByChapter = await getChapterStatusesByIds(
-      student.id,
-      chapters.map((ch) => ch.id),
-    );
+    const [statusByChapter, remindersResult] = await Promise.all([
+      getChapterStatusesByIds(
+        student.id,
+        chapters.map((ch) => ch.id),
+      ),
+      getRevisionReminders(student.id, scope, language),
+    ]);
     chapterCards = chapters.map((chapter) => {
       const { status, progress } = statusByChapter.get(chapter.id) ?? { status: "not-started" as const, progress: 0 };
       return { chapter, status, progress };
     });
+    reminders = remindersResult;
   } catch (err) {
     return <ErrorCard title="Could not load your subjects" error={err} />;
   }
 
   return (
     <div>
+      {reminders.length > 0 && (
+        <div
+          className="p-5 rounded-card mb-6"
+          style={{ background: "var(--color-revision-bg)", border: "1px solid var(--color-revision-dot)" }}
+        >
+          <div className="font-heading text-[15px] font-semibold mb-3" style={{ color: "var(--color-revision-fg)" }}>
+            {t.revisionRemindersTitle}
+          </div>
+          <div className="flex flex-col gap-2.5">
+            {reminders.map((r) => (
+              <Link
+                key={r.subConceptId}
+                href={`/student/topics/${r.topicId}?tab=practice`}
+                className="flex items-center justify-between gap-3 p-3.5 rounded-xl"
+                style={{ background: "var(--color-surface)" }}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13.5px] font-semibold" style={{ color: "var(--color-text)" }}>
+                    {r.subConceptName}
+                  </div>
+                  <div className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+                    {r.subjectName} · {r.topicTitle} · {r.reason === "weak" ? t.revisionReasonWeak : t.revisionReasonRefresh} ·{" "}
+                    {r.daysSincePractice} {t.daysAgoSuffix}
+                  </div>
+                </div>
+                <div
+                  className="px-3 py-2 rounded-lg text-white font-heading font-semibold text-xs flex-none"
+                  style={{ background: "var(--color-primary)" }}
+                >
+                  {t.practiceNowCta}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       <h1 className="font-heading text-[28px] font-semibold mb-6">
         {language === "hi" ? activeSubject.nameHi || activeSubject.nameEn : activeSubject.nameEn}
       </h1>

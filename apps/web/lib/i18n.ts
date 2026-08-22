@@ -122,6 +122,11 @@ export const UI = {
     badgeFiveMasteryTitle: "5 Topics Mastered",
     badgeSubjectMasterTitle: "Subject Master",
     badgePracticeProTitle: "Practice Pro",
+    revisionRemindersTitle: "Time to revise!",
+    revisionReasonWeak: "Needs practice",
+    revisionReasonRefresh: "Quick refresher",
+    daysAgoSuffix: "days ago",
+    practiceNowCta: "Practice now",
   },
   hi: {
     appName: "प्रगति",
@@ -246,6 +251,11 @@ export const UI = {
     badgeFiveMasteryTitle: "5 विषय-वस्तु पूर्ण",
     badgeSubjectMasterTitle: "विषय में महारत",
     badgePracticeProTitle: "अभ्यास विशेषज्ञ",
+    revisionRemindersTitle: "दोहराने का समय!",
+    revisionReasonWeak: "अभ्यास की ज़रूरत",
+    revisionReasonRefresh: "त्वरित पुनरावृत्ति",
+    daysAgoSuffix: "दिन पहले",
+    practiceNowCta: "अभी अभ्यास करें",
   },
 } as const;
 
