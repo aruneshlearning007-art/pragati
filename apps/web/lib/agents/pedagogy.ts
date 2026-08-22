@@ -61,7 +61,22 @@ export interface FractionBarVisual {
   secondFraction?: { numerator: number; denominator: number };
 }
 
-export type MathVisual = FunctionVisual | NumberLineVisual | FractionBarVisual;
+export interface GeometryVisual {
+  kind: "geometry";
+  title: string;
+  shape: "triangle" | "square" | "rectangle" | "parallelogram" | "circle";
+  /** Only meaningful when shape is "triangle" — picks which canonical layout to draw. */
+  triangleType?: "equilateral" | "isosceles" | "scalene" | "right";
+  /** One label per side, in vertex order; empty string/omitted = don't label that side. Not used for "circle". */
+  sideLabels?: string[];
+  /** One label per interior angle, in vertex order; empty string/omitted = don't label that angle. Not used for "circle". */
+  angleLabels?: string[];
+  /** Only for "circle". */
+  radiusLabel?: string;
+  showCenter?: boolean;
+}
+
+export type MathVisual = FunctionVisual | NumberLineVisual | FractionBarVisual | GeometryVisual;
 
 export interface ExplainVariant {
   mode: ExplainMode;
@@ -165,9 +180,14 @@ export async function getOrGenerateExplanations(
           "(1) a \"function\" graph — for algebra/functions/coordinate geometry, e.g. y = 2x + 1; (2) a " +
           "\"numberline\" — for comparing or ordering numbers, decimals, fractions, or integers on a line; " +
           "(3) a \"fractionbar\" — for parts-of-a-whole fraction concepts, equivalence, or comparing two " +
-          "fractions. If this topic is plain arithmetic, place value, or otherwise not genuinely clarified by " +
-          "any of these (the worked example already covers it), set visual to null rather than forcing an " +
-          "irrelevant one. "
+          "fractions; (4) a \"geometry\" shape — for identifying shapes, labeling sides/angles, perimeter/area, " +
+          "types of triangles, or parts of a circle. For geometry, pick the shape (and triangleType if a " +
+          "triangle) that matches what's being taught, and only fill in sideLabels/angleLabels for the sides/" +
+          "angles this specific topic actually cares about (e.g. label all 3 angles and no sides for an " +
+          "angle-sum lesson; label all sides and no angles for a perimeter lesson) — leave the rest empty " +
+          "rather than inventing values not in the source. If this topic is plain arithmetic, place value, or " +
+          "otherwise not genuinely clarified by any of these (the worked example already covers it), set " +
+          "visual to null rather than forcing an irrelevant one. "
         : "") +
       'Respond ONLY with strict JSON, no markdown, no code fences. Shape: {"story":"a short relatable narrative ' +
       'that introduces the idea","picture":"one short sentence introducing what the diagram below shows",' +
@@ -179,7 +199,7 @@ export async function getOrGenerateExplanations(
       '"workedSteps":[{"explanation":"string","work":"string, may include $...$ math"}, ...3 to 6],' +
       '"workedAnswer":"the final answer, may include $...$ math"' +
       (isMath
-        ? ',"visual": exactly one of these three shapes, or null if none fits — ' +
+        ? ',"visual": exactly one of these four shapes, or null if none fits — ' +
           '{"kind":"function","title":"short label like y = x^2","expression":"a mathjs-compatible expression ' +
           'in terms of x, e.g. x^2 + 2*x - 3","xMin":number,"xMax":number,"yMin":number,"yMax":number,' +
           '"points":[{"x":number,"y":number,"label":"a short DESCRIPTIVE name for this point, e.g. ' +
@@ -191,7 +211,14 @@ export async function getOrGenerateExplanations(
           '"highlightRange":{"from":number,"to":number} (optional, e.g. for an inequality or interval)} ' +
           'OR {"kind":"fractionbar","title":"short label","numerator":number,"denominator":number,' +
           '"secondFraction":{"numerator":number,"denominator":number} (optional, for comparing/showing ' +
-          "equivalence against a second fraction)}"
+          'equivalence against a second fraction)} ' +
+          'OR {"kind":"geometry","title":"short label","shape":"triangle" or "square" or "rectangle" or ' +
+          '"parallelogram" or "circle","triangleType":"equilateral" or "isosceles" or "scalene" or "right" ' +
+          '(ONLY if shape is triangle, omit otherwise),"sideLabels":["string", ... one per side, empty string ' +
+          'for any side not being labeled] (omit entirely for circle),"angleLabels":["string", ... one per ' +
+          'angle/vertex, empty string for any angle not being labeled] (omit entirely for circle),' +
+          '"radiusLabel":"string" (only for circle, omit otherwise),"showCenter":boolean (only for circle, ' +
+          "omit otherwise)}"
         : "") +
       "}. " +
       `Write all text in ${language === "hi" ? "Hindi (Devanagari script)" : "English"}.`,

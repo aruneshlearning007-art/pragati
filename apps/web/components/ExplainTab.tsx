@@ -7,6 +7,7 @@ import { WorkedExampleView, type WorkedExample } from "@/components/WorkedExampl
 import type { FunctionVisual } from "@/components/MathGraphView";
 import { NumberLineView, type NumberLineVisual } from "@/components/NumberLineView";
 import { FractionBarView, type FractionBarVisual } from "@/components/FractionBarView";
+import { GeometryView, type GeometryVisual } from "@/components/GeometryView";
 import { UI, type Language } from "@/lib/i18n";
 import type { KeyTerm } from "@/lib/richtext";
 
@@ -31,7 +32,7 @@ interface PictureDiagram {
   connectors: string[];
 }
 
-type MathVisual = FunctionVisual | NumberLineVisual | FractionBarVisual;
+type MathVisual = FunctionVisual | NumberLineVisual | FractionBarVisual | GeometryVisual;
 
 interface ExplainVariant {
   mode: string;
@@ -103,6 +104,7 @@ function VariantCard({ variant, keyTerms, language }: { variant: ExplainVariant;
       {variant.mode === "graph" && variant.visual?.kind === "function" && <MathGraphView graph={variant.visual} />}
       {variant.mode === "graph" && variant.visual?.kind === "numberline" && <NumberLineView data={variant.visual} />}
       {variant.mode === "graph" && variant.visual?.kind === "fractionbar" && <FractionBarView data={variant.visual} />}
+      {variant.mode === "graph" && variant.visual?.kind === "geometry" && <GeometryView data={variant.visual} />}
     </div>
   );
 }
