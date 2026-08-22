@@ -183,7 +183,15 @@ function PolygonShape({ data }: { data: GeometryVisual }) {
             />
           );
         }
-        const label = data.angleLabels?.[i];
+        // The model sometimes labels a second, wrong vertex "90°" too (a
+        // duplicate/confused attempt at the right angle) even when told the
+        // real one is drawn automatically — since a right triangle can only
+        // have one 90° corner and its true location is already guaranteed
+        // correct above, drop a stray "90" anywhere else rather than trust
+        // it.
+        const rawLabel = data.angleLabels?.[i];
+        const label =
+          data.shape === "triangle" && data.triangleType === "right" && rawLabel && /90/.test(rawLabel) ? "" : rawLabel;
         const arc = <path key={`arc${i}`} d={angleArcPath(v, prev, next)} fill="none" stroke="var(--color-text-muted)" strokeWidth={1.5} />;
         if (!label) return arc;
         const pos = angleLabelPos(v, prev, next);
