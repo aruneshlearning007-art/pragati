@@ -892,6 +892,41 @@ machine. Feel free to use them normally instead of the workarounds above.
   instead of multiplying equal groups") listed under "Areas to focus on"
   with a working link to that topic's Practice tab. Test chapters deleted
   afterward via the existing delete-chapter feature.
+- **Gamification badges** ✅ done (verified live 2026-08-22), second of
+  six "modern learning features," building directly on the Progress
+  page's streak calculation from the first. Six badges on the Progress
+  page covering different engagement angles: 🔥 3-Day Streak, 🔥 7-Day
+  Streak, 🌟 First Topic Mastered, 🏆 5 Topics Mastered, 📚 Subject
+  Master, ✍️ Practice Pro (50 quiz attempts). Computed live from existing
+  data every page load — same "derive, don't cache" pattern as the rest
+  of the diagnostic engine — deliberately not written to a new "earned
+  badges" table, so there's no "earned on this date" timestamp and no
+  celebratory unlock toast (would need a before/after comparison at
+  submission time); worth revisiting later, out of scope for this pass.
+  New in `diagnostic.ts`: `getLongestStreak` (the longest-ever run of
+  consecutive practice days — deliberately distinct from
+  `getStudentStreak`'s *current* run, since a badge must stay earned even
+  after a missed day breaks the current streak, so it can't reuse that
+  function's backward-from-today logic), `getMasteredTopicCount`
+  (topic-level mastery count across all subjects in scope, mirroring
+  `getChapterStatusesByIds`'s query shape but returning a count instead
+  of the chapter rollup), and `getTotalQuizAttempts`. Subject-mastery
+  count needed no new query — it's free from the `SubjectProgress[]` the
+  page already fetches.
+  Verified live end-to-end: mastered one Math topic (only chapter in that
+  subject) as a fresh test student and confirmed exactly the right
+  badges lit up — "First Topic Mastered" and "Subject Master" earned
+  (green), "5 Topics Mastered"/both streak badges/"Practice Pro" still
+  correctly locked (dimmed) since none of those thresholds were actually
+  met yet — the streak-badge distinction in particular (locked despite a
+  live "1 day streak" banner right above it) confirms `getLongestStreak`
+  isn't accidentally reusing the current-streak logic. Also re-checked
+  the badge grid at the 375px mobile preset per the lesson from the
+  Progress page's own layout bugs — each tile is a self-contained
+  icon+text stack (not competing for horizontal space with a sibling
+  element the way the subject cards did), so it wrapped to a single
+  column cleanly with no overlap or disappearing text. Test chapter
+  deleted afterward via the existing delete-chapter feature.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
