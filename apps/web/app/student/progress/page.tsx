@@ -79,12 +79,12 @@ export default async function StudentProgressPage() {
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-3 mb-2">
-                  <div className="font-heading text-[16px] font-semibold">{subj.subjectName}</div>
+                  <div className="font-heading text-[16px] font-semibold truncate min-w-0">{subj.subjectName}</div>
                   <div
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold w-fit flex-none"
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold flex-none whitespace-nowrap"
                     style={{ background: style.bg, color: style.fg }}
                   >
-                    <span className="w-[7px] h-[7px] rounded-full" style={{ background: style.dot }} />
+                    <span className="w-[7px] h-[7px] rounded-full flex-none" style={{ background: style.dot }} />
                     {label}
                   </div>
                 </div>
@@ -121,7 +121,7 @@ export default async function StudentProgressPage() {
               className="flex items-center justify-between gap-3 p-4.5 rounded-card"
               style={{ background: "var(--color-revision-bg)", border: "1px solid var(--color-revision-dot)" }}
             >
-              <div className="min-w-0">
+              <div className="flex-1 min-w-0">
                 <div className="text-[13.5px] font-semibold" style={{ color: "var(--color-revision-fg)" }}>
                   {area.type}
                 </div>
