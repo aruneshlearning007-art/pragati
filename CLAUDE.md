@@ -846,6 +846,52 @@ machine. Feel free to use them normally instead of the workarounds above.
   correctly labeling the longest side, and "50°" correctly labeling the
   other acute angle, with no stray/misleading text anywhere. Test
   chapters deleted afterward via the existing delete-chapter feature.
+- **Student Progress page** ✅ done (verified live 2026-08-22), first of
+  six "modern learning features" the founder asked to brainstorm and then
+  build (in order: Progress page, gamification/streaks, spaced-repetition
+  reminders, concept map, self-explain/Feynman feedback, photo-based doubt
+  solving). Fills a gap flagged since Phase 1: the sidebar already linked
+  to `/student/progress`, but no page existed there (404).
+  New in `apps/web/lib/agents/diagnostic.ts`, reusing the existing batched
+  status functions rather than duplicating aggregation logic:
+  `getProgressOverview` (every published chapter across all subjects in
+  scope, rolled up per-subject via the newly-exported
+  `combineTopicStatuses` — the same rollup already used chapter→topic),
+  `getWeakAreasForStudent` (recurring misconceptions, `count >= 2`, across
+  the student's *whole* history — the existing `getActiveMisconceptions`
+  stays topic-scoped for Doubt-chat's nudge), and `getStudentStreak`
+  (consecutive-day practice streak derived from `QuizAttempt.timestamp`,
+  no new column — calendar days computed in IST since the product is
+  India-only, so a streak doesn't look broken at 5:30am local time).
+  The page itself (`apps/web/app/student/progress/page.tsx`) reuses the
+  existing `STATUS_STYLES`/status-pill/card-shell conventions from
+  `student/page.tsx` and stays a summary — it links out to the existing
+  subject page for chapter-level detail rather than duplicating it.
+  **Two real layout bugs found live-testing, both fixed same session**:
+  (1) the status pill wrapped to two lines and visually overlapped the
+  "View" button at normal card widths — fixed by adding
+  `whitespace-nowrap` to the pill. (2) That fix's first attempt (giving
+  the subject name `flex-1 min-w-0 truncate`) worked at normal widths but
+  collapsed the name to *zero width* under real space pressure (caught by
+  testing at the actual 375px mobile preset, not just desktop) —
+  `flex-basis:0%`+`flex-grow:1` has nothing to fall back on once a
+  `flex-none` sibling already claims the available space. Fixed by
+  switching to `flex-wrap` with no `justify-between`: the name always
+  keeps its natural width, and the pill drops to its own line if there's
+  not enough room, instead of ever disappearing — a good general lesson
+  reinforced here: verify a responsive fix at an actual narrow-device
+  preset, not just by eyeballing one width.
+  Verified live end-to-end: uploaded two real chapters (Math + Science)
+  to the same school, answered practice questions as a Class 6 student —
+  including deliberately repeating the same wrong MCQ option twice to
+  trigger the `count >= 2` recurring threshold — then confirmed
+  `/student/progress` showed a real "1 day streak," both subjects
+  correctly as "Needs revision" (one mastered concept + one not-started
+  concept per subject, matching `combineTopicStatuses`'s rollup rule),
+  and the deliberately-repeated misconception ("Adding the numbers
+  instead of multiplying equal groups") listed under "Areas to focus on"
+  with a working link to that topic's Practice tab. Test chapters deleted
+  afterward via the existing delete-chapter feature.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
