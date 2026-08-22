@@ -796,6 +796,56 @@ machine. Feel free to use them normally instead of the workarounds above.
   values (0.3/0.7) with no duplication, and the range between them
   highlighted. Test chapter deleted afterward via the existing
   delete-chapter feature.
+- **Geometry shapes (triangles, squares, circles) visual** ✅ done
+  (verified live 2026-08-22), the fourth kind added to the Math `Visual`
+  tab's discriminated union same day as the previous three, after the
+  founder asked to go ahead and build the geometry piece explicitly
+  deferred earlier. Covers identifying shapes, labeling sides/angles,
+  perimeter/area, types of triangles (equilateral/isosceles/scalene/right),
+  and parts of a circle.
+  **Deliberately different design principle from the other three kinds**:
+  a number line or fraction bar is hard for a model to get wrong (simple
+  proportional layouts), but raw shape *coordinates* are exactly the kind
+  of precise math an LLM shouldn't be trusted to invent freehand — a
+  "square" that isn't quite square, an "equilateral triangle" that isn't
+  equilateral. So the model here only ever picks a shape/subtype and
+  supplies text labels; every shape's actual vertex geometry is a fixed,
+  hand-verified layout in `GeometryView.tsx` (e.g. the equilateral
+  triangle's three vertices are checked to actually be equidistant) —
+  same principle as `arithmetic-checker.ts`. Side/angle label placement
+  (midpoint + outward-normal offset for sides; angle bisector + a small
+  SVG arc for angles) is one shared function reused across triangle/
+  square/rectangle/parallelogram. Plain SVG, no new dependency — bundle
+  size unchanged. Scope: trapezoid/pentagon/hexagon, parallel-line/
+  transversal diagrams, congruence/similarity, and 3D shapes are
+  deliberately out, each a separate future piece.
+  **Two real bugs found live-testing, both fixed same session**: (1) for
+  a `"right"` triangle, the model put its "90°" label on the wrong vertex
+  — it has no way to know which array index is the actual right-angle
+  vertex in the fixed layout, since that's an internal implementation
+  detail it never sees. Fixed by having `GeometryView.tsx` always draw
+  the conventional small square right-angle marker at the known vertex in
+  code, ignoring the model's `angleLabels` entry there entirely rather
+  than trusting it to guess correctly. (2) Re-testing that fix with fresh
+  (non-cached) generation showed the prompt update alone ("the right
+  angle is drawn automatically, don't label it") wasn't reliably
+  followed — the model still added a stray, wrong "90" at a different
+  vertex. Since a right triangle can only have one 90° corner and the
+  real one is already guaranteed correct by the deterministic marker,
+  fixed by having the code defensively drop any *other* vertex's label if
+  it contains "90", rather than depending on prompt compliance for a fact
+  the code can already verify — the general lesson (consistent with the
+  chapter-generation reliability work two sessions earlier): where
+  something is deterministically checkable, verify/enforce it in code
+  rather than trusting the model to comply with an instruction about it.
+  Confirmed live end-to-end: a rectangle rendered with all 4 sides
+  correctly labeled (8 cm/8 cm/5 cm/5 cm) and neutral corner arcs (no
+  angle labels, correctly not forced); a circle rendered with a correctly
+  positioned/labeled radius line and center dot; a right triangle
+  rendered with the right-angle marker at the true vertex, "Hypotenuse"
+  correctly labeling the longest side, and "50°" correctly labeling the
+  other acute angle, with no stray/misleading text anywhere. Test
+  chapters deleted afterward via the existing delete-chapter feature.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
