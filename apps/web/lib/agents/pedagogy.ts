@@ -184,7 +184,9 @@ export async function getOrGenerateExplanations(
           "types of triangles, or parts of a circle. For geometry, pick the shape (and triangleType if a " +
           "triangle) that matches what's being taught, and only fill in sideLabels/angleLabels for the sides/" +
           "angles this specific topic actually cares about (e.g. label all 3 angles and no sides for an " +
-          "angle-sum lesson; label all sides and no angles for a perimeter lesson) — leave the rest empty " +
+          "angle-sum lesson; label all sides and no angles for a perimeter lesson) — leave the rest empty. " +
+          "If triangleType is \"right\", the 90° corner is drawn and marked automatically — never add its own " +
+          "angleLabels entry for it, only label the other two angles if relevant. " +
           "rather than inventing values not in the source. If this topic is plain arithmetic, place value, or " +
           "otherwise not genuinely clarified by any of these (the worked example already covers it), set " +
           "visual to null rather than forcing an irrelevant one. "

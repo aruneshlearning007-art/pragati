@@ -129,6 +129,25 @@ function angleArcPath(vertex: Pt, prev: Pt, next: Pt, r = 16): string {
   return `M ${p1.x} ${p1.y} A ${r} ${r} 0 0 ${sweep} ${p2.x} ${p2.y}`;
 }
 
+// The small square corner marker conventionally used for a right angle,
+// instead of an arc — also sidesteps a real bug found live-testing: the
+// model has no way to know which array index is the right-angle vertex in
+// getVertices' fixed "right" layout (it guessed the apex, not the actual
+// 90° corner), so this is drawn deterministically at the known vertex
+// rather than trusted to the model's angleLabels input at all.
+function rightAngleMarkPath(vertex: Pt, prev: Pt, next: Pt, s = 12): string {
+  const toPrev = normalize(sub(prev, vertex));
+  const toNext = normalize(sub(next, vertex));
+  const p1 = add(vertex, scale(toPrev, s));
+  const corner = add(p1, scale(toNext, s));
+  const p2 = add(vertex, scale(toNext, s));
+  return `M ${p1.x} ${p1.y} L ${corner.x} ${corner.y} L ${p2.x} ${p2.y}`;
+}
+
+// Index of the right-angle vertex in getVertices' fixed "right" triangle
+// layout — see the comment there ([top, RIGHT ANGLE HERE, bottom-right]).
+const RIGHT_ANGLE_VERTEX_INDEX = 1;
+
 function PolygonShape({ data }: { data: GeometryVisual }) {
   const vertices = getVertices(data.shape, data.triangleType);
   const centroid = centroidOf(vertices);
@@ -152,6 +171,18 @@ function PolygonShape({ data }: { data: GeometryVisual }) {
       {vertices.map((v, i) => {
         const prev = vertices[(i - 1 + n) % n];
         const next = vertices[(i + 1) % n];
+        const isFixedRightAngle = data.shape === "triangle" && data.triangleType === "right" && i === RIGHT_ANGLE_VERTEX_INDEX;
+        if (isFixedRightAngle) {
+          return (
+            <path
+              key={`a${i}`}
+              d={rightAngleMarkPath(v, prev, next)}
+              fill="none"
+              stroke="var(--color-text-muted)"
+              strokeWidth={1.5}
+            />
+          );
+        }
         const label = data.angleLabels?.[i];
         const arc = <path key={`arc${i}`} d={angleArcPath(v, prev, next)} fill="none" stroke="var(--color-text-muted)" strokeWidth={1.5} />;
         if (!label) return arc;
