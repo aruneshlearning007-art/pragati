@@ -748,6 +748,54 @@ machine. Feel free to use them normally instead of the workarounds above.
      — the Graph tab rendered a correct, correctly-scaled straight line
      with the right highlighted points at (0,1)/(1,3)/(2,5); a Science
      topic in the same session correctly showed no Graph tab at all.
+- **Number line + fraction bar visuals** ✅ done (verified live 2026-08-22),
+  same day as the function-graph widget above, after the founder asked
+  whether Pragati could replicate how a real classroom teacher visually
+  demonstrates *any* math concept on a whiteboard — decimals, fractions,
+  algebra, geometry — not just the one example (column-method arithmetic)
+  first discussed. Phased, highest-value-first: **number line** (decimals,
+  fractions, integers, comparisons) and **fraction/area bar model**
+  (parts-of-a-whole, equivalence, comparison) cover the broadest range of
+  Class 3-8 NCERT topics for the least engineering. Algebra step-by-step
+  stays served by the existing Worked Example (already subject-agnostic,
+  progressive step reveal); geometry (real labeled shapes) is deliberately
+  deferred — it needs its own shape-drawing system and is meaningfully
+  harder than these two.
+  **Architecture**: rather than adding two more `ExplainMode` enum values
+  + two more migrations + two more `Explanation` columns (the pattern the
+  function-graph itself used), generalized the *existing* `"graph"`
+  mode/column into a discriminated union — `{kind: "function" |
+  "numberline" | "fractionbar", ...}` — stored in the same
+  `Explanation.graph Json?` column. Safe to do the day after: that shape
+  had zero production data yet (the one test chapter was deleted), the
+  cheapest possible moment to broaden it before real content accumulates
+  against the old shape. **Zero new migrations.** `pedagogy.ts` now asks
+  the model to pick the single best-fit visual (or null, if the topic is
+  plain arithmetic/place-value the Worked Example already covers) instead
+  of only ever considering a function graph. `NumberLineView.tsx`
+  (proportional SVG line, labeled points, optional highlighted range) and
+  `FractionBarView.tsx` (flex-row segment bars, a second bar at the same
+  total pixel width for meaningful side-by-side comparison) are both
+  plain SVG/flex — no new dependency, statically imported, unlike the
+  Mafs-based function graph which stays behind its `next/dynamic` lazy
+  chunk (confirmed via a fresh build: `/student/topics/[topicId]` grew by
+  only ~1kB, from 194kB to 195kB, so the two new visuals add essentially
+  zero bundle weight for any topic that doesn't render an actual
+  function). The tab label changed from "Graph" to **"Visual"/"दृश्य"**
+  (it can now show more than a function plot) — the underlying `mode`
+  string stays `"graph"`, so this is a pure display-label change, no data
+  implication (same precedent as `"worked"` displaying as "Worked
+  example").
+  Verified live end-to-end: uploaded a real "Fractions and Decimals"
+  Class 5 chapter with two concepts — "Understanding Fractions" (3/4,
+  equivalence to 2/4) correctly rendered a fraction bar with both 3/4 and
+  2/4 shown at the same total width for meaningful comparison; "Comparing
+  Decimals" (0.3 vs 0.7) correctly rendered a proportionally-accurate
+  number line with both points positioned correctly, distinct labels
+  ("First decimal"/"Second decimal") shown separately from their numeric
+  values (0.3/0.7) with no duplication, and the range between them
+  highlighted. Test chapter deleted afterward via the existing
+  delete-chapter feature.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
