@@ -157,7 +157,9 @@ export async function getOrGenerateExplanations(
       (isMath
         ? ',"graph":{"title":"short label like y = x^2","expression":"a mathjs-compatible expression in terms ' +
           'of x, e.g. x^2 + 2*x - 3","xMin":number,"xMax":number,"yMin":number,"yMax":number,' +
-          '"points":[{"x":number,"y":number,"label":"short label"}] (optional, omit if none)} or null'
+          '"points":[{"x":number,"y":number,"label":"a short DESCRIPTIVE name for this point, e.g. ' +
+          '\\"y-intercept\\" or \\"vertex\\" - never the coordinates themselves, since those are shown ' +
+          'separately already"}] (optional, omit if none)} or null'
         : "") +
       "}. " +
       `Write all text in ${language === "hi" ? "Hindi (Devanagari script)" : "English"}.`,
