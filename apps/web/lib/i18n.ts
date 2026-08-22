@@ -108,6 +108,13 @@ export const UI = {
     deleteConfirmMessage: "Delete this chapter and everything in it? This cannot be undone.",
     deleteConfirmYes: "Yes, delete",
     cancel: "Cancel",
+    progressTitle: "My Progress",
+    progressStreakSuffix: "day streak",
+    progressStreakZero: "Start practicing today to build a streak!",
+    weakAreasTitle: "Areas to focus on",
+    weakAreasEmpty: "No repeated mix-ups yet — keep it up!",
+    noProgressYet: "Nothing to show yet — start a topic to see your progress here.",
+    viewSubjectCta: "View",
   },
   hi: {
     appName: "प्रगति",
@@ -218,6 +225,13 @@ export const UI = {
     deleteConfirmMessage: "इस अध्याय और इसमें मौजूद सब कुछ हटाएं? इसे वापस नहीं लाया जा सकता।",
     deleteConfirmYes: "हां, हटाएं",
     cancel: "रद्द करें",
+    progressTitle: "मेरी प्रगति",
+    progressStreakSuffix: "दिन की स्ट्रीक",
+    progressStreakZero: "स्ट्रीक बनाने के लिए आज ही अभ्यास शुरू करें!",
+    weakAreasTitle: "ध्यान देने वाले क्षेत्र",
+    weakAreasEmpty: "अभी तक कोई दोहराई गई गलती नहीं — ऐसे ही करते रहें!",
+    noProgressYet: "अभी दिखाने के लिए कुछ नहीं है — अपनी प्रगति देखने के लिए कोई विषय शुरू करें।",
+    viewSubjectCta: "देखें",
   },
 } as const;
 

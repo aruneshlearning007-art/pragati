@@ -1,4 +1,5 @@
 import { prisma } from "@pragati/db";
+import type { ContentScope } from "@pragati/shared";
 
 /**
  * Diagnostic Engine — deterministic, no LLM call. Sole writer of
@@ -131,7 +132,7 @@ function computeStatus(subConceptIds: string[], scoreBySubConcept: Map<string, n
   return { status, progress: Math.round(avg) };
 }
 
-function combineTopicStatuses(results: StatusResult[]): StatusResult {
+export function combineTopicStatuses(results: StatusResult[]): StatusResult {
   if (results.length === 0) return { status: "not-started", progress: 0 };
   const progress = Math.round(results.reduce((sum, r) => sum + r.progress, 0) / results.length);
   let status: TopicStatus;
@@ -230,4 +231,131 @@ export async function getChapterStatusesByIds(studentId: string, chapterIds: str
     result.set(chapterId, combineTopicStatuses(perTopic));
   }
   return result;
+}
+
+export interface SubjectProgress {
+  subjectId: string;
+  subjectName: string;
+  chapters: { id: string; title: string; status: TopicStatus; progress: number }[];
+  overallStatus: TopicStatus;
+  overallProgress: number;
+}
+
+/**
+ * Whole-student, cross-subject summary for the Progress dashboard — every
+ * published chapter in the student's scope, grouped by subject, each
+ * subject rolled up into one overall status the same way a chapter rolls
+ * up its topics. Reuses the existing batched getChapterStatusesByIds
+ * rather than querying mastery per-subject.
+ */
+export async function getProgressOverview(studentId: string, scope: ContentScope, language: string): Promise<SubjectProgress[]> {
+  const chapters = await prisma.chapter.findMany({
+    where: { class: scope.class, board: scope.board, schoolId: scope.schoolId, status: "published" },
+    include: { subject: true },
+    orderBy: { createdAt: "asc" },
+  });
+  if (chapters.length === 0) return [];
+
+  const statusByChapter = await getChapterStatusesByIds(
+    studentId,
+    chapters.map((c) => c.id),
+  );
+
+  const bySubject = new Map<string, typeof chapters>();
+  for (const chapter of chapters) {
+    const list = bySubject.get(chapter.subjectId) ?? [];
+    list.push(chapter);
+    bySubject.set(chapter.subjectId, list);
+  }
+
+  const result: SubjectProgress[] = [];
+  for (const [subjectId, subjectChapters] of bySubject) {
+    const chapterViews = subjectChapters.map((c) => {
+      const { status, progress } = statusByChapter.get(c.id) ?? { status: "not-started" as const, progress: 0 };
+      return { id: c.id, title: language === "hi" ? c.titleHi || c.titleEn : c.titleEn, status, progress };
+    });
+    const { status: overallStatus, progress: overallProgress } = combineTopicStatuses(
+      chapterViews.map((c) => ({ status: c.status, progress: c.progress })),
+    );
+    const subject = subjectChapters[0].subject;
+    result.push({
+      subjectId,
+      subjectName: language === "hi" ? subject.nameHi || subject.nameEn : subject.nameEn,
+      chapters: chapterViews,
+      overallStatus,
+      overallProgress,
+    });
+  }
+  return result;
+}
+
+export interface WeakArea {
+  type: string;
+  count: number;
+  subConceptName: string;
+  topicId: string;
+  topicTitle: string;
+  subjectName: string;
+}
+
+/**
+ * Every recurring misconception (count >= 2, same threshold as
+ * getActiveMisconceptions) across this student's whole history, not
+ * scoped to one topic — for the Progress dashboard's "areas to focus on"
+ * list. getActiveMisconceptions stays topic-scoped for Doubt-chat's nudge;
+ * this is the whole-student view.
+ */
+export async function getWeakAreasForStudent(studentId: string, language: string): Promise<WeakArea[]> {
+  const tags = await prisma.misconceptionTag.findMany({
+    where: { studentId, count: { gte: 2 } },
+    orderBy: { count: "desc" },
+    include: { subConcept: { include: { topic: { include: { chapter: { include: { subject: true } } } } } } },
+  });
+
+  return tags.map((t) => ({
+    type: t.type,
+    count: t.count,
+    subConceptName: t.subConcept.name,
+    topicId: t.subConcept.topic.id,
+    topicTitle: language === "hi" ? t.subConcept.topic.titleHi || t.subConcept.topic.titleEn : t.subConcept.topic.titleEn,
+    subjectName:
+      language === "hi"
+        ? t.subConcept.topic.chapter.subject.nameHi || t.subConcept.topic.chapter.subject.nameEn
+        : t.subConcept.topic.chapter.subject.nameEn,
+  }));
+}
+
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+function istDateString(d: Date): string {
+  return new Date(d.getTime() + IST_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+/**
+ * Current consecutive-day streak of practice, derived from
+ * QuizAttempt.timestamp (no dedicated streak column/table exists).
+ * Calendar days are computed in IST, not UTC, since the product is
+ * India-only — a raw UTC day boundary would make a streak look broken
+ * every day at 5:30am IST instead of local midnight. Counts backward from
+ * today, or from yesterday if nothing's logged yet today, so an
+ * evening-only streak doesn't appear broken every morning before that
+ * day's first attempt.
+ */
+export async function getStudentStreak(studentId: string): Promise<number> {
+  const attempts = await prisma.quizAttempt.findMany({ where: { studentId }, select: { timestamp: true } });
+  if (attempts.length === 0) return 0;
+
+  const daysWithActivity = new Set(attempts.map((a) => istDateString(a.timestamp)));
+
+  const cursor = new Date();
+  if (!daysWithActivity.has(istDateString(cursor))) {
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+
+  let streak = 0;
+  while (daysWithActivity.has(istDateString(cursor))) {
+    streak++;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+  return streak;
 }
