@@ -14,6 +14,8 @@
     "@pragati/shared": "workspace:*",
     "@vercel/blob": "^2.8.0",
     "katex": "^0.16.11",
+    "mafs": "^0.21.0",
+    "mathjs": "^15.2.0",
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

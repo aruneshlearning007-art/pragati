@@ -56,6 +56,7 @@ enum ExplainMode {
   realworld
   gofurther
   worked
+  graph
 }
 
 enum DoubtRole {
@@ -304,6 +305,12 @@ model Explanation {
   // model is instructed to keep it minimal when there's no real
   // calculation, rather than us branching on subject in code.
   workedExample Json?
+  // Structured content for "graph" mode: {title, expression, xMin, xMax,
+  // yMin, yMax, points?} — a single plottable function on a 2D coordinate
+  // plane, only generated for Math-subject topics where the model judges a
+  // graph genuinely clarifies the concept (null otherwise). Null for the
+  // other five modes.
+  graph Json?
   // Same review-workflow role as Chapter.status: system-generated content
   // defaults to published (immediately live); teacher-upload-triggered
   // generation is created awaiting_review and flips to published only when

@@ -1,10 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { RichText } from "@/components/RichText";
 import { WorkedExampleView, type WorkedExample } from "@/components/WorkedExampleView";
+import type { MathGraph } from "@/components/MathGraphView";
 import { UI, type Language } from "@/lib/i18n";
 import type { KeyTerm } from "@/lib/richtext";
+
+// mafs + mathjs add ~200kB to the bundle — real weight for likely
+// data-constrained Android devices, and only ever needed on the rare topic
+// that actually has a graph. Loaded as its own chunk only when rendered,
+// instead of shipping on every /student/topics/[topicId] page load.
+const MathGraphView = dynamic(() => import("@/components/MathGraphView").then((m) => m.MathGraphView), {
+  ssr: false,
+});
 
 interface DiagramStep {
   icon: string;
@@ -22,6 +32,7 @@ interface ExplainVariant {
   body: string;
   diagram: PictureDiagram | null;
   workedExample: WorkedExample | null;
+  graph: MathGraph | null;
 }
 
 function DiagramView({ diagram }: { diagram: PictureDiagram }) {
@@ -61,6 +72,7 @@ const MODE_LABEL: Record<string, { en: string; hi: string }> = {
   realworld: { en: "Real-world", hi: "वास्तविक जीवन" },
   gofurther: { en: "Go further", hi: "और आगे" },
   worked: { en: "Worked example", hi: "हल किया उदाहरण" },
+  graph: { en: "Graph", hi: "आलेख" },
 };
 
 function VariantCard({ variant, keyTerms, language }: { variant: ExplainVariant; keyTerms: KeyTerm[]; language: Language }) {
@@ -82,6 +94,7 @@ function VariantCard({ variant, keyTerms, language }: { variant: ExplainVariant;
       {variant.mode === "worked" && variant.workedExample && (
         <WorkedExampleView example={variant.workedExample} language={language} />
       )}
+      {variant.mode === "graph" && variant.graph && <MathGraphView graph={variant.graph} />}
     </div>
   );
 }
@@ -96,18 +109,23 @@ export function ExplainTab({
   language: Language;
 }) {
   const t = UI[language];
-  const [activeMode, setActiveMode] = useState(variants[0]?.mode ?? "story");
+  // A "graph" variant only ever exists for Math topics (see pedagogy.ts),
+  // and even then only when the model judged this specific topic has a
+  // natural graph to plot — hide the tab entirely rather than show an
+  // empty one, same content-gating precedent as the picture-mode diagram.
+  const displayVariants = variants.filter((v) => v.mode !== "graph" || v.graph);
+  const [activeMode, setActiveMode] = useState(displayVariants[0]?.mode ?? "story");
   const [compare, setCompare] = useState(false);
-  const [compareMode, setCompareMode] = useState(variants[1]?.mode ?? variants[0]?.mode);
+  const [compareMode, setCompareMode] = useState(displayVariants[1]?.mode ?? displayVariants[0]?.mode);
 
-  const active = variants.find((v) => v.mode === activeMode) ?? variants[0];
-  const secondary = variants.find((v) => v.mode === compareMode) ?? variants[1];
+  const active = displayVariants.find((v) => v.mode === activeMode) ?? displayVariants[0];
+  const secondary = displayVariants.find((v) => v.mode === compareMode) ?? displayVariants[1];
 
   return (
     <div className="max-w-3xl">
       <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
         <div className="flex gap-2 flex-wrap">
-          {variants.map((v) => (
+          {displayVariants.map((v) => (
             <button
               key={v.mode}
               onClick={() => setActiveMode(v.mode)}
@@ -144,7 +162,7 @@ export function ExplainTab({
               value={compareMode}
               onChange={(e) => setCompareMode(e.target.value)}
             >
-              {variants
+              {displayVariants
                 .filter((v) => v.mode !== activeMode)
                 .map((v) => (
                   <option key={v.mode} value={v.mode}>

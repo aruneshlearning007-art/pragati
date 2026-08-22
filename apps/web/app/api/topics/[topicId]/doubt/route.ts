@@ -20,12 +20,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ top
   if (!student) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
   const { topicId } = await params;
-  const { message } = (await req.json()) as { message: string };
+  const { message, mode } = (await req.json()) as { message: string; mode?: string };
   if (!message || !message.trim()) {
     return NextResponse.json({ error: "Empty message" }, { status: 400 });
   }
 
   const language = (student.language as Language) ?? "en";
-  const result = await answerDoubt(student.id, topicId, message.trim(), language);
+  const result = await answerDoubt(student.id, topicId, message.trim(), language, mode === "guide" ? "guide" : "direct");
   return NextResponse.json(result);
 }

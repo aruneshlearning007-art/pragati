@@ -38,6 +38,7 @@ export async function answerDoubt(
   topicId: string,
   messageText: string,
   language: string,
+  mode: "direct" | "guide" = "direct",
 ): Promise<DoubtReplyResult> {
   if (await isDoubtChatDisabled(studentId)) {
     return {
@@ -74,13 +75,24 @@ export async function answerDoubt(
       ? ` This student has recently shown difficulty with: ${misconceptions.join("; ")}. If relevant to their question, gently address it without calling it out as a mistake.`
       : "";
 
+  const styleInstruction =
+    mode === "guide"
+      ? "Do NOT reveal the final answer directly, even if asked to just confirm it works. Ask exactly ONE " +
+        "guiding question that helps the student figure out the next step themselves, based on what they've " +
+        "said so far and what topic this is. Only give the direct answer if the student explicitly says they " +
+        "want to be told directly (e.g. \"just tell me\"/\"I give up\"), or after they've made a genuine " +
+        "attempt in their next reply and are still stuck — then confirm or correct it and briefly explain why. "
+      : "Keep replies short (2-5 sentences), conversational, and focused on building understanding — not just " +
+        "handing over an answer to copy. ";
+
   const system = withBaseInstructions(
     "You are the Doubt Chat Agent: a friendly study helper answering one student's question about a " +
       `specific topic they are currently studying. Subject: ${topic.chapter.subject.nameEn}. Topic: ${topic.titleEn}.` +
       personalizationHint +
-      " Keep replies short (2-5 sentences), conversational, and focused on building understanding — not just " +
-      "handing over an answer to copy. If the student's message is off-topic but harmless, respond briefly and " +
-      "warmly, then gently steer back to the topic. " +
+      " " +
+      styleInstruction +
+      "If the student's message is off-topic but harmless, respond briefly and warmly, then gently steer back " +
+      "to the topic. " +
       `Write your reply in ${language === "hi" ? "Hindi (Devanagari script)" : "English"}.\n\n` +
       SAFETY_MODERATION_INSTRUCTION,
   );

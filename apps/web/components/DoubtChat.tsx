@@ -18,6 +18,7 @@ export function DoubtChat({ topicId, language }: { topicId: string; language: La
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const [disabled, setDisabled] = useState(false);
+  const [mode, setMode] = useState<"direct" | "guide">("direct");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,7 +47,7 @@ export function DoubtChat({ topicId, language }: { topicId: string; language: La
       const res = await fetch(`/api/topics/${topicId}/doubt`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, mode }),
       });
       const data = await res.json();
       setMessages((m) => [...m, { id: `local-${Date.now()}-r`, role: "assistant", text: data.reply }]);
@@ -100,11 +101,26 @@ export function DoubtChat({ topicId, language }: { topicId: string; language: La
           }}
         >
           <div
-            className="px-4.5 py-3.5"
+            className="px-4.5 py-3.5 flex items-center justify-between gap-2"
             style={{ borderBottom: "1px solid var(--color-border)", background: "var(--color-mastered-bg)" }}
           >
             <div className="text-sm font-bold" style={{ color: "var(--color-mastered-fg)" }}>
               {t.doubtTitle}
+            </div>
+            <div className="flex rounded-full p-[3px]" style={{ background: "white" }}>
+              {(["direct", "guide"] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  className="px-2.5 py-1 rounded-full text-[10.5px] font-bold"
+                  style={{
+                    background: mode === m ? "var(--color-primary)" : "transparent",
+                    color: mode === m ? "white" : "var(--color-mastered-fg)",
+                  }}
+                >
+                  {m === "direct" ? t.doubtModeDirect : t.doubtModeGuide}
+                </button>
+              ))}
             </div>
           </div>
 

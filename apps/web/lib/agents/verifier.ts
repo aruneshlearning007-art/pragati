@@ -190,6 +190,7 @@ export async function verifyAndCorrectChapter(
       body: e.body,
       diagram: e.diagram as unknown as ExplainVariant["diagram"],
       workedExample: e.workedExample as unknown as ExplainVariant["workedExample"],
+      graph: e.graph as unknown as ExplainVariant["graph"],
     }));
     try {
       const { variants, flags } = await verifyExplanations(finalVariants, sourceText, cls, language);
@@ -198,9 +199,14 @@ export async function verifyAndCorrectChapter(
       // rather than treating "no body returned" as "the body should be
       // cleared". Applied here (not just at the DB write below) so the
       // arithmetic double-check afterward never sees a null body either.
+      // The Verifier's own JSON schema doesn't ask it to re-check "graph"
+      // (a math-accuracy re-derivation isn't in scope here), so its
+      // response never carries one back — always keep the original.
       const normalized = variants.map((v) => {
         const original = explanations.find((e) => e.mode === v.mode);
-        return original ? { ...v, body: v.body || original.body } : v;
+        return original
+          ? { ...v, body: v.body || original.body, graph: original.graph as unknown as ExplainVariant["graph"] }
+          : v;
       });
       if (flags.length > 0) {
         await Promise.all(

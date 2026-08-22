@@ -24,11 +24,29 @@ export interface WorkedExample {
   answer: string;
 }
 
+export interface MathGraphPoint {
+  x: number;
+  y: number;
+  label: string;
+}
+
+export interface MathGraph {
+  title: string;
+  /** mathjs-compatible expression in terms of x, e.g. "x^2 + 2*x - 3". */
+  expression: string;
+  xMin: number;
+  xMax: number;
+  yMin: number;
+  yMax: number;
+  points?: MathGraphPoint[];
+}
+
 export interface ExplainVariant {
   mode: ExplainMode;
   body: string;
   diagram: PictureDiagram | null;
   workedExample: WorkedExample | null;
+  graph: MathGraph | null;
 }
 
 const MODES: ExplainMode[] = ["story", "picture", "realworld", "gofurther", "worked"];
@@ -68,6 +86,18 @@ export async function getOrGenerateExplanations(
   language: string,
   options?: { sourceText?: string; status?: ContentStatus },
 ): Promise<ExplainVariant[]> {
+  const topic = await prisma.topic.findUniqueOrThrow({
+    where: { id: topicId },
+    include: { chapter: { include: { subject: true } } },
+  });
+  // "graph" is only ever asked for (and only ever gets its own Explanation
+  // row) on Math topics — see practice.ts for the exact same isMath check.
+  // Keeping it out of `modes` entirely for every other subject avoids
+  // wasting prompt/schema space on a graph instruction that would always
+  // come back null anyway.
+  const isMath = topic.chapter.subject.nameEn.toLowerCase().includes("math");
+  const modes: ExplainMode[] = isMath ? [...MODES, "graph"] : MODES;
+
   const existing = await prisma.explanation.findMany({
     where: {
       topicId,
@@ -78,19 +108,16 @@ export async function getOrGenerateExplanations(
       status: "published",
     },
   });
-  if (existing.length === MODES.length) {
+  if (existing.length === modes.length) {
     return existing.map((e) => ({
       mode: e.mode,
       body: e.body,
       diagram: e.diagram as unknown as PictureDiagram | null,
       workedExample: e.workedExample as unknown as WorkedExample | null,
+      graph: e.graph as unknown as MathGraph | null,
     }));
   }
 
-  const topic = await prisma.topic.findUniqueOrThrow({
-    where: { id: topicId },
-    include: { chapter: { include: { subject: true } } },
-  });
   const title = language === "hi" ? topic.titleHi || topic.titleEn : topic.titleEn;
 
   const system = withBaseInstructions(
@@ -111,6 +138,13 @@ export async function getOrGenerateExplanations(
           "strictly in the source, but explain ONLY this specific topic, ignoring parts of the source about " +
           "other concepts in the same chapter. Never invent facts beyond the source. "
         : "") +
+      (isMath
+        ? "Additionally, if — and only if — this specific topic involves a function, equation, or numeric " +
+          "relationship genuinely clarified by a 2D coordinate graph (e.g. linear/quadratic functions, " +
+          "coordinate geometry, plotting a data trend), provide a graph. If this topic has no natural graph " +
+          "(e.g. basic arithmetic, fractions, place value), set graph to null rather than forcing an " +
+          "irrelevant one. "
+        : "") +
       'Respond ONLY with strict JSON, no markdown, no code fences. Shape: {"story":"a short relatable narrative ' +
       'that introduces the idea","picture":"one short sentence introducing what the diagram below shows",' +
       '"pictureSteps":[{"icon":"single emoji","label":"short label","description":"one sentence"}, ...2 to 5],' +
@@ -119,7 +153,13 @@ export async function getOrGenerateExplanations(
       '"worked":"one short sentence introducing the example problem below",' +
       '"workedProblem":"the example problem statement, may include $...$ math",' +
       '"workedSteps":[{"explanation":"string","work":"string, may include $...$ math"}, ...3 to 6],' +
-      '"workedAnswer":"the final answer, may include $...$ math"}. ' +
+      '"workedAnswer":"the final answer, may include $...$ math"' +
+      (isMath
+        ? ',"graph":{"title":"short label like y = x^2","expression":"a mathjs-compatible expression in terms ' +
+          'of x, e.g. x^2 + 2*x - 3","xMin":number,"xMax":number,"yMin":number,"yMax":number,' +
+          '"points":[{"x":number,"y":number,"label":"short label"}] (optional, omit if none)} or null'
+        : "") +
+      "}. " +
       `Write all text in ${language === "hi" ? "Hindi (Devanagari script)" : "English"}.`,
   );
 
@@ -144,6 +184,7 @@ export async function getOrGenerateExplanations(
     workedProblem?: string;
     workedSteps?: WorkedExampleStep[];
     workedAnswer?: string;
+    graph?: MathGraph | null;
   }>(raw);
 
   // Same defensive fallback as everywhere else this pattern shows up: valid
@@ -154,6 +195,7 @@ export async function getOrGenerateExplanations(
     realworld: parsed.realworld ?? "",
     gofurther: parsed.gofurther ?? "",
     worked: parsed.worked ?? "",
+    graph: "",
   };
 
   const diagram: PictureDiagram = { steps: parsed.pictureSteps ?? [], connectors: parsed.pictureConnectors ?? [] };
@@ -162,9 +204,10 @@ export async function getOrGenerateExplanations(
     steps: parsed.workedSteps ?? [],
     answer: parsed.workedAnswer ?? "",
   };
+  const graph: MathGraph | null = parsed.graph ?? null;
 
   const created = await Promise.all(
-    MODES.map((mode) =>
+    modes.map((mode) =>
       prisma.explanation.create({
         data: {
           topicId,
@@ -176,6 +219,7 @@ export async function getOrGenerateExplanations(
           body: bodies[mode],
           diagram: mode === "picture" ? (diagram as unknown as object) : undefined,
           workedExample: mode === "worked" ? (workedExample as unknown as object) : undefined,
+          graph: mode === "graph" && graph ? (graph as unknown as object) : undefined,
           status: options?.status ?? "published",
         },
       }),
@@ -187,5 +231,6 @@ export async function getOrGenerateExplanations(
     body: e.body,
     diagram: e.diagram as unknown as PictureDiagram | null,
     workedExample: e.workedExample as unknown as WorkedExample | null,
+    graph: e.graph as unknown as MathGraph | null,
   }));
 }
