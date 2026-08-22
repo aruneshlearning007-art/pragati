@@ -79,7 +79,7 @@ export default async function StudentProgressPage() {
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-3 mb-2">
-                  <div className="font-heading text-[16px] font-semibold truncate min-w-0">{subj.subjectName}</div>
+                  <div className="font-heading text-[16px] font-semibold truncate flex-1 min-w-0">{subj.subjectName}</div>
                   <div
                     className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold flex-none whitespace-nowrap"
                     style={{ background: style.bg, color: style.fg }}
