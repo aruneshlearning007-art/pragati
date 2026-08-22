@@ -78,8 +78,8 @@ export default async function StudentProgressPage() {
               style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", boxShadow: "0 4px 14px rgba(0,0,0,0.05)" }}
             >
               <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-3 mb-2">
-                  <div className="font-heading text-[16px] font-semibold truncate flex-1 min-w-0">{subj.subjectName}</div>
+                <div className="flex items-center flex-wrap gap-x-3 gap-y-1.5 mb-2">
+                  <div className="font-heading text-[16px] font-semibold">{subj.subjectName}</div>
                   <div
                     className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold flex-none whitespace-nowrap"
                     style={{ background: style.bg, color: style.fg }}
