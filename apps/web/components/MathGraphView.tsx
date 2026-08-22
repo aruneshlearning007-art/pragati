@@ -10,7 +10,8 @@ export interface MathGraphPoint {
   label: string;
 }
 
-export interface MathGraph {
+export interface FunctionVisual {
+  kind: "function";
   title: string;
   expression: string;
   xMin: number;
@@ -20,7 +21,7 @@ export interface MathGraph {
   points?: MathGraphPoint[];
 }
 
-export function MathGraphView({ graph }: { graph: MathGraph }) {
+export function MathGraphView({ graph }: { graph: FunctionVisual }) {
   function fn(x: number): number {
     try {
       const y = evaluate(graph.expression, { x });

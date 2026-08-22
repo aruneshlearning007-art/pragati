@@ -30,7 +30,8 @@ export interface MathGraphPoint {
   label: string;
 }
 
-export interface MathGraph {
+export interface FunctionVisual {
+  kind: "function";
   title: string;
   /** mathjs-compatible expression in terms of x, e.g. "x^2 + 2*x - 3". */
   expression: string;
@@ -41,12 +42,33 @@ export interface MathGraph {
   points?: MathGraphPoint[];
 }
 
+export interface NumberLineVisual {
+  kind: "numberline";
+  title: string;
+  min: number;
+  max: number;
+  /** label is a short descriptive name (e.g. "A", or a fraction/decimal as text) — never the value restated, since the value itself is always shown separately. */
+  points: { value: number; label: string }[];
+  highlightRange?: { from: number; to: number };
+}
+
+export interface FractionBarVisual {
+  kind: "fractionbar";
+  title: string;
+  numerator: number;
+  denominator: number;
+  /** For comparing/showing equivalence against a second fraction. */
+  secondFraction?: { numerator: number; denominator: number };
+}
+
+export type MathVisual = FunctionVisual | NumberLineVisual | FractionBarVisual;
+
 export interface ExplainVariant {
   mode: ExplainMode;
   body: string;
   diagram: PictureDiagram | null;
   workedExample: WorkedExample | null;
-  graph: MathGraph | null;
+  visual: MathVisual | null;
 }
 
 const MODES: ExplainMode[] = ["story", "picture", "realworld", "gofurther", "worked"];
@@ -114,7 +136,7 @@ export async function getOrGenerateExplanations(
       body: e.body,
       diagram: e.diagram as unknown as PictureDiagram | null,
       workedExample: e.workedExample as unknown as WorkedExample | null,
-      graph: e.graph as unknown as MathGraph | null,
+      visual: e.graph as unknown as MathVisual | null,
     }));
   }
 
@@ -139,10 +161,12 @@ export async function getOrGenerateExplanations(
           "other concepts in the same chapter. Never invent facts beyond the source. "
         : "") +
       (isMath
-        ? "Additionally, if — and only if — this specific topic involves a function, equation, or numeric " +
-          "relationship genuinely clarified by a 2D coordinate graph (e.g. linear/quadratic functions, " +
-          "coordinate geometry, plotting a data trend), provide a graph. If this topic has no natural graph " +
-          "(e.g. basic arithmetic, fractions, place value), set graph to null rather than forcing an " +
+        ? "Additionally, choose the SINGLE visual that best clarifies this specific topic, or none at all: " +
+          "(1) a \"function\" graph — for algebra/functions/coordinate geometry, e.g. y = 2x + 1; (2) a " +
+          "\"numberline\" — for comparing or ordering numbers, decimals, fractions, or integers on a line; " +
+          "(3) a \"fractionbar\" — for parts-of-a-whole fraction concepts, equivalence, or comparing two " +
+          "fractions. If this topic is plain arithmetic, place value, or otherwise not genuinely clarified by " +
+          "any of these (the worked example already covers it), set visual to null rather than forcing an " +
           "irrelevant one. "
         : "") +
       'Respond ONLY with strict JSON, no markdown, no code fences. Shape: {"story":"a short relatable narrative ' +
@@ -155,11 +179,19 @@ export async function getOrGenerateExplanations(
       '"workedSteps":[{"explanation":"string","work":"string, may include $...$ math"}, ...3 to 6],' +
       '"workedAnswer":"the final answer, may include $...$ math"' +
       (isMath
-        ? ',"graph":{"title":"short label like y = x^2","expression":"a mathjs-compatible expression in terms ' +
-          'of x, e.g. x^2 + 2*x - 3","xMin":number,"xMax":number,"yMin":number,"yMax":number,' +
+        ? ',"visual": exactly one of these three shapes, or null if none fits — ' +
+          '{"kind":"function","title":"short label like y = x^2","expression":"a mathjs-compatible expression ' +
+          'in terms of x, e.g. x^2 + 2*x - 3","xMin":number,"xMax":number,"yMin":number,"yMax":number,' +
           '"points":[{"x":number,"y":number,"label":"a short DESCRIPTIVE name for this point, e.g. ' +
           '\\"y-intercept\\" or \\"vertex\\" - never the coordinates themselves, since those are shown ' +
-          'separately already"}] (optional, omit if none)} or null'
+          'separately already"}] (optional)} ' +
+          'OR {"kind":"numberline","title":"short label","min":number,"max":number,' +
+          '"points":[{"value":number,"label":"a short descriptive name, e.g. \\"A\\" or the fraction/decimal ' +
+          'as text like \\"3/4\\" - never restate the number, it is shown separately already"}], ' +
+          '"highlightRange":{"from":number,"to":number} (optional, e.g. for an inequality or interval)} ' +
+          'OR {"kind":"fractionbar","title":"short label","numerator":number,"denominator":number,' +
+          '"secondFraction":{"numerator":number,"denominator":number} (optional, for comparing/showing ' +
+          "equivalence against a second fraction)}"
         : "") +
       "}. " +
       `Write all text in ${language === "hi" ? "Hindi (Devanagari script)" : "English"}.`,
@@ -186,7 +218,7 @@ export async function getOrGenerateExplanations(
     workedProblem?: string;
     workedSteps?: WorkedExampleStep[];
     workedAnswer?: string;
-    graph?: MathGraph | null;
+    visual?: MathVisual | null;
   }>(raw);
 
   // Same defensive fallback as everywhere else this pattern shows up: valid
@@ -206,7 +238,7 @@ export async function getOrGenerateExplanations(
     steps: parsed.workedSteps ?? [],
     answer: parsed.workedAnswer ?? "",
   };
-  const graph: MathGraph | null = parsed.graph ?? null;
+  const visual: MathVisual | null = parsed.visual ?? null;
 
   const created = await Promise.all(
     modes.map((mode) =>
@@ -221,7 +253,7 @@ export async function getOrGenerateExplanations(
           body: bodies[mode],
           diagram: mode === "picture" ? (diagram as unknown as object) : undefined,
           workedExample: mode === "worked" ? (workedExample as unknown as object) : undefined,
-          graph: mode === "graph" && graph ? (graph as unknown as object) : undefined,
+          graph: mode === "graph" && visual ? (visual as unknown as object) : undefined,
           status: options?.status ?? "published",
         },
       }),
@@ -233,6 +265,6 @@ export async function getOrGenerateExplanations(
     body: e.body,
     diagram: e.diagram as unknown as PictureDiagram | null,
     workedExample: e.workedExample as unknown as WorkedExample | null,
-    graph: e.graph as unknown as MathGraph | null,
+    visual: e.graph as unknown as MathVisual | null,
   }));
 }

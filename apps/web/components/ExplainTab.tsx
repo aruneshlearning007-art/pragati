@@ -4,14 +4,18 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { RichText } from "@/components/RichText";
 import { WorkedExampleView, type WorkedExample } from "@/components/WorkedExampleView";
-import type { MathGraph } from "@/components/MathGraphView";
+import type { FunctionVisual } from "@/components/MathGraphView";
+import { NumberLineView, type NumberLineVisual } from "@/components/NumberLineView";
+import { FractionBarView, type FractionBarVisual } from "@/components/FractionBarView";
 import { UI, type Language } from "@/lib/i18n";
 import type { KeyTerm } from "@/lib/richtext";
 
 // mafs + mathjs add ~200kB to the bundle — real weight for likely
 // data-constrained Android devices, and only ever needed on the rare topic
-// that actually has a graph. Loaded as its own chunk only when rendered,
-// instead of shipping on every /student/topics/[topicId] page load.
+// that actually chose a "function" visual. Loaded as its own chunk only
+// when rendered, instead of shipping on every /student/topics/[topicId]
+// page load. Number line / fraction bar are plain SVG/flex, no heavy
+// dependency, so they stay statically imported above.
 const MathGraphView = dynamic(() => import("@/components/MathGraphView").then((m) => m.MathGraphView), {
   ssr: false,
 });
@@ -27,12 +31,14 @@ interface PictureDiagram {
   connectors: string[];
 }
 
+type MathVisual = FunctionVisual | NumberLineVisual | FractionBarVisual;
+
 interface ExplainVariant {
   mode: string;
   body: string;
   diagram: PictureDiagram | null;
   workedExample: WorkedExample | null;
-  graph: MathGraph | null;
+  visual: MathVisual | null;
 }
 
 function DiagramView({ diagram }: { diagram: PictureDiagram }) {
@@ -72,7 +78,7 @@ const MODE_LABEL: Record<string, { en: string; hi: string }> = {
   realworld: { en: "Real-world", hi: "वास्तविक जीवन" },
   gofurther: { en: "Go further", hi: "और आगे" },
   worked: { en: "Worked example", hi: "हल किया उदाहरण" },
-  graph: { en: "Graph", hi: "आलेख" },
+  graph: { en: "Visual", hi: "दृश्य" },
 };
 
 function VariantCard({ variant, keyTerms, language }: { variant: ExplainVariant; keyTerms: KeyTerm[]; language: Language }) {
@@ -94,7 +100,9 @@ function VariantCard({ variant, keyTerms, language }: { variant: ExplainVariant;
       {variant.mode === "worked" && variant.workedExample && (
         <WorkedExampleView example={variant.workedExample} language={language} />
       )}
-      {variant.mode === "graph" && variant.graph && <MathGraphView graph={variant.graph} />}
+      {variant.mode === "graph" && variant.visual?.kind === "function" && <MathGraphView graph={variant.visual} />}
+      {variant.mode === "graph" && variant.visual?.kind === "numberline" && <NumberLineView data={variant.visual} />}
+      {variant.mode === "graph" && variant.visual?.kind === "fractionbar" && <FractionBarView data={variant.visual} />}
     </div>
   );
 }
@@ -113,7 +121,7 @@ export function ExplainTab({
   // and even then only when the model judged this specific topic has a
   // natural graph to plot — hide the tab entirely rather than show an
   // empty one, same content-gating precedent as the picture-mode diagram.
-  const displayVariants = variants.filter((v) => v.mode !== "graph" || v.graph);
+  const displayVariants = variants.filter((v) => v.mode !== "graph" || v.visual);
   const [activeMode, setActiveMode] = useState(displayVariants[0]?.mode ?? "story");
   const [compare, setCompare] = useState(false);
   const [compareMode, setCompareMode] = useState(displayVariants[1]?.mode ?? displayVariants[0]?.mode);
