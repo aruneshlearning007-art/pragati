@@ -692,6 +692,62 @@ machine. Feel free to use them normally instead of the workarounds above.
   no orphaned rows. All four test chapters created during this session
   were deleted afterward via the new feature itself, leaving the teacher
   account clean.
+- **Socratic Doubt-chat mode + interactive Math graph widget** ✅ done
+  (verified live 2026-08-22), following an investigation the founder
+  requested into a YouTube video ("This AI Taught Me Calculus in 5
+  Minutes") and its open-source project (github.com/llSourcell/mathvoice).
+  Its voice feature was explicitly ruled out (desktop Chrome/Edge-only Web
+  Speech API — unreliable for this app's actual Indian-school Android
+  userbase), but two pieces were adopted:
+  1. **Socratic "Guide me" mode** — Doubt-chat (`apps/web/lib/agents/doubt.ts`)
+     gained an opt-in `mode: "direct" | "guide"` parameter (defaults to
+     `"direct"`, today's unchanged behavior, per explicit founder decision —
+     not a default-behavior change). In `"guide"` mode the system prompt
+     instructs the model to ask exactly one guiding question instead of
+     answering, only giving the direct answer if the student explicitly
+     asks or is still stuck after a genuine attempt. No schema change, no
+     new structured response fields — reuses the existing `{flagged,
+     category, reply}` shape and safety moderation unconditionally. A
+     small pill toggle in `DoubtChat.tsx`'s header switches modes
+     (session-only state, resets on reopen). Confirmed live: asking "what's
+     the y-intercept of y=2x+1" in Guide mode got a guiding question back
+     ("What is the value of x at that exact spot on the graph?"), a
+     half-right follow-up got an encouraging nudge toward the final step,
+     and the same question in Direct mode got a normal, correct answer —
+     switching modes mid-conversation works, and moderation is unaffected
+     by mode.
+  2. **Interactive Math graph** — a new `"graph"` `ExplainMode` (two
+     migrations: `ALTER TYPE ... ADD VALUE` in its own transaction per the
+     established Postgres gotcha, then the `Explanation.graph Json?`
+     column) rendered via `mafs` (verified live against mafs.dev's actual
+     docs before committing to its API — `Mafs`/`Coordinates.Cartesian`/
+     `Plot.OfX`/`Point`) and `mathjs` for safe expression evaluation (no
+     `eval()`/`new Function()`). `pedagogy.ts` only asks for a graph at all
+     when the topic's subject is Math (same `isMath` check as
+     `practice.ts`), and even then only if the model judges this specific
+     topic has a function/equation genuinely worth plotting — `ExplainTab.tsx`
+     hides the Graph tab entirely otherwise (no variant row exists for
+     non-Math subjects; a `null` graph on a Math topic just filters out of
+     `displayVariants`), same content-gating precedent as the existing
+     picture-mode diagram. `MathGraphView.tsx` is lazy-loaded via
+     `next/dynamic` — mafs+mathjs added ~200kB to the page bundle
+     (`/student/topics/[topicId]` went from ~192kB to ~391kB First Load JS
+     when statically imported), real weight to avoid shipping on every
+     topic page for students on likely data-constrained Android devices;
+     dynamic-importing it brought the base page back to ~194kB, only
+     paying the cost when a graph actually renders.
+     **One real bug found live-testing this**: the point-label legend
+     showed each coordinate twice (e.g. "(0, 1) (0, 1)") — the model put
+     the coordinate text itself into the `label` field, which
+     `MathGraphView` then suffixed with `(x, y)` a second time. Fixed by
+     clarifying the prompt that `label` must be a short descriptive name
+     ("y-intercept"), never the coordinates, since those are already shown
+     separately.
+     Confirmed live end-to-end: uploaded a real "Linear Equations" Class 7
+     Math chapter (`y = 2x + 1`), published it, and viewed it as a student
+     — the Graph tab rendered a correct, correctly-scaled straight line
+     with the right highlighted points at (0,1)/(1,3)/(2,5); a Science
+     topic in the same session correctly showed no Graph tab at all.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
