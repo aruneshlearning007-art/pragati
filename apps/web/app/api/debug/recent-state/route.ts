@@ -6,7 +6,35 @@ import { prisma } from "@pragati/db";
 // linked student can't see it after publish. Dumps recent chapters/users/
 // schools so the mismatch can be found without needing the founder to
 // dig through the app. Remove after diagnosis.
-export async function GET() {
+export async function GET(req: Request) {
+  const teacherId = new URL(req.url).searchParams.get("teacherId");
+  if (teacherId) {
+    const [chaptersByTeacher, sourcesByTeacher, totalChapterCount] = await Promise.all([
+      prisma.chapter.findMany({ where: { teacherId }, include: { subject: true, topics: true } }),
+      prisma.uploadedSource.findMany({ where: { teacherId } }),
+      prisma.chapter.count(),
+    ]);
+    return NextResponse.json({
+      totalChapterCount,
+      chaptersByTeacher: chaptersByTeacher.map((c) => ({
+        id: c.id,
+        title: c.titleEn,
+        subject: c.subject.nameEn,
+        class: c.class,
+        board: c.board,
+        status: c.status,
+        topicCount: c.topics.length,
+        createdAt: c.createdAt,
+      })),
+      sourcesByTeacher: sourcesByTeacher.map((s) => ({
+        id: s.id,
+        title: s.title,
+        topicId: s.topicId,
+        sourceTextLength: s.sourceText.length,
+      })),
+    });
+  }
+
   const [chapters, users, schools] = await Promise.all([
     prisma.chapter.findMany({
       orderBy: { createdAt: "desc" },
