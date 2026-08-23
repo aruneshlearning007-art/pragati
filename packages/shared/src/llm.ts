@@ -186,6 +186,44 @@ function escapeRawControlCharsInStrings(jsonStr: string): string {
   return result;
 }
 
+// The model sometimes leaves a trailing comma before a closing "}" or "]"
+// (e.g. the last item of an array/object followed by ",\n}") — valid in
+// permissive parsers but rejected by strict JSON.parse with "Expected
+// property name or '}'"/"Expected double-quoted property name" at the
+// comma's position. Seen live twice with the identical error text (same
+// line/column) on two unrelated chapters, which pointed at a structural
+// formatting habit rather than random model noise. Walks the string
+// tracking quote/escape state (same scan as escapeRawControlCharsInStrings)
+// and drops any comma that — outside a string, skipping only whitespace —
+// is immediately followed by "}" or "]".
+function repairTrailingCommas(jsonStr: string): string {
+  let result = "";
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < jsonStr.length; i++) {
+    const ch = jsonStr[i];
+    if (inString) {
+      result += ch;
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+      result += ch;
+      continue;
+    }
+    if (ch === ",") {
+      let j = i + 1;
+      while (j < jsonStr.length && /\s/.test(jsonStr[j])) j++;
+      if (jsonStr[j] === "}" || jsonStr[j] === "]") continue; // drop the comma
+    }
+    result += ch;
+  }
+  return result;
+}
+
 // Finds the index of the "}" that closes the object opened at `start`,
 // tracking string literals (and escaped characters within them) so a "}"
 // that's just part of a quoted string — or, more importantly, part of any
@@ -231,5 +269,5 @@ export function extractJson<T>(raw: string): T {
     const end = findMatchingBrace(trimmed, start);
     jsonStr = end > start ? trimmed.slice(start, end + 1) : trimmed.slice(start);
   }
-  return JSON.parse(repairLatexEscapes(escapeRawControlCharsInStrings(jsonStr))) as T;
+  return JSON.parse(repairLatexEscapes(escapeRawControlCharsInStrings(repairTrailingCommas(jsonStr)))) as T;
 }
