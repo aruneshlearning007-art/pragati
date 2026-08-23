@@ -4,16 +4,18 @@ import { normalizeEmail, withSessionCookie } from "@/lib/session-server";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { name, language, school, state, city, email: rawEmail } = body as {
+  const { name, language, school, state, city, schoolId, email: rawEmail } = body as {
     name: string;
     language: string;
     school: string;
     state: string;
     city: string;
+    schoolId?: string | null;
     email: string;
   };
 
-  if (!name?.trim() || !school?.trim() || !state?.trim() || !city?.trim()) {
+  const isNewSchool = !schoolId;
+  if (!name?.trim() || (isNewSchool && (!school?.trim() || !state?.trim() || !city?.trim()))) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
@@ -31,9 +33,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const schoolRecord =
-      (await prisma.school.findFirst({ where: { name: school.trim(), state: state.trim(), city: city.trim() } })) ??
-      (await prisma.school.create({ data: { name: school.trim(), state: state.trim(), city: city.trim() } }));
+    let schoolRecord;
+    if (schoolId) {
+      try {
+        schoolRecord = await prisma.school.findUniqueOrThrow({ where: { id: schoolId } });
+      } catch {
+        return NextResponse.json({ error: "Selected school not found. Please pick again." }, { status: 400 });
+      }
+    } else {
+      schoolRecord = await prisma.school.upsert({
+        where: { name_state_city: { name: school.trim(), state: state.trim(), city: city.trim() } },
+        update: {},
+        create: { name: school.trim(), state: state.trim(), city: city.trim() },
+      });
+    }
 
     const user = await prisma.user.create({
       data: {

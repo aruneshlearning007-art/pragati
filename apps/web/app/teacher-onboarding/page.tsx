@@ -1,22 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthModeToggle } from "@/components/AuthModeToggle";
 import { UI, type Language } from "@/lib/i18n";
+
+const NEW_SCHOOL_VALUE = "__new__";
+
+interface SchoolOption {
+  id: string;
+  name: string;
+  state: string;
+  city: string;
+}
 
 export default function TeacherOnboardingPage() {
   const router = useRouter();
   const [mode, setMode] = useState<"signup" | "login">("signup");
   const [language, setLanguage] = useState<Language>("en");
   const [form, setForm] = useState({ name: "", email: "", school: "", state: "", city: "" });
+  const [schools, setSchools] = useState<SchoolOption[]>([]);
+  const [schoolId, setSchoolId] = useState<string>(NEW_SCHOOL_VALUE);
   const [loginEmail, setLoginEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const t = UI[language];
 
+  useEffect(() => {
+    fetch("/api/schools")
+      .then((r) => r.json())
+      .then((data) => setSchools(data.schools ?? []))
+      .catch(() => {});
+  }, []);
+
+  const isNewSchool = schoolId === NEW_SCHOOL_VALUE;
   const canSubmitSignup =
-    form.name.trim() && form.email.trim() && form.school.trim() && form.state.trim() && form.city.trim() && !submitting;
+    form.name.trim() &&
+    form.email.trim() &&
+    (!isNewSchool || (form.school.trim() && form.state.trim() && form.city.trim())) &&
+    !submitting;
   const canSubmitLogin = loginEmail.trim() && !submitting;
 
   async function handleSignup() {
@@ -27,7 +49,7 @@ export default function TeacherOnboardingPage() {
       const res = await fetch("/api/teacher-onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, language }),
+        body: JSON.stringify({ ...form, schoolId: isNewSchool ? null : schoolId, language }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -97,32 +119,47 @@ export default function TeacherOnboardingPage() {
             </Field>
 
             <Field label={t.school}>
-              <input
-                className="input"
-                value={form.school}
-                onChange={(e) => setForm((f) => ({ ...f, school: e.target.value }))}
-                placeholder="e.g. Delhi Public School"
-              />
+              <select className="input" value={schoolId} onChange={(e) => setSchoolId(e.target.value)}>
+                {schools.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} — {s.city}, {s.state}
+                  </option>
+                ))}
+                <option value={NEW_SCHOOL_VALUE}>{t.schoolNew}</option>
+              </select>
             </Field>
 
-            <div className="grid grid-cols-2 gap-3">
-              <Field label={t.state}>
-                <input
-                  className="input"
-                  value={form.state}
-                  onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))}
-                  placeholder="e.g. Maharashtra"
-                />
-              </Field>
-              <Field label={t.city}>
-                <input
-                  className="input"
-                  value={form.city}
-                  onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
-                  placeholder="e.g. Pune"
-                />
-              </Field>
-            </div>
+            {isNewSchool && (
+              <>
+                <Field label={t.school}>
+                  <input
+                    className="input"
+                    value={form.school}
+                    onChange={(e) => setForm((f) => ({ ...f, school: e.target.value }))}
+                    placeholder="e.g. Delhi Public School"
+                  />
+                </Field>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label={t.state}>
+                    <input
+                      className="input"
+                      value={form.state}
+                      onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))}
+                      placeholder="e.g. Maharashtra"
+                    />
+                  </Field>
+                  <Field label={t.city}>
+                    <input
+                      className="input"
+                      value={form.city}
+                      onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+                      placeholder="e.g. Pune"
+                    />
+                  </Field>
+                </div>
+              </>
+            )}
 
             <label className="block text-sm font-semibold text-ink mb-2 mt-1">{t.language}</label>
             <div className="flex gap-2 mb-7">

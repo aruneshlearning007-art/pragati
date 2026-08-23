@@ -82,6 +82,7 @@ model School {
   quizQuestions   QuizQuestion[]
   chapters        Chapter[]
 
+  @@unique([name, state, city])
   @@index([state, city])
 }
 

@@ -4,7 +4,7 @@ import { normalizeEmail, withSessionCookie } from "@/lib/session-server";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { name, cls, board, language, school, state, city, email: rawEmail } = body as {
+  const { name, cls, board, language, school, state, city, schoolId, email: rawEmail } = body as {
     name: string;
     cls: string;
     board: string;
@@ -12,10 +12,12 @@ export async function POST(req: NextRequest) {
     school: string;
     state: string;
     city: string;
+    schoolId?: string | null;
     email: string;
   };
 
-  if (!name?.trim() || !cls || !board || !school?.trim() || !state?.trim() || !city?.trim()) {
+  const isNewSchool = !schoolId;
+  if (!name?.trim() || !cls || !board || (isNewSchool && (!school?.trim() || !state?.trim() || !city?.trim()))) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
@@ -33,9 +35,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const schoolRecord =
-      (await prisma.school.findFirst({ where: { name: school.trim(), state: state.trim(), city: city.trim() } })) ??
-      (await prisma.school.create({ data: { name: school.trim(), state: state.trim(), city: city.trim() } }));
+    let schoolRecord;
+    if (schoolId) {
+      try {
+        schoolRecord = await prisma.school.findUniqueOrThrow({ where: { id: schoolId } });
+      } catch {
+        return NextResponse.json({ error: "Selected school not found. Please pick again." }, { status: 400 });
+      }
+    } else {
+      // Atomic upsert (unlike the old findFirst-then-create) keyed on the
+      // real School_name_state_city_key unique constraint — two people
+      // submitting the exact same brand-new school at once reuse one row
+      // instead of racing to create two.
+      schoolRecord = await prisma.school.upsert({
+        where: { name_state_city: { name: school.trim(), state: state.trim(), city: city.trim() } },
+        update: {},
+        create: { name: school.trim(), state: state.trim(), city: city.trim() },
+      });
+    }
 
     const user = await prisma.user.create({
       data: {
