@@ -1024,6 +1024,62 @@ machine. Feel free to use them normally instead of the workarounds above.
   end-to-end. Noted here only as confirmation the existing
   partial-failure handling (What's already generated is saved, delete
   and retry) continues to behave correctly, not as a new bug to fix.
+- **Self-explain (Feynman technique) feedback** ✅ done (verified live
+  2026-08-23), fifth of the six brainstormed "modern learning features."
+  A new "Explain It Back" topic tab where a student explains a concept in
+  their own words (as if teaching it to someone else) and gets
+  qualitative AI feedback — what they got right, what's missing or
+  confused — never a score, distinct from the Practice quiz. Directly
+  serves the "teach, don't rote" and "real diagnosis, not just scoring"
+  product-philosophy principles.
+  New `SelfExplanation` model (event-log shaped like `DoubtMessage`/
+  `QuizAttempt`, hand-written migration since DATABASE_URL/DIRECT_URL are
+  Vercel-Sensitive). New `apps/web/lib/agents/selfExplain.ts`
+  (`explainAndGetFeedback`) deliberately reuses existing pieces rather
+  than inventing parallel ones: the exact same `{flagged, category,
+  reply}` moderation JSON contract Doubt-chat already uses, and the same
+  `isDoubtChatDisabled` safety gate (it already checks every
+  `SafetyIncident` for a student, not doubt-chat-specific despite the
+  name) — a student auto-disabled from one free-text feature is
+  correctly disabled from the other too, no bypass loophole. Feedback is
+  grounded in the topic's real Notes content via the existing cache-first
+  `getOrGenerateNotes` (no second LLM call once Notes already exist).
+  Also updated the delete-chapter route
+  (`apps/web/app/api/teacher/chapters/[chapterId]/route.ts`) to delete
+  `SelfExplanation` rows alongside `DoubtMessage` — found while reviewing
+  it before adding the new FK, since without this a chapter with any
+  self-explain submissions would fail to delete.
+  **One real bug found and fixed live-testing this**: a second, fuller
+  test explanation crashed with "SyntaxError: Bad control character in
+  string literal" — the model wrote a literal newline byte instead of
+  the required `\n` escape inside the `reply` string (it was instructed
+  to separate two feedback paragraphs with a blank line). Unlike the
+  existing `\f`/`\b`/`\t` repair in `extractJson`
+  (`packages/shared/src/llm.ts`), `JSON.parse` rejects raw control
+  characters outright rather than silently misparsing them. Fixed
+  generically: `extractJson` now walks the string tracking quote/escape
+  state (mirroring `findMatchingBrace`'s own scan) and escapes any raw
+  control character found inside a string literal before parsing —
+  fixes this for every agent that asks for multi-paragraph JSON text,
+  not just self-explain. Verified against 5 synthetic cases (raw
+  newline, tab+CR, an already-correctly-escaped `\n` that must NOT be
+  double-escaped, whitespace-only newlines outside any string, an
+  escaped quote immediately followed by a raw newline) before
+  redeploying.
+  Verified live end-to-end on a real "The Water Cycle" Class 6 Science
+  chapter: submitted a deliberately partial explanation (got evaporation/
+  condensation right, was unsure why rain falls) and got feedback that
+  named exactly that gap in two clean paragraphs with no markdown
+  asterisks, grounded in the chapter's real precipitation mechanism, not
+  generic praise; submitted a second, complete four-stage explanation
+  (after the control-character fix deployed) and got correctly
+  differentiated feedback — full credit for all four stages, prompting
+  a "go deeper" question since nothing was missing, exactly the
+  branch the prompt was designed for; confirmed both submissions
+  appeared in the history list, newest first. Confirmed deleting a
+  chapter with 2 `SelfExplanation` rows attached still succeeded
+  (verifying the delete-chapter FK fix). Test chapter deleted afterward
+  via the existing delete-chapter feature.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
