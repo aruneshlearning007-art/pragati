@@ -1183,6 +1183,59 @@ machine. Feel free to use them normally instead of the workarounds above.
      the maxDuration raise was.
   Test chapters and the temporary debug endpoint were all cleaned up
   afterward.
+- **Platform-level fix: silent duplicate schools at signup** ✅ done
+  (verified live 2026-08-23), a direct follow-up to the founder-reported
+  bug investigation above. The founder explicitly asked for a
+  platform-level fix rather than a one-off patch for the specific pair
+  that surfaced ("Devender Kumar"/VPS-Uttar-Pradesh vs
+  "Nakku"/VPS-UP) — both teacher and student onboarding collected
+  school name/state/city as three free-text inputs, matched via an
+  **exact-string** find-or-create
+  (`prisma.school.findFirst({where:{name,state,city}})`, only `.trim()`
+  applied, no case-folding, in both
+  `apps/web/app/api/onboarding/route.ts` and
+  `apps/web/app/api/teacher-onboarding/route.ts`). Two real people at
+  the same real school typing it even slightly differently silently
+  created two separate `School` rows, and since chapters are
+  school-scoped, a student would never see their own teacher's
+  published content — with no error anywhere in the product surfacing
+  why.
+  Reused the exact "pick existing or add new" pattern already proven
+  for `Subject` in `apps/web/components/UploadChapterForm.tsx`: both
+  onboarding pages now show a `<select>` of every existing school (new
+  `GET /api/schools`, no auth needed) formatted as "{name} — {city},
+  {state}", plus a `"+ My school isn't listed"` sentinel that reveals
+  the original free-text fields only as a fallback (mirroring
+  `NEW_SUBJECT_VALUE`'s exact convention). Added
+  `School.@@unique([name, state, city])` (hand-written migration,
+  confirmed via a temporary debug endpoint beforehand that no existing
+  rows already shared an exact triple, since that would have made the
+  migration itself fail) so the "new school" fallback path uses an
+  atomic `upsert` — matching `Subject`'s own pattern — instead of the
+  old racy `findFirst`-then-`create`.
+  **Explicitly out of scope, confirmed with the founder**: no
+  backfill/merge of already-existing near-duplicate rows (`VPS`/UP vs
+  `VPS`/Uttar Pradesh, `dps` vs `DPS`, `ssrvm` vs `SSRVM`, etc.) —
+  deciding which historical rows are "the same real school" from text
+  alone is a judgment call, not something to guess at in bulk. This
+  only stops *new* duplicates from forming going forward; it doesn't
+  retroactively fix the live "Devender Kumar"/"Nakku" pair, which the
+  founder still hasn't said whether to fix — raised as an open question,
+  not yet resolved.
+  Verified live end-to-end: signed up a brand-new teacher at a
+  brand-new school ("Fix Verify School", New Delhi/Delhi) via the "+
+  isn't listed" path; signed up a brand-new student picking that exact
+  school from the dropdown; teacher uploaded and published a small
+  chapter ("Simple Multiplication"); confirmed the student could see it
+  immediately — the actual root-cause proof, not just that a dropdown
+  renders. Also signed up a second brand-new teacher typing the
+  *identical* new-school text a second time and confirmed the schools
+  dropdown still showed only one "Fix Verify School" entry afterward,
+  proving the atomic upsert reuses the existing row rather than racing
+  to create a duplicate. Test chapter deleted afterward via the
+  existing delete-chapter feature (test user accounts have no delete
+  path in this app, consistent with every other residual test account
+  already in the database).
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
