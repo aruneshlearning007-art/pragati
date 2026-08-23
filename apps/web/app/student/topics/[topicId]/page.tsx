@@ -9,11 +9,12 @@ import { ExplainTab } from "@/components/ExplainTab";
 import { PracticeTab } from "@/components/PracticeTab";
 import { VideosTab } from "@/components/VideosTab";
 import { DoubtChat } from "@/components/DoubtChat";
+import { SelfExplainTab } from "@/components/SelfExplainTab";
 import { RichText } from "@/components/RichText";
 import { UI, type Language } from "@/lib/i18n";
 import { ErrorCard } from "@/components/ErrorCard";
 
-type Tab = "notes" | "explain" | "practice" | "videos";
+type Tab = "notes" | "explain" | "self-explain" | "practice" | "videos";
 
 export default async function TopicPage({
   params,
@@ -30,7 +31,9 @@ export default async function TopicPage({
   const { topicId } = await params;
   const { tab: tabParam } = await searchParams;
   const tab: Tab =
-    tabParam === "explain" || tabParam === "practice" || tabParam === "videos" ? tabParam : "notes";
+    tabParam === "explain" || tabParam === "self-explain" || tabParam === "practice" || tabParam === "videos"
+      ? tabParam
+      : "notes";
 
   let topic: Awaited<ReturnType<typeof prisma.topic.findUnique>> & {
     chapter: {
@@ -66,6 +69,7 @@ export default async function TopicPage({
   const tabs: { key: Tab; label: string }[] = [
     { key: "notes", label: t.tabNotes },
     { key: "explain", label: t.tabExplain },
+    { key: "self-explain", label: t.tabSelfExplain },
     { key: "practice", label: t.tabPractice },
     { key: "videos", label: t.tabVideos },
   ];
@@ -118,6 +122,7 @@ export default async function TopicPage({
 
       {tab === "notes" && <NotesPane topicId={topicId} scope={scope} language={language} />}
       {tab === "explain" && <ExplainPane topicId={topicId} scope={scope} language={language} />}
+      {tab === "self-explain" && <SelfExplainTab topicId={topicId} language={language} />}
       {tab === "practice" && <PracticeTab topicId={topicId} subjectName={topic.chapter.subject.nameEn} language={language} />}
       {tab === "videos" && (
         <VideosPane

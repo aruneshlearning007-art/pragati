@@ -110,6 +110,7 @@ model User {
   pedagogyPrefs     PedagogyPreference[]
   doubtMessages     DoubtMessage[]
   safetyIncidents   SafetyIncident[]
+  selfExplanations  SelfExplanation[]
 
   @@index([schoolId])
 }
@@ -186,6 +187,7 @@ model Topic {
   doubtMessages   DoubtMessage[]
   uploadedSources UploadedSource[]
   flags           VerifierFlag[]
+  selfExplanations SelfExplanation[]
 
   @@index([chapterId])
 }
@@ -447,6 +449,25 @@ model DoubtMessage {
   text      String
   flagged   Boolean   @default(false)
   timestamp DateTime  @default(now())
+
+  student User  @relation(fields: [studentId], references: [id])
+  topic   Topic @relation(fields: [topicId], references: [id])
+
+  @@index([studentId, topicId])
+}
+
+// Feynman-technique self-explain: a student explains a concept in their own
+// words and gets qualitative AI feedback (never a score). One row per
+// submission, unlike DoubtMessage's per-turn shape, since there's no back-
+// and-forth here.
+model SelfExplanation {
+  id              String   @id @default(cuid())
+  studentId       String
+  topicId         String
+  explanationText String
+  feedbackText    String
+  flagged         Boolean  @default(false)
+  timestamp       DateTime @default(now())
 
   student User  @relation(fields: [studentId], references: [id])
   topic   Topic @relation(fields: [topicId], references: [id])

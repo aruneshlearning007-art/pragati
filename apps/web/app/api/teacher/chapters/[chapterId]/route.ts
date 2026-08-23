@@ -55,6 +55,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ c
       prisma.notes.deleteMany({ where: { topicId: { in: topicIds } } }),
       prisma.video.deleteMany({ where: { topicId: { in: topicIds } } }),
       prisma.doubtMessage.deleteMany({ where: { topicId: { in: topicIds } } }),
+      prisma.selfExplanation.deleteMany({ where: { topicId: { in: topicIds } } }),
       prisma.verifierFlag.deleteMany({ where: { chapterId } }),
       prisma.uploadedSource.deleteMany({ where: { id: { in: sourceIds } } }),
       prisma.topic.deleteMany({ where: { chapterId } }),
