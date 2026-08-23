@@ -269,5 +269,21 @@ export function extractJson<T>(raw: string): T {
     const end = findMatchingBrace(trimmed, start);
     jsonStr = end > start ? trimmed.slice(start, end + 1) : trimmed.slice(start);
   }
-  return JSON.parse(repairLatexEscapes(escapeRawControlCharsInStrings(repairTrailingCommas(jsonStr)))) as T;
+  const repaired = repairLatexEscapes(escapeRawControlCharsInStrings(repairTrailingCommas(jsonStr)));
+  try {
+    return JSON.parse(repaired) as T;
+  } catch (err) {
+    // Diagnostic-only: log the raw text around the reported failure
+    // position so a real occurrence in production can actually be
+    // diagnosed from Vercel's logs instead of guessed at blind — the
+    // three repairs above have each been added reactively from a live
+    // failure, and guessing wrong twice in a row on the same error text
+    // means the next one needs the real evidence, not another guess.
+    const message = err instanceof Error ? err.message : String(err);
+    const posMatch = message.match(/position (\d+)/);
+    const pos = posMatch ? parseInt(posMatch[1], 10) : -1;
+    const snippet = pos >= 0 ? repaired.slice(Math.max(0, pos - 120), pos + 120) : repaired.slice(0, 400);
+    console.error(`extractJson failed: ${message}\n--- snippet around failure ---\n${snippet}\n--- end snippet ---`);
+    throw err;
+  }
 }
