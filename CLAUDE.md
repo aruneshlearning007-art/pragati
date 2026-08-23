@@ -927,6 +927,55 @@ machine. Feel free to use them normally instead of the workarounds above.
   element the way the subject cards did), so it wrapped to a single
   column cleanly with no overlap or disappearing text. Test chapter
   deleted afterward via the existing delete-chapter feature.
+- **Spaced-repetition revision reminders** ✅ done (verified live
+  2026-08-23), third of the six brainstormed "modern learning features."
+  Unlike the Progress page's weak-areas list (recurring wrong-answer
+  *patterns*), this surfaces time-based decay — the forgetting-curve
+  insight that even a mastered topic quietly fades without review, and a
+  weak one fades faster. Deliberately a lightweight threshold schedule,
+  not full SM-2/Leitner (no per-review ease-factor history exists to
+  drive one): a sub-concept with score < 80 is "due" after 2 days
+  untouched, score >= 80 is due after 7 days — reusing
+  `MasteryScore.lastUpdated`, nothing new to track. This is the explicit
+  v2 the fact-fluency drill's own comment called for.
+  New `getRevisionReminders(studentId, scope, language, limit=5)` in
+  `apps/web/lib/agents/diagnostic.ts` mirrors the batched query shape of
+  `getMasteredTopicCount`/`getProgressOverview` (topics → subConcepts →
+  scores, one pass); sorts weak-and-due before refresh-and-due, then
+  most-overdue-first, capped at 5. Rendered as a banner on `/student`
+  (`apps/web/app/student/page.tsx`, above the subject `<h1>`) — the page
+  a student actually lands on, not the Progress page one click away —
+  spanning all subjects regardless of the active subject tab (queries by
+  scope, not by `activeSubject`), and only rendering when something is
+  actually due (no permanent empty-state, unlike Progress's always-on
+  sections).
+  **Verification approach**: this is the one feature of the six that
+  depends on elapsed real time, which can't be produced by any normal
+  live action. Added a temporary `POST /api/debug/backdate-mastery` route
+  (gated by nothing beyond obscurity — test-only, deployed just long
+  enough to use, then deleted and redeployed) that directly backdates a
+  named student's `MasteryScore.lastUpdated` rows, since
+  `DATABASE_URL`/`DIRECT_URL` are Vercel-Sensitive and unreadable from
+  this machine. Verified live end-to-end: signed up a fresh teacher +
+  student pair ("Revision Test Teacher"/"Revision Test Student") at a new
+  school, uploaded a real 2-concept chapter (addition/subtraction),
+  published it; mastered the Addition concept (7/8, later re-practiced to
+  8/8) and deliberately failed the Subtraction concept (0/7) to get one
+  mastered sub-concept mix and several weak ones; confirmed **no**
+  reminder appeared immediately after (correct — nothing was 2+ days
+  old yet); backdated all 6 `MasteryScore` rows by 8 days via the debug
+  route and confirmed the banner then showed exactly 5 entries (the
+  4 weak-and-due Addition/Subtraction sub-concepts sorted before the 1
+  refresh-and-due one, each correctly labeled "Needs practice" vs "Quick
+  refresher" with "8 days ago"), correctly capped rather than showing all
+  6; confirmed the same banner appeared even while viewing the (empty)
+  Science subject tab, proving it's genuinely cross-subject; re-practiced
+  the Addition topic to 8/8 and confirmed both its sub-concepts (one
+  weak, one refresh) disappeared from the banner while the 3 untouched
+  Subtraction entries remained — proving the per-item bump via the
+  existing `updateMasteryForTopic` works correctly. Test chapter deleted
+  afterward via the existing delete-chapter feature; debug route deleted
+  and redeployed, confirmed 404 in production afterward.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
