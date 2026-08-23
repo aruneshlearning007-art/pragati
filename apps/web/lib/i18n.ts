@@ -37,6 +37,9 @@ export const UI = {
     doubtGreeting: "Hi! Ask me anything about this topic and I'll help you understand it.",
     doubtModeDirect: "Direct answer",
     doubtModeGuide: "Guide me",
+    doubtAttachPhoto: "Attach a photo",
+    doubtPhotoAttached: "Photo attached",
+    doubtUploadingPhoto: "Uploading photo…",
     selfExplainIntro:
       "Explain this topic in your own words, like you're teaching it to a friend. You'll get feedback on what you got right and what to work on — not a score.",
     selfExplainPlaceholder: "Type your explanation here…",
@@ -174,6 +177,9 @@ export const UI = {
     doubtGreeting: "नमस्ते! इस विषय के बारे में कुछ भी पूछें, मैं समझाने में मदद करूँगा।",
     doubtModeDirect: "सीधा उत्तर",
     doubtModeGuide: "मुझे मार्गदर्शन दें",
+    doubtAttachPhoto: "फ़ोटो जोड़ें",
+    doubtPhotoAttached: "फ़ोटो जुड़ी हुई है",
+    doubtUploadingPhoto: "फ़ोटो अपलोड हो रही है…",
     selfExplainIntro:
       "इस विषय को अपने शब्दों में समझाएं, जैसे किसी दोस्त को पढ़ा रहे हों। आपको स्कोर नहीं, बल्कि यह प्रतिक्रिया मिलेगी कि आपने क्या सही समझा और किस पर और काम करना है।",
     selfExplainPlaceholder: "अपनी व्याख्या यहाँ लिखें…",

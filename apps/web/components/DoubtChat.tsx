@@ -19,7 +19,10 @@ export function DoubtChat({ topicId, language }: { topicId: string; language: La
   const [thinking, setThinking] = useState(false);
   const [disabled, setDisabled] = useState(false);
   const [mode, setMode] = useState<"direct" | "guide">("direct");
+  const [photoBlobUrl, setPhotoBlobUrl] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open || loaded) return;
@@ -37,17 +40,34 @@ export function DoubtChat({ topicId, language }: { topicId: string; language: La
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages, thinking]);
 
+  async function attachPhoto(file: File) {
+    setUploadingPhoto(true);
+    try {
+      // Dynamically imported so @vercel/blob/client's code only ships to
+      // students who actually attach a photo, not on every topic-page load.
+      const { upload } = await import("@vercel/blob/client");
+      const blob = await upload(file.name, file, { access: "private", handleUploadUrl: "/api/student/doubt-photo-token" });
+      setPhotoBlobUrl(blob.url);
+    } catch {
+      // Silently drop a failed upload — the student can just try again or type instead.
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
   async function send() {
     const text = input.trim();
-    if (!text || thinking || disabled) return;
+    if ((!text && !photoBlobUrl) || thinking || uploadingPhoto || disabled) return;
+    const blobUrl = photoBlobUrl;
     setInput("");
-    setMessages((m) => [...m, { id: `local-${Date.now()}`, role: "user", text }]);
+    setPhotoBlobUrl(null);
+    setMessages((m) => [...m, { id: `local-${Date.now()}`, role: "user", text: text || t.doubtPhotoAttached }]);
     setThinking(true);
     try {
       const res = await fetch(`/api/topics/${topicId}/doubt`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, mode }),
+        body: JSON.stringify({ message: text, mode, blobUrl }),
       });
       const data = await res.json();
       setMessages((m) => [...m, { id: `local-${Date.now()}-r`, role: "assistant", text: data.reply }]);
@@ -148,25 +168,61 @@ export function DoubtChat({ topicId, language }: { topicId: string; language: La
             )}
           </div>
 
-          <div className="flex gap-2 p-3" style={{ borderTop: "1px solid var(--color-border)" }}>
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && send()}
-              placeholder={t.doubtPlaceholder}
-              disabled={disabled}
-              className="flex-1 px-3 py-2.5 rounded-[10px] text-[13.5px]"
-              style={{ border: "1px solid var(--color-border)", fontFamily: "inherit" }}
-            />
-            <button
-              onClick={send}
-              disabled={!input.trim() || thinking || disabled}
-              className="px-4 py-2.5 rounded-[10px] text-white font-bold text-[13px] disabled:opacity-40"
-              style={{ border: "none", background: "var(--color-primary)" }}
-            >
-              {t.doubtSend}
-            </button>
+          <div className="flex flex-col gap-2 p-3" style={{ borderTop: "1px solid var(--color-border)" }}>
+            {(photoBlobUrl || uploadingPhoto) && (
+              <div
+                className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-full text-xs font-bold w-fit"
+                style={{ background: "var(--color-mastered-bg)", color: "var(--color-mastered-fg)" }}
+              >
+                <span>📷 {uploadingPhoto ? t.doubtUploadingPhoto : t.doubtPhotoAttached}</span>
+                {photoBlobUrl && (
+                  <button onClick={() => setPhotoBlobUrl(null)} aria-label="Remove photo" style={{ border: "none", background: "none", cursor: "pointer" }}>
+                    ✕
+                  </button>
+                )}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) attachPhoto(file);
+                  e.target.value = "";
+                }}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={disabled || uploadingPhoto}
+                aria-label={t.doubtAttachPhoto}
+                className="px-3 py-2.5 rounded-[10px] text-[15px] disabled:opacity-40"
+                style={{ border: "1px solid var(--color-border)", background: "var(--color-bg)" }}
+              >
+                📷
+              </button>
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && send()}
+                placeholder={t.doubtPlaceholder}
+                disabled={disabled}
+                className="flex-1 px-3 py-2.5 rounded-[10px] text-[13.5px]"
+                style={{ border: "1px solid var(--color-border)", fontFamily: "inherit" }}
+              />
+              <button
+                onClick={send}
+                disabled={(!input.trim() && !photoBlobUrl) || thinking || uploadingPhoto || disabled}
+                className="px-4 py-2.5 rounded-[10px] text-white font-bold text-[13px] disabled:opacity-40"
+                style={{ border: "none", background: "var(--color-primary)" }}
+              >
+                {t.doubtSend}
+              </button>
+            </div>
           </div>
         </div>
       )}

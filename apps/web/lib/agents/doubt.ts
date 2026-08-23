@@ -39,6 +39,7 @@ export async function answerDoubt(
   messageText: string,
   language: string,
   mode: "direct" | "guide" = "direct",
+  image?: { base64: string; mimeType: string },
 ): Promise<DoubtReplyResult> {
   if (await isDoubtChatDisabled(studentId)) {
     return {
@@ -51,8 +52,13 @@ export async function answerDoubt(
     };
   }
 
+  // A student may attach a photo with no typed question at all — only ever
+  // store a placeholder caption here, never the image itself (the image is
+  // deleted from Blob storage right after this turn generates a reply, see
+  // the doubt route's POST handler).
+  const storedText = messageText.trim() || (image ? "[Photo question]" : messageText);
   await prisma.doubtMessage.create({
-    data: { studentId, topicId, role: "user", text: messageText },
+    data: { studentId, topicId, role: "user", text: storedText },
   });
 
   const topic = await prisma.topic.findUniqueOrThrow({
@@ -85,12 +91,18 @@ export async function answerDoubt(
       : "Keep replies short (2-5 sentences), conversational, and focused on building understanding — not just " +
         "handing over an answer to copy. ";
 
+  const photoInstruction = image
+    ? "The student has attached a photo of a problem (it may be handwritten work, a textbook page, or a " +
+      "diagram) — read it directly and address what's in it in your reply. "
+    : "";
+
   const system = withBaseInstructions(
     "You are the Doubt Chat Agent: a friendly study helper answering one student's question about a " +
       `specific topic they are currently studying. Subject: ${topic.chapter.subject.nameEn}. Topic: ${topic.titleEn}.` +
       personalizationHint +
       " " +
       styleInstruction +
+      photoInstruction +
       "If the student's message is off-topic but harmless, respond briefly and warmly, then gently steer back " +
       "to the topic. " +
       `Write your reply in ${language === "hi" ? "Hindi (Devanagari script)" : "English"}.\n\n` +
@@ -99,7 +111,11 @@ export async function answerDoubt(
 
   const raw = await generate({
     system,
-    messages: recentHistory.map((m) => ({ role: m.role, content: m.text })),
+    messages: recentHistory.map((m, i) => ({
+      role: m.role,
+      content: m.text,
+      ...(image && i === recentHistory.length - 1 ? { file: image } : {}),
+    })),
     json: true,
   });
 
@@ -111,7 +127,7 @@ export async function answerDoubt(
 
   if (parsed.flagged) {
     await prisma.safetyIncident.create({
-      data: { studentId, messageText, category: parsed.category ?? "other" },
+      data: { studentId, messageText: storedText, category: parsed.category ?? "other" },
     });
   }
 
