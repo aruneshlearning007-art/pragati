@@ -132,6 +132,60 @@ function repairLatexEscapes(jsonStr: string): string {
   return jsonStr.replace(/(?<!\\)\\([fbt])/g, "\\\\$1");
 }
 
+// The model is instructed to write multi-paragraph text (e.g. self-explain
+// feedback, doubt-chat replies) inside a JSON string value, separating
+// paragraphs with a blank line — but it sometimes emits a literal newline
+// byte instead of the required "\n" escape sequence. Raw control characters
+// (anything below 0x20 — newline, carriage return, tab, etc.) are illegal
+// inside a JSON string per spec, and JSON.parse rejects them outright
+// ("Bad control character in string literal") rather than silently
+// misparsing, unlike the \f/\b/\t case above. Walk the string tracking
+// whether we're inside a quoted string (mirroring findMatchingBrace's own
+// escape-aware scan) and escape any raw control character found there.
+const CONTROL_CHAR_ESCAPES: Record<string, string> = {
+  "\n": "\\n",
+  "\r": "\\r",
+  "\t": "\\t",
+  "\b": "\\b",
+  "\f": "\\f",
+};
+
+function escapeRawControlCharsInStrings(jsonStr: string): string {
+  let result = "";
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < jsonStr.length; i++) {
+    const ch = jsonStr[i];
+    if (!inString) {
+      if (ch === '"') inString = true;
+      result += ch;
+      continue;
+    }
+    if (escaped) {
+      result += ch;
+      escaped = false;
+      continue;
+    }
+    if (ch === "\\") {
+      result += ch;
+      escaped = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = false;
+      result += ch;
+      continue;
+    }
+    const code = ch.charCodeAt(0);
+    if (code < 0x20) {
+      result += CONTROL_CHAR_ESCAPES[ch] ?? "\\u" + code.toString(16).padStart(4, "0");
+    } else {
+      result += ch;
+    }
+  }
+  return result;
+}
+
 // Finds the index of the "}" that closes the object opened at `start`,
 // tracking string literals (and escaped characters within them) so a "}"
 // that's just part of a quoted string — or, more importantly, part of any
@@ -177,5 +231,5 @@ export function extractJson<T>(raw: string): T {
     const end = findMatchingBrace(trimmed, start);
     jsonStr = end > start ? trimmed.slice(start, end + 1) : trimmed.slice(start);
   }
-  return JSON.parse(repairLatexEscapes(jsonStr)) as T;
+  return JSON.parse(repairLatexEscapes(escapeRawControlCharsInStrings(jsonStr))) as T;
 }
