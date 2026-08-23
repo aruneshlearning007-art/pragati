@@ -12,7 +12,14 @@ import { verifyAndCorrectChapter } from "@/lib/agents/verifier";
 // initial POST /api/teacher/chapters, in a loop. Keeps each request well
 // under any serverless timeout regardless of how many concepts a chapter
 // has, and lets the teacher see real per-concept progress.
-export const maxDuration = 90;
+// Raised from 90 -> 180 after a real "Vercel Runtime Timeout Error: Task
+// timed out after 90 seconds" live on this exact route (founder-reported,
+// then reproduced) — a single concept's Notes+Explain+Practice+Verifier
+// sequence occasionally runs past 90s. 180 gives real headroom; the
+// account's plan already proved capable of running at least 90s (the
+// timeout fired at exactly the configured value, not some lower plan
+// ceiling), so raising the code's own limit should raise the effective one.
+export const maxDuration = 180;
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ chapterId: string }> }) {
   const teacher = await getCurrentTeacher();
