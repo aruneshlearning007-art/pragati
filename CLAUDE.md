@@ -1133,6 +1133,56 @@ machine. Feel free to use them normally instead of the workarounds above.
   **All six brainstormed "modern learning features" are now done**:
   Progress page, Gamification badges, Spaced-repetition reminders,
   Concept map, Self-explain (Feynman), Photo-based doubt solving.
+- **Founder-reported bug investigation: real teacher upload "didn't
+  create" + student couldn't see chapter** ✅ resolved 2026-08-23. The
+  founder relayed a real teacher's ("Devender Kumar") report that a
+  Class 7 chapter upload wasn't created, and a linked student ("Naksh")
+  couldn't see it. Investigated by querying the live DB directly via a
+  temporary debug endpoint (removed after) rather than guessing —
+  established pattern from earlier features this session.
+  **Two genuinely separate findings**:
+  1. **Not a bug**: the teacher's account and student's account turned
+     out to belong to two different `School` rows ("VPS", Greater
+     Noida vs "nps", Noida) — schools are matched by exact
+     name+state+city text (`prisma.school.findFirst` in both
+     onboarding routes), no fuzzy matching. Confirmed with the founder
+     these are genuinely different schools, not a typo — so
+     school-scoped content correctly not showing across schools is
+     working as designed, not a defect.
+  2. **Real bug, found and fixed**: the chapter generation itself was
+     failing. The founder's exact error text — "Expected property name
+     or '}' in JSON at position 30 (line 4 column 7)" — was identical
+     (same line/column) to one seen independently during this
+     session's own Concept Map feature testing on an unrelated
+     chapter, which pointed at a deterministic JSON-formatting defect
+     rather than random model noise. First hypothesis (a trailing
+     comma before a closing `}`/`]`) was implemented, tested against 6
+     synthetic cases, and deployed — but a live reproduction (re-
+     uploading the founder's exact chapter content, "Healthy Lifestyle
+     and Hygiene", 5 concepts) hit the **exact same error again**,
+     proving that hypothesis wrong despite passing synthetic tests.
+     Rather than guess a third time, added diagnostic logging to
+     `extractJson` (`packages/shared/src/llm.ts`) to capture the raw
+     text around any future parse failure. The very next reproduction
+     attempt instead surfaced a **different, genuine root cause**: a
+     real `Vercel Runtime Timeout Error: Task timed out after 90
+     seconds` on `POST /api/teacher/chapters/[chapterId]/concepts` —
+     confirmed via `vercel logs` immediately after the failure. That
+     route's `maxDuration` was set to `90`; a single concept's
+     Notes+Explain+Practice+Verifier sequence occasionally runs past
+     that. Raised to `180` (the account's plan already proved capable
+     of running at least 90s, since the timeout fired at exactly the
+     configured value rather than some lower plan ceiling, so a higher
+     configured value should raise the effective one too). Re-tested
+     with the identical chapter content a third time: all 5 concepts
+     generated cleanly end-to-end, no JSON error, no timeout.
+     **The trailing-comma repair and the diagnostic logging are both
+     kept** (harmless, generically defensive — a genuine trailing
+     comma or a future unrelated parse failure would still benefit),
+     even though neither was the actual fix for this specific incident;
+     the maxDuration raise was.
+  Test chapters and the temporary debug endpoint were all cleaned up
+  afterward.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
