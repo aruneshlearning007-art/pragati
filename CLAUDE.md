@@ -1080,6 +1080,59 @@ machine. Feel free to use them normally instead of the workarounds above.
   chapter with 2 `SelfExplanation` rows attached still succeeded
   (verifying the delete-chapter FK fix). Test chapter deleted afterward
   via the existing delete-chapter feature.
+- **Photo-based doubt solving** ✅ done (verified live 2026-08-23), sixth
+  and last of the six brainstormed "modern learning features." A student
+  can now attach a photo (a handwritten worksheet problem, a textbook
+  page) to Doubt-chat instead of typing it out — confirmed with the
+  founder to extend the existing topic-scoped Doubt-chat widget rather
+  than build a new standalone "ask with photo" page, so every existing
+  safety gate, per-topic history, and misconception-personalization hook
+  stays intact with zero new page/nav entry.
+  Reuses the teacher chapter-upload flow's proven mechanics (client
+  uploads straight to Vercel Blob, bypassing Vercel's 4.5MB serverless
+  request-body limit; a route fetches the blob server-side and feeds it
+  to Gemini as native inline image data, no OCR) but not its purpose: a
+  doubt-photo is a one-off homework snapshot, not permanent content, so
+  `apps/web/app/api/topics/[topicId]/doubt/route.ts` deletes the blob in
+  a `finally` block right after generating a reply, regardless of
+  outcome — no lasting reason to retain a photo of a child's handwriting
+  once it's been answered. This also keeps the feature schema-free: the
+  persisted `DoubtMessage` only ever stores a placeholder caption
+  ("[Photo question]" if the student typed nothing), never the image
+  itself, so no migration was needed.
+  `answerDoubt` (`apps/web/lib/agents/doubt.ts`) gained an optional
+  `image?: {base64, mimeType}` parameter, attached only to the current
+  turn's message (never past history, since past turns' images were
+  never persisted) — every other piece (the safety gate, moderation, the
+  `{flagged, category, reply}` contract, misconception personalization,
+  guide/direct mode) is unchanged and applies identically whether a turn
+  came with a photo or not. New student-scoped upload-token route
+  (`apps/web/app/api/student/doubt-photo-token/route.ts`, images only,
+  20MB cap) mirrors the teacher one exactly but gates on
+  `getCurrentStudent()`. `DoubtChat.tsx` gained a 📷 attach button next
+  to the text input, a "Photo attached" chip, and dynamically imports
+  `@vercel/blob/client`'s `upload()` only inside the attach handler (not
+  as a static top-level import) so the code only ships to students who
+  actually attach a photo — confirmed via a local build that
+  `/student/topics/[topicId]`'s bundle size was unaffected (197kB before
+  and after), rather than growing by the ~34kB the static import would
+  have added on every topic-page load.
+  Verified live end-to-end on a real "Simple Addition and Subtraction"
+  Class 6 Math chapter: attached a synthetic photo of "7 + 6 = ?" with no
+  typed text and got back a reply that correctly read the photo and
+  gave a genuine teaching walkthrough (not a generic non-answer, not a
+  bare "13"), with the message list correctly showing a "Photo attached"
+  placeholder instead of raw image data; attached a second photo ("12 -
+  5 = ?") together with a typed question and got a correctly
+  differentiated reply addressing that specific problem. Verified via a
+  temporary debug endpoint (`list()` from `@vercel/blob`, removed after)
+  that both uploaded photo blobs were actually gone immediately after
+  each reply — confirming the delete-after-use privacy step really
+  executes, not just that the code compiles. Test chapter deleted
+  afterward via the existing delete-chapter feature.
+  **All six brainstormed "modern learning features" are now done**:
+  Progress page, Gamification badges, Spaced-repetition reminders,
+  Concept map, Self-explain (Feynman), Photo-based doubt solving.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
