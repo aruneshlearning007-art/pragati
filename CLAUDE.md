@@ -976,6 +976,54 @@ machine. Feel free to use them normally instead of the workarounds above.
   existing `updateMasteryForTopic` works correctly. Test chapter deleted
   afterward via the existing delete-chapter feature; debug route deleted
   and redeployed, confirmed 404 in production afterward.
+- **Concept map (sequential flow diagram)** ✅ done (verified live
+  2026-08-23), fourth of the six brainstormed "modern learning features."
+  The multi-concept chapter overview page
+  (`apps/web/app/student/chapters/[chapterId]/page.tsx`) previously listed
+  a chapter's concepts as a flat vertical list of pill cards; this turns
+  it into an actual connected visual.
+  **Scoping decision (discussed with the founder before building)**:
+  there is no prerequisite/dependency data anywhere in the schema —
+  `Topic`/`SubConcept` have no ordering or "depends on" field, concepts
+  are only ever ordered by `createdAt` (which happens to already reflect
+  segmentation's sensible teaching order, e.g. Addition before
+  Subtraction). Rather than adding a schema migration + a new LLM signal
+  for a real branching dependency graph, shipped a **simple sequential
+  map** instead: each concept is a node in existing order, connected by
+  arrows, color-coded by the student's own mastery status. Zero new
+  queries, zero schema change, zero new LLM calls — a real dependency
+  graph can follow later as an explicit v2 if this proves valuable, same
+  precedent as the fact-fluency drill → spaced-repetition reminders v1→v2
+  pattern above.
+  New `apps/web/components/ConceptMapView.tsx` follows the exact
+  flex-wrap-boxes-connected-by-arrows pattern already used by
+  `DiagramView` in `ExplainTab.tsx` (chosen over a fixed-viewBox SVG
+  specifically because that pattern already handles responsive wrapping
+  on narrow viewports) — each node styled with the existing
+  `STATUS_STYLES` status-pill colors reused everywhere else in the app.
+  The chapter overview page's existing `topicCards` data (from the
+  already-batched `getTopicStatusesByChapter`) feeds it directly with no
+  new query. Single-topic chapters still redirect straight through
+  unchanged.
+  Verified live end-to-end: uploaded a real 4-concept "Basics of
+  Fractions" Class 6 Math chapter (Understanding/Equivalent/Comparing/
+  Adding Fractions), published it; confirmed the chapter overview page
+  rendered 4 connected nodes in order, all "Not started" before any
+  practice; at a narrower viewport (700px) confirmed the 4th node wrapped
+  cleanly to a new row with its connecting arrow, no overlap; mastered
+  the first concept's quiz (6/6) and confirmed only that node turned
+  green/"Mastered" while the other 3 nodes and all connectors were
+  unaffected. Test chapter deleted afterward via the existing
+  delete-chapter feature.
+  **Aside, not a regression**: while generating the first test chapter's
+  4 concepts, one attempt genuinely failed partway ("Generated 2 of 4
+  concepts, then stopped... Expected property name or '}' in JSON") — a
+  transient Gemini JSON-formatting slip of the kind the chapter-
+  generation reliability pass already hardens against with retries and
+  defensive parsing; a second identical upload attempt succeeded cleanly
+  end-to-end. Noted here only as confirmation the existing
+  partial-failure handling (What's already generated is saved, delete
+  and retry) continues to behave correctly, not as a new bug to fix.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
