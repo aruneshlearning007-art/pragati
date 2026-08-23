@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@pragati/db";
 import { getCurrentStudent } from "@/lib/session-server";
 import { getTopicStatusesByChapter, type StatusResult } from "@/lib/agents/diagnostic";
-import { UI, STATUS_STYLES, type Language } from "@/lib/i18n";
+import { UI, type Language } from "@/lib/i18n";
 import { ErrorCard } from "@/components/ErrorCard";
+import { ConceptMapView } from "@/components/ConceptMapView";
 
 export default async function ChapterOverviewPage({ params }: { params: Promise<{ chapterId: string }> }) {
   const student = await getCurrentStudent();
@@ -51,37 +51,7 @@ export default async function ChapterOverviewPage({ params }: { params: Promise<
         {t.conceptsInChapter}
       </p>
 
-      <div className="flex flex-col gap-3 max-w-2xl">
-        {topicCards.map((topic, i) => {
-          const style = STATUS_STYLES[topic.status];
-          const label = topic.status === "mastered" ? t.mastered : topic.status === "revision" ? t.revision : t.notStarted;
-          return (
-            <Link
-              key={topic.id}
-              href={`/student/topics/${topic.id}`}
-              className="flex items-center justify-between gap-3 p-4.5 rounded-card"
-              style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                  style={{ background: "var(--color-bg)", color: "var(--color-text-muted)" }}
-                >
-                  {i + 1}
-                </div>
-                <div className="font-heading font-semibold text-[15px]">{topic.title}</div>
-              </div>
-              <div
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold w-fit shrink-0"
-                style={{ background: style.bg, color: style.fg }}
-              >
-                <span className="w-[7px] h-[7px] rounded-full" style={{ background: style.dot }} />
-                {label}
-              </div>
-            </Link>
-          );
-        })}
-      </div>
+      <ConceptMapView nodes={topicCards.map((t) => ({ id: t.id, title: t.title, status: t.status }))} language={language} />
     </div>
   );
 }
