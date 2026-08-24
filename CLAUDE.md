@@ -1339,6 +1339,38 @@ machine. Feel free to use them normally instead of the workarounds above.
   layered illustration renders identically to before (no layout shift
   from the layer-splitting) with no tilt applied, as expected with no
   mouse.
+- **Hero character acts out the problem→solution story** ✅ done
+  (verified live 2026-08-24), direct follow-up after the founder asked
+  whether the hero mascot could "reveal its pain" — visually act out
+  the page's own problem→solution narrative rather than only ever
+  showing the happy state. Confirmed with the founder: auto-play once
+  on page load (not hover-gated, since that would never fire on
+  mobile; not a continuous loop, which would feel repetitive/gimmicky
+  the longer the page stays open).
+  The character now starts with a confused expression (furrowed brows,
+  a flat worried mouth) and floating "?" marks instead of sparkles —
+  visually representing the pain point the headline already names
+  ("doubts go unanswered") — then cross-fades into the original happy
+  expression + sparkles once, automatically, ~1.5s after mount. Only
+  the eyebrows/mouth (`HeroFaceHappy`/`HeroFaceConfused`) and the
+  floating symbols (`HeroConfusionLayer`/`HeroSparkleLayer`) are
+  separate absolutely-positioned overlay layers cross-fading via plain
+  CSS `opacity` transitions — eyes, blush, body, and the book never
+  change, so nothing needs to be redrawn or morphed, keeping this
+  cheap. `prefers-reduced-motion` (checked once via `matchMedia` on
+  mount) skips the confused phase entirely and shows the happy state
+  immediately — no transition at all for anyone with that preference,
+  consistent with how the earlier reveal/tilt passes already handle it.
+  No new dependency; builds on the exact layering approach the 3D-tilt
+  pass already established.
+  Verified live end-to-end: a fresh page load genuinely shows the
+  confused face + "?" marks first (confirmed via screenshot), then a
+  smooth cross-fade into the smiling face + sparkles after the delay
+  (confirmed via a second screenshot ~3s later); confirmed the existing
+  mouse-tilt interaction still works correctly on the settled happy
+  state afterward (real non-identity `matrix3d` on hover, same
+  verification method as the 3D-tilt pass); checked at 375px mobile
+  width with no layout shift from the two-variant layering.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
