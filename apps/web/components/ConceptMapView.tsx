@@ -19,7 +19,7 @@ export function ConceptMapView({ nodes, language }: { nodes: ConceptMapNode[]; l
           <div key={node.id} className="flex items-center gap-1">
             <Link
               href={`/student/topics/${node.id}`}
-              className="w-40 p-3.5 rounded-[10px] text-center flex flex-col items-center gap-1.5"
+              className="w-40 p-3.5 rounded-[10px] text-center flex flex-col items-center gap-1.5 transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-md"
               style={{ background: style.bg, border: `1px solid ${style.dot}` }}
             >
               <div

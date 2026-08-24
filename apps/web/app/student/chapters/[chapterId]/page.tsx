@@ -47,8 +47,11 @@ export default async function ChapterOverviewPage({ params }: { params: Promise<
   return (
     <div>
       <h1 className="font-heading text-[26px] font-semibold mb-1.5">{chapterTitle}</h1>
-      <p className="text-sm mb-6" style={{ color: "var(--color-text-muted)" }}>
+      <p className="text-sm mb-1.5" style={{ color: "var(--color-text-muted)" }}>
         {t.conceptsInChapter}
+      </p>
+      <p className="text-sm mb-6" style={{ color: "var(--color-text-muted)" }}>
+        {topicCards.filter((c) => c.status === "mastered").length} / {topicCards.length} {t.conceptsMasteredSuffix}
       </p>
 
       <ConceptMapView nodes={topicCards.map((t) => ({ id: t.id, title: t.title, status: t.status }))} language={language} />
