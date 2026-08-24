@@ -1371,6 +1371,60 @@ machine. Feel free to use them normally instead of the workarounds above.
   state afterward (real non-identity `matrix3d` on hover, same
   verification method as the 3D-tilt pass); checked at 375px mobile
   width with no layout shift from the two-variant layering.
+- **Student panel UI polish — first slice** ✅ done (verified live
+  2026-08-24), founder-requested after asking whether the student panel
+  UI should be improved (recommended starting with the pages a student
+  sees most — home + topic page — rather than everything at once).
+  Presentational only, reusing 100% existing data-fetching
+  (`getStudentStreak`, `getChapterStatusesByIds`, `getTopicStatus`) and
+  existing tokens (`STATUS_STYLES`, the `--color-note-N-bg/fg` rotation
+  already used for Notes cards) — no schema changes, no new routes, no
+  new dependencies.
+  **Sidebar** (`apps/web/app/student/layout.tsx`): subject links had no
+  active-state highlighting at all — new
+  `apps/web/components/SidebarSubjectList.tsx` client component reads
+  `?subject=` via `useSearchParams()` (layouts can't receive
+  `searchParams` directly in the App Router, only `page.tsx` can) to
+  highlight the active one; each subject gets a colored dot from the
+  existing note-color rotation instead of a uniform green dot; a 🔥
+  streak indicator (previously only visible on the separate Progress
+  page) now shows right in the sidebar.
+  **Student home** (`apps/web/app/student/page.tsx`): chapter cards had
+  no hover feedback (inconsistent with `NotesPane`'s cards elsewhere) —
+  added the same lift+shadow treatment; added a one-line mastery rollup
+  ("X / Y chapters mastered") above the grid; the H1 gets a small accent
+  dot using the same per-subject color the sidebar computes (same
+  index-into-alphabetical-list rotation, not shared state), so
+  navigating into a subject feels visually continuous with the sidebar
+  entry just clicked.
+  **Topic page** (`apps/web/app/student/topics/[topicId]/page.tsx`):
+  added an icon per tab (📝💡🗣️✍️🎥, matching this app's existing
+  emoji-as-icon convention); added hover feedback to the tab bar and
+  concept-switcher pills (neither had any — required moving their base
+  colors from inline `style` into Tailwind classes, since inline style
+  always wins over a class-based `:hover` rule regardless of
+  specificity, so a `hover:` utility silently no-ops against an inline
+  color); added a mastery status pill next to the topic H1 via
+  `getTopicStatus` (previously only visible from the chapter overview
+  or Progress page).
+  Verified live end-to-end: uploaded and published a real test chapter,
+  confirmed the sidebar highlighted the active subject with the correct
+  per-subject dot color matching the H1 accent; confirmed the "0/1
+  chapters mastered" rollup and card hover transition; mastered the
+  chapter's quiz (6/6) and confirmed both the topic page's status pill
+  updated to "Mastered" and the sidebar's streak indicator appeared
+  (1-day streak, from that same practice attempt) on reload. Test
+  chapter deleted afterward via the existing delete-chapter feature.
+  **Real gap found and flagged, not fixed in this pass** (deliberately
+  out of scope for a presentational slice): checking at a real 375px
+  mobile width surfaced that the entire student panel's sidebar layout
+  is not responsive at all — it's a fixed 250px-wide flex child with no
+  collapse/hamburger mechanism, so main content gets pushed off-screen
+  and needs horizontal scrolling to view anything below ~375-400px.
+  This predates this session's UI polish work (never previously checked
+  at a narrow width) and is a real, larger-scope item — flagged to the
+  founder as the natural next priority given the likely Android/budget-
+  phone student audience, not silently absorbed into this slice.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
