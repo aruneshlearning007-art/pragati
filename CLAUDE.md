@@ -1425,6 +1425,40 @@ machine. Feel free to use them normally instead of the workarounds above.
   at a narrow width) and is a real, larger-scope item — flagged to the
   founder as the natural next priority given the likely Android/budget-
   phone student audience, not silently absorbed into this slice.
+- **Student panel UI polish — second slice** ✅ done (verified live
+  2026-08-24), direct continuation of the first slice (sidebar/home/
+  topic page). Covers the two pages left over: the Progress page and
+  the chapter overview/concept map page. Same scope discipline as
+  slice one — presentational only, reusing data already fetched on
+  these pages and the exact patterns just established (hover
+  lift+shadow, the per-subject `--color-note-N` accent dot, the "X / Y
+  ... mastered" rollup line) — no schema changes, no new routes, no
+  new dependencies.
+  **Progress page**: subject rollup cards, weak-area links, and badge
+  tiles had no hover feedback at all — added the same lift+shadow
+  treatment. Subject cards now show the same colored accent dot the
+  sidebar/home page use, computed independently on this page (sort by
+  `subjectName` for a stable alphabetical index, same convention as the
+  sidebar's `nameEn asc`) rather than shared state — a decorative
+  touch, not something that needs to be pixel-identical everywhere.
+  **Chapter overview / concept map**: added a "X / Y concepts mastered"
+  rollup line mirroring the student home page's, from data already
+  computed on this page. `ConceptMapView`'s nodes had no hover state —
+  added the same treatment.
+  Verified live end-to-end: uploaded and published a real 2-concept
+  "Addition and Subtraction" test chapter; confirmed the chapter
+  overview page showed "0 / 2 concepts mastered" and hover on nodes;
+  mastered the first concept's quiz (6/6) and confirmed the rollup
+  updated to "1 / 2" and the node turned green on reload; confirmed the
+  Progress page's Mathematics subject card showed the *exact same*
+  accent dot color as the sidebar/home page for that subject, proving
+  the independently-computed color assignment stays consistent across
+  pages in practice; confirmed हिं rendering. Test chapter deleted
+  afterward via the existing delete-chapter feature.
+  **Both slices of the brainstormed student-panel UI pass are now
+  done.** The one known, deliberately-deferred gap remains: the sidebar
+  layout still isn't responsive at mobile widths (flagged after slice
+  one, not yet addressed).
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
