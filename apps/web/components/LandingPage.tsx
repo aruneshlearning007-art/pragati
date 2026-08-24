@@ -212,13 +212,34 @@ function Tilt({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** A simple flat-illustration child reading a book, with a few floating
+/**
+ * A simple flat-illustration child reading a book, with a few floating
  * "it clicked" sparkles — hand-drawn shapes, not a photo, so there's no
  * licensing question and it matches the app's existing green/warm palette.
  * Split into three depth layers (back shadow, character, front sparkles)
  * so the Tilt wrapper's rotation makes them visibly separate in 3D instead
- * of just rotating one flat image. */
+ * of just rotating one flat image.
+ *
+ * Also acts out the page's own problem→solution story: starts with a
+ * confused expression + floating "?" marks (the pain point — "doubts go
+ * unanswered"), then cross-fades to the happy expression + sparkles once,
+ * automatically, ~1.5s after mount — every visitor sees the transformation
+ * without needing to hover, and it works identically on mobile. Skipped
+ * entirely under prefers-reduced-motion: the happy state just shows
+ * immediately, no transition.
+ */
 function HeroIllustration() {
+  const [revealed, setRevealed] = useState(false);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setRevealed(true);
+      return;
+    }
+    const timer = setTimeout(() => setRevealed(true), 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <Tilt>
       <div className="relative mb-6" style={{ width: 220, height: 190 }}>
@@ -227,9 +248,20 @@ function HeroIllustration() {
         </div>
         <div className="absolute inset-0" style={{ transform: "translateZ(0px)" }}>
           <HeroCharacterLayer />
+          <div className="absolute inset-0" style={{ opacity: revealed ? 0 : 1, transition: "opacity 0.6s ease" }}>
+            <HeroFaceConfused />
+          </div>
+          <div className="absolute inset-0" style={{ opacity: revealed ? 1 : 0, transition: "opacity 0.6s ease" }}>
+            <HeroFaceHappy />
+          </div>
         </div>
         <div className="absolute inset-0" style={{ transform: "translateZ(36px)" }}>
-          <HeroSparkleLayer />
+          <div className="absolute inset-0" style={{ opacity: revealed ? 0 : 1, transition: "opacity 0.6s ease" }}>
+            <HeroConfusionLayer />
+          </div>
+          <div className="absolute inset-0" style={{ opacity: revealed ? 1 : 0, transition: "opacity 0.6s ease" }}>
+            <HeroSparkleLayer />
+          </div>
         </div>
       </div>
     </Tilt>
@@ -255,10 +287,11 @@ function HeroCharacterLayer() {
       <circle cx="110" cy="62" r="30" fill="#C68A5B" />
       <path d="M82 54 Q110 22 138 54 Q138 38 110 34 Q82 38 82 54 Z" fill="#3B2A22" />
 
-      {/* face */}
+      {/* face — eyes and blush stay constant; eyebrows/mouth are a
+          separate cross-fading layer (HeroFaceHappy/HeroFaceConfused)
+          rendered on top of this one */}
       <circle cx="100" cy="64" r="3.2" fill="var(--color-text)" />
       <circle cx="120" cy="64" r="3.2" fill="var(--color-text)" />
-      <path d="M101 74 Q110 80 119 74" stroke="var(--color-text)" strokeWidth="2.4" strokeLinecap="round" fill="none" />
       <ellipse cx="90" cy="70" rx="4" ry="3" fill="#E8A07A" opacity="0.6" />
       <ellipse cx="130" cy="70" rx="4" ry="3" fill="#E8A07A" opacity="0.6" />
 
@@ -273,6 +306,48 @@ function HeroCharacterLayer() {
       {/* hands holding book */}
       <circle cx="80" cy="122" r="7" fill="#C68A5B" />
       <circle cx="140" cy="122" r="7" fill="#C68A5B" />
+    </svg>
+  );
+}
+
+/** "After" expression — the original smile, extracted so it can cross-fade
+ * against HeroFaceConfused instead of both being drawn at once. */
+function HeroFaceHappy() {
+  return (
+    <svg width="220" height="190" viewBox="0 0 220 190" fill="none" xmlns="http://www.w3.org/2000/svg" role="presentation">
+      <path d="M101 74 Q110 80 119 74" stroke="var(--color-text)" strokeWidth="2.4" strokeLinecap="round" fill="none" />
+    </svg>
+  );
+}
+
+/** "Before" expression — furrowed brows + a flat, gently-worried mouth,
+ * representing the pain point ("doubts go unanswered") before it cross-fades
+ * into HeroFaceHappy. */
+function HeroFaceConfused() {
+  return (
+    <svg width="220" height="190" viewBox="0 0 220 190" fill="none" xmlns="http://www.w3.org/2000/svg" role="presentation">
+      <path d="M93 55 L106 59" stroke="var(--color-text)" strokeWidth="2.4" strokeLinecap="round" />
+      <path d="M127 55 L114 59" stroke="var(--color-text)" strokeWidth="2.4" strokeLinecap="round" />
+      <path d="M102 77 Q110 74 118 77" stroke="var(--color-text)" strokeWidth="2.4" strokeLinecap="round" fill="none" />
+    </svg>
+  );
+}
+
+/** "Before" floating symbols — small "?" marks in place of the sparkles,
+ * same float-bob motion, cross-fading into HeroSparkleLayer once revealed. */
+function HeroConfusionLayer() {
+  return (
+    <svg width="220" height="190" viewBox="0 0 220 190" fill="none" xmlns="http://www.w3.org/2000/svg" role="presentation">
+      <g className="float-bob" style={{ animationDelay: "0s" }}>
+        <text x="42" y="62" fontSize="30" fontWeight="700" fill="var(--color-revision-dot)">
+          ?
+        </text>
+      </g>
+      <g className="float-bob" style={{ animationDelay: "0.6s" }}>
+        <text x="166" y="50" fontSize="22" fontWeight="700" fill="var(--color-revision-dot)">
+          ?
+        </text>
+      </g>
     </svg>
   );
 }
