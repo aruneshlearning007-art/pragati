@@ -1300,6 +1300,45 @@ machine. Feel free to use them normally instead of the workarounds above.
   illustration scales down cleanly and cards still stack single-column
   with no overflow, matching the standing lesson to verify responsive
   behavior at an actual narrow preset.
+- **Landing page CSS 3D tilt effects** ✅ done (verified live
+  2026-08-24), direct follow-up after the founder asked whether 3D
+  animation was possible. Chose real CSS 3D transforms
+  (`perspective`+`rotateX`/`rotateY`) over a WebGL library (Three.js/
+  react-three-fiber) after flagging the tradeoff explicitly — a full 3D
+  library would add real dependency weight and hurt first-load speed
+  for parents on budget Android phones, which matters directly on a
+  conversion-focused landing page. No new dependency either way.
+  The hero illustration (`apps/web/components/LandingPage.tsx`) was
+  split into three depth layers sharing one viewBox — a back shadow
+  layer, the character layer, and a front sparkle layer — each
+  absolutely positioned inside one `.tilt-scene` container
+  (`transform-style: preserve-3d`). A new local `Tilt` component tracks
+  `mousemove` over that container and applies `rotateX`/`rotateY` based
+  on cursor position relative to center, so the three layers visibly
+  separate in depth as it tilts (sparkles read as floating above the
+  character, not just the whole image rotating flat) rather than a
+  naive single-layer tilt. Springs back to neutral on `mouseleave`.
+  Never fires on touch devices (no `mousemove` event there), so mobile
+  simply keeps the static illustration — no special-casing needed.
+  Every `InfoCard`/`RoleCard`'s hover was upgraded from a flat
+  `translateY` lift to a `perspective`+`rotateX` "pop toward the
+  viewer" via one new shared `.tilt-card` CSS class (`globals.css`) —
+  no per-card JS or cursor tracking, kept cheap across the 10 cards on
+  the page. `prefers-reduced-motion` disables both the tilt and the
+  card pop, extending the same media-query block from the previous
+  animation pass.
+  Verified live end-to-end via real browser mouse interaction (not just
+  code review): dispatching a genuine hover over the illustration and
+  reading `getComputedStyle(...).transform` confirmed a real non-identity
+  `matrix3d` (actual 3D rotation applied); hovering away confirmed it
+  reset to the exact neutral perspective matrix; hovering a card
+  confirmed both its `:hover` state and computed transform/box-shadow
+  matched the CSS exactly; confirmed via a live stylesheet check that
+  `.tilt-scene`, `.tilt-card`, and the `prefers-reduced-motion` override
+  all shipped in the deployed CSS; at a real 375px mobile width the
+  layered illustration renders identically to before (no layout shift
+  from the layer-splitting) with no tilt applied, as expected with no
+  mouse.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
