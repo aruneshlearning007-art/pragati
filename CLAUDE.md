@@ -1236,6 +1236,36 @@ machine. Feel free to use them normally instead of the workarounds above.
   existing delete-chapter feature (test user accounts have no delete
   path in this app, consistent with every other residual test account
   already in the database).
+- **Parent-focused landing page redesign** ✅ done (verified live
+  2026-08-24), founder-requested: the landing page (`apps/web/components/LandingPage.tsx`)
+  was purely functional (generic hero + two role-picker cards) with
+  nothing for a visiting parent to emotionally connect with. Rewrote
+  the hero and added a Problem/Solution section pair: four concrete
+  pain points a parent will recognize (shy to ask in a full classroom,
+  good marks without real understanding, one-size-fits-all teaching,
+  expensive tutors), each directly answered by a mirrored solution card
+  in the same order, so every named worry gets a visible fix before the
+  signup choice.
+  **Confirmed with the founder before writing copy**: cost framing kept
+  to general "affordable" language, no specific pricing or "free"
+  claims (payments/pricing aren't decided yet — Phase 6 not started);
+  English stays the default language, with equally-considered (not
+  mechanically translated) Hindi copy behind the existing toggle.
+  New shared `InfoCard` component (icon/title/description, `tone:
+  "neutral" | "positive"`) reuses existing design tokens throughout —
+  problem cards use the same neutral surface/border as the existing
+  role cards, solution cards reuse the `mastered`/success green tokens
+  already meaningful elsewhere in the app (Progress page, badges) —
+  and both share the existing Fredoka/Karla+Noto-Devanagari font
+  pairing from `tailwind.config.ts`. No new colors, fonts, or
+  dependencies.
+  Verified live: desktop render of all new sections with correct
+  copy/icons/color treatment and working role cards; the हिं toggle
+  renders the Hindi copy correctly with no missing keys or overflow;
+  at a real 375px mobile width the 2-column card grids collapse to a
+  clean single column with no overlap (per the standing lesson from
+  earlier features to verify responsive layouts at an actual narrow
+  preset, not just desktop).
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
