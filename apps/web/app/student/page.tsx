@@ -8,6 +8,8 @@ import { ErrorCard } from "@/components/ErrorCard";
 
 type ChapterWithTopics = Prisma.ChapterGetPayload<{ include: { topics: true } }>;
 
+const NOTE_COLORS = 6;
+
 export default async function StudentHomePage({
   searchParams,
 }: {
@@ -19,12 +21,20 @@ export default async function StudentHomePage({
   const t = UI[language];
 
   let activeSubject: Awaited<ReturnType<typeof prisma.subject.findMany>>[number] | undefined;
+  let subjectAccentColor = "var(--color-primary)";
   let chapterCards: { chapter: ChapterWithTopics; status: TopicStatus; progress: number }[];
   let reminders: RevisionReminder[];
   try {
     const { subject: subjectIdParam } = await searchParams;
     const subjects = await prisma.subject.findMany({ orderBy: { nameEn: "asc" } });
     activeSubject = subjects.find((s) => s.id === subjectIdParam) ?? subjects[0];
+    if (activeSubject) {
+      const subjectIndex = subjects.findIndex((s) => s.id === activeSubject!.id);
+      // Same index-into-the-alphabetical-list rotation the sidebar uses for
+      // its subject dots, so navigating in feels visually continuous rather
+      // than coincidentally matching.
+      subjectAccentColor = `var(--color-note-${(subjectIndex % NOTE_COLORS) + 1}-fg)`;
+    }
 
     if (!activeSubject) {
       return <p style={{ color: "var(--color-text-muted)" }}>No subjects yet.</p>;
@@ -103,9 +113,18 @@ export default async function StudentHomePage({
         </div>
       )}
 
-      <h1 className="font-heading text-[28px] font-semibold mb-6">
-        {language === "hi" ? activeSubject.nameHi || activeSubject.nameEn : activeSubject.nameEn}
-      </h1>
+      <div className="flex items-center gap-2.5 mb-2">
+        <span className="w-2.5 h-2.5 rounded-full flex-none" style={{ background: subjectAccentColor }} />
+        <h1 className="font-heading text-[28px] font-semibold">
+          {language === "hi" ? activeSubject.nameHi || activeSubject.nameEn : activeSubject.nameEn}
+        </h1>
+      </div>
+
+      {chapterCards.length > 0 && (
+        <div className="text-sm mb-6" style={{ color: "var(--color-text-muted)" }}>
+          {chapterCards.filter((c) => c.status === "mastered").length} / {chapterCards.length} {t.chaptersMasteredSuffix}
+        </div>
+      )}
 
       {chapterCards.length === 0 ? (
         <div
@@ -126,7 +145,7 @@ export default async function StudentHomePage({
             return (
               <div
                 key={chapter.id}
-                className="flex flex-col gap-3 p-5 rounded-card"
+                className="flex flex-col gap-3 p-5 rounded-card transition-transform duration-150 hover:-translate-y-1 hover:shadow-md"
                 style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", boxShadow: "0 4px 14px rgba(0,0,0,0.05)" }}
               >
                 <div

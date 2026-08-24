@@ -11,10 +11,19 @@ import { VideosTab } from "@/components/VideosTab";
 import { DoubtChat } from "@/components/DoubtChat";
 import { SelfExplainTab } from "@/components/SelfExplainTab";
 import { RichText } from "@/components/RichText";
-import { UI, type Language } from "@/lib/i18n";
+import { getTopicStatus } from "@/lib/agents/diagnostic";
+import { UI, STATUS_STYLES, type Language } from "@/lib/i18n";
 import { ErrorCard } from "@/components/ErrorCard";
 
 type Tab = "notes" | "explain" | "self-explain" | "practice" | "videos";
+
+const TAB_ICONS: Record<Tab, string> = {
+  notes: "📝",
+  explain: "💡",
+  "self-explain": "🗣️",
+  practice: "✍️",
+  videos: "🎥",
+};
 
 export default async function TopicPage({
   params,
@@ -66,6 +75,15 @@ export default async function TopicPage({
   const chapterTitle =
     language === "hi" ? topic.chapter.titleHi || topic.chapter.titleEn : topic.chapter.titleEn;
 
+  let topicStatus: Awaited<ReturnType<typeof getTopicStatus>>;
+  try {
+    topicStatus = await getTopicStatus(student.id, topicId);
+  } catch {
+    topicStatus = { status: "not-started", progress: 0 };
+  }
+  const statusStyle = STATUS_STYLES[topicStatus.status];
+  const statusLabel = topicStatus.status === "mastered" ? t.mastered : topicStatus.status === "revision" ? t.revision : t.notStarted;
+
   const tabs: { key: Tab; label: string }[] = [
     { key: "notes", label: t.tabNotes },
     { key: "explain", label: t.tabExplain },
@@ -79,7 +97,16 @@ export default async function TopicPage({
       <div className="mb-1 text-xs font-semibold" style={{ color: "var(--color-text-muted)" }}>
         {chapterTitle}
       </div>
-      <h1 className="font-heading text-[26px] font-semibold mb-3">{title}</h1>
+      <div className="flex items-center flex-wrap gap-3 mb-3">
+        <h1 className="font-heading text-[26px] font-semibold">{title}</h1>
+        <div
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold flex-none"
+          style={{ background: statusStyle.bg, color: statusStyle.fg }}
+        >
+          <span className="w-[7px] h-[7px] rounded-full" style={{ background: statusStyle.dot }} />
+          {statusLabel}
+        </div>
+      </div>
 
       {topic.chapter.topics.length > 1 && (
         <div className="flex flex-wrap gap-1.5 mb-5">
@@ -90,11 +117,10 @@ export default async function TopicPage({
               <Link
                 key={sibling.id}
                 href={`/student/topics/${sibling.id}`}
-                className="px-3 py-1.5 rounded-full text-xs font-bold"
-                style={
+                className={
                   active
-                    ? { background: "var(--color-primary)", color: "white" }
-                    : { background: "var(--color-surface)", color: "var(--color-text-muted)", border: "1px solid var(--color-border)" }
+                    ? "px-3 py-1.5 rounded-full text-xs font-bold transition-colors duration-150 bg-[var(--color-primary)] text-white"
+                    : "px-3 py-1.5 rounded-full text-xs font-bold transition-colors duration-150 bg-[var(--color-surface)] text-[var(--color-text-muted)] border border-[var(--color-border)] hover:bg-[var(--color-bg)]"
                 }
               >
                 {i + 1}. {siblingTitle}
@@ -109,13 +135,14 @@ export default async function TopicPage({
           <Link
             key={tb.key}
             href={`/student/topics/${topicId}?tab=${tb.key}`}
-            className="px-4 py-2.5 text-sm font-bold"
-            style={{
-              color: tab === tb.key ? "var(--color-primary)" : "var(--color-text-muted)",
-              borderBottom: tab === tb.key ? "2px solid var(--color-primary)" : "2px solid transparent",
-            }}
+            className={
+              tab === tb.key
+                ? "px-4 py-2.5 text-sm font-bold transition-colors duration-150 text-[var(--color-primary)]"
+                : "px-4 py-2.5 text-sm font-bold transition-colors duration-150 text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+            }
+            style={{ borderBottom: tab === tb.key ? "2px solid var(--color-primary)" : "2px solid transparent" }}
           >
-            {tb.label}
+            {TAB_ICONS[tb.key]} {tb.label}
           </Link>
         ))}
       </div>
