@@ -106,9 +106,36 @@ export const UI = {
     loginSubtitle: "Enter your email to get back into your account.",
     loginCta: "Log in",
     logout: "Log out",
-    landingHeroTitle: "Personalized learning for every student, in every subject.",
+    landingHeroTitle: "Every child learns differently. Most classrooms don't have time for that.",
     landingHeroSubtitle:
-      "Teachers upload a chapter, and Pragati builds notes, explanations and practice — tailored to your class and school.",
+      "In a class of 40, your child's doubts often go unanswered — and quietly pile up until exam time. Pragati gives every student in Class 3–8 a patient AI tutor who explains their own school's chapters the way THEY understand best, and never runs out of patience for 'why?'",
+    landingProblemHeading: "Sound familiar?",
+    landingProblem1Title: "Scared to ask in a full classroom",
+    landingProblem1Body:
+      "With 40+ students and one teacher, there's rarely time for every doubt. Many kids just nod along, too shy to say 'I didn't get it' — and the gap quietly grows.",
+    landingProblem2Title: "Good marks, but not real understanding",
+    landingProblem2Body:
+      "Memorizing works for tomorrow's test — until next year's chapter builds on a concept that was never truly understood, and everything after it gets harder.",
+    landingProblem3Title: "Every child struggles differently",
+    landingProblem3Body:
+      "One child mixes up fractions, another can't picture a diagram — but most schools and tuitions teach every child the exact same way.",
+    landingProblem4Title: "Personal tutors are hard to afford",
+    landingProblem4Body: "The one-on-one attention that actually works is often out of reach for most families.",
+    landingSolutionHeading: "How Pragati helps",
+    landingSolution1Title: "No question is ever too small",
+    landingSolution1Body:
+      "Your child can ask anything, anytime, with zero judgment — and Pragati often guides them to the answer step-by-step instead of just handing it over.",
+    landingSolution2Title: "Built to teach, not just to test",
+    landingSolution2Body:
+      "Every topic is explained multiple ways — as a story, in real life, and worked out step-by-step — until it genuinely clicks, not just gets memorized.",
+    landingSolution3Title: "Personalized to exactly your child",
+    landingSolution3Body:
+      "Pragati notices exactly which idea is confusing your child — not just right or wrong — and quietly gives them more help with that specific thing.",
+    landingSolution4Title: "Affordable, and available anytime",
+    landingSolution4Body:
+      "No expensive tuition slots to book — your child's personal tutor is ready whenever they are, for every chapter their own teacher uploads.",
+    landingReadyHeading: "Ready to get started?",
+    landingReadySubtitle: "Takes less than a minute — for your child, or for your school.",
     landingStudentTitle: "I'm a Student",
     landingStudentDescription: "Learn your school's chapters with notes, explanations and quizzes made for you.",
     landingStudentCta: "Get started",
@@ -247,9 +274,36 @@ export const UI = {
     loginSubtitle: "अपने खाते में वापस जाने के लिए अपना ईमेल दर्ज करें।",
     loginCta: "लॉग इन करें",
     logout: "लॉग आउट",
-    landingHeroTitle: "हर छात्र के लिए, हर विषय में, व्यक्तिगत शिक्षा।",
+    landingHeroTitle: "हर बच्चा अलग तरीके से सीखता है। कक्षा में सबके लिए उतना समय नहीं होता।",
     landingHeroSubtitle:
-      "शिक्षक एक अध्याय अपलोड करते हैं, और प्रगति आपकी कक्षा और स्कूल के अनुसार नोट्स, व्याख्या और अभ्यास तैयार करता है।",
+      "40 बच्चों की क्लास में आपके बच्चे के सवाल अक्सर अनसुलझे रह जाते हैं — और परीक्षा तक चुपचाप बढ़ते रहते हैं। प्रगति हर छात्र (कक्षा 3-8) को एक धैर्यवान AI शिक्षक देता है, जो उनके स्कूल के हर अध्याय को उसी तरह समझाता है जैसे वो बच्चा समझ पाए — और 'क्यों?' पूछने पर कभी थकता नहीं।",
+    landingProblemHeading: "क्या यह आपकी भी चिंता है?",
+    landingProblem1Title: "भरी क्लास में सवाल पूछने से डर लगना",
+    landingProblem1Body:
+      "40+ बच्चों और एक शिक्षक के बीच हर सवाल के लिए समय निकालना मुश्किल होता है। कई बच्चे बस सिर हिला देते हैं, यह कहने में शर्माते हैं 'मुझे समझ नहीं आया' — और यह कमी चुपचाप बढ़ती जाती है।",
+    landingProblem2Title: "अच्छे नंबर, पर असली समझ नहीं",
+    landingProblem2Body:
+      "रट्टा लगाने से कल के टेस्ट में नंबर तो आ जाते हैं — लेकिन जब अगली कक्षा का पाठ इसी अवधारणा पर टिका होता है, तो आगे सब कुछ मुश्किल हो जाता है।",
+    landingProblem3Title: "हर बच्चे की परेशानी अलग होती है",
+    landingProblem3Body:
+      "किसी को भिन्न में उलझन होती है, किसी को चित्र समझ नहीं आता — लेकिन ज़्यादातर स्कूल और ट्यूशन हर बच्चे को एक ही तरीके से पढ़ाते हैं।",
+    landingProblem4Title: "निजी ट्यूटर महंगे पड़ते हैं",
+    landingProblem4Body: "जो व्यक्तिगत ध्यान सच में असर करता है, वह ज़्यादातर परिवारों की पहुंच से बाहर होता है।",
+    landingSolutionHeading: "प्रगति कैसे मदद करता है",
+    landingSolution1Title: "कोई भी सवाल छोटा नहीं होता",
+    landingSolution1Body:
+      "आपका बच्चा कभी भी, बिना किसी झिझक के कुछ भी पूछ सकता है — और प्रगति अक्सर सीधा जवाब देने की बजाय कदम-दर-कदम समझाकर उन्हें खुद जवाब तक पहुंचाता है।",
+    landingSolution2Title: "सिखाने के लिए बना, सिर्फ परखने के लिए नहीं",
+    landingSolution2Body:
+      "हर विषय को कई तरीकों से समझाया जाता है — कहानी की तरह, रोज़मर्रा की ज़िंदगी से जोड़कर, और कदम-दर-कदम हल करके — जब तक बात सच में समझ न आ जाए।",
+    landingSolution3Title: "आपके बच्चे के लिए पूरी तरह व्यक्तिगत",
+    landingSolution3Body:
+      "प्रगति ठीक पहचानता है कि आपके बच्चे को कौन सी बात उलझा रही है — सिर्फ सही या गलत नहीं — और चुपचाप उसी पर ज़्यादा मदद देता है।",
+    landingSolution4Title: "किफायती, और हर समय उपलब्ध",
+    landingSolution4Body:
+      "कोई महंगा ट्यूशन स्लॉट बुक करने की ज़रूरत नहीं — आपके बच्चे का निजी शिक्षक तब तैयार है जब वो सीखना चाहे, उनके अपने शिक्षक द्वारा दिए हर अध्याय के लिए।",
+    landingReadyHeading: "शुरू करने के लिए तैयार हैं?",
+    landingReadySubtitle: "एक मिनट से भी कम समय लगेगा — आपके बच्चे के लिए, या आपके स्कूल के लिए।",
     landingStudentTitle: "मैं एक छात्र हूँ",
     landingStudentDescription: "अपने स्कूल के अध्यायों को आपके लिए बनाए गए नोट्स, व्याख्या और प्रश्नोत्तरी के साथ सीखें।",
     landingStudentCta: "शुरू करें",
