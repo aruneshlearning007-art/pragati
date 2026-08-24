@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useActiveSubjectId } from "@/lib/activeSubjectStore";
 
 export interface SidebarSubjectItem {
   id: string;
@@ -9,14 +9,8 @@ export interface SidebarSubjectItem {
   dotColor: string;
 }
 
-// A small client component so the sidebar can read the current ?subject=
-// query param for active-state highlighting — layouts can't receive
-// searchParams directly in the App Router, only page.tsx can, so just this
-// interactive slice is split out while the rest of the sidebar stays in the
-// server-rendered layout.
 export function SidebarSubjectList({ subjects }: { subjects: SidebarSubjectItem[] }) {
-  const searchParams = useSearchParams();
-  const activeId = searchParams.get("subject") ?? subjects[0]?.id;
+  const activeId = useActiveSubjectId();
 
   return (
     <>

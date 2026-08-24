@@ -5,6 +5,7 @@ import { getTopicStatusesByChapter, type StatusResult } from "@/lib/agents/diagn
 import { UI, type Language } from "@/lib/i18n";
 import { ErrorCard } from "@/components/ErrorCard";
 import { ConceptMapView } from "@/components/ConceptMapView";
+import { SetActiveSubject } from "@/components/SetActiveSubject";
 
 export default async function ChapterOverviewPage({ params }: { params: Promise<{ chapterId: string }> }) {
   const student = await getCurrentStudent();
@@ -14,12 +15,15 @@ export default async function ChapterOverviewPage({ params }: { params: Promise<
 
   const { chapterId } = await params;
 
-  let chapter: Awaited<ReturnType<typeof prisma.chapter.findUnique>> & { topics: { id: string; titleEn: string; titleHi: string | null }[] };
+  let chapter: Awaited<ReturnType<typeof prisma.chapter.findUnique>> & {
+    subject: { id: string };
+    topics: { id: string; titleEn: string; titleHi: string | null }[];
+  };
   let topicCards: { id: string; title: string; status: StatusResult["status"]; progress: number }[];
   try {
     const found = await prisma.chapter.findUnique({
       where: { id: chapterId },
-      include: { topics: { orderBy: { createdAt: "asc" } } },
+      include: { subject: true, topics: { orderBy: { createdAt: "asc" } } },
     });
     if (!found) {
       return <p style={{ color: "var(--color-text-muted)" }}>Chapter not found.</p>;
@@ -46,6 +50,7 @@ export default async function ChapterOverviewPage({ params }: { params: Promise<
 
   return (
     <div>
+      <SetActiveSubject subjectId={chapter.subject.id} />
       <h1 className="font-heading text-[26px] font-semibold mb-1.5">{chapterTitle}</h1>
       <p className="text-sm mb-1.5" style={{ color: "var(--color-text-muted)" }}>
         {t.conceptsInChapter}

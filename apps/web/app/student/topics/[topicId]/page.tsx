@@ -14,6 +14,7 @@ import { RichText } from "@/components/RichText";
 import { getTopicStatus } from "@/lib/agents/diagnostic";
 import { UI, STATUS_STYLES, type Language } from "@/lib/i18n";
 import { ErrorCard } from "@/components/ErrorCard";
+import { SetActiveSubject } from "@/components/SetActiveSubject";
 
 type Tab = "notes" | "explain" | "self-explain" | "practice" | "videos";
 
@@ -48,7 +49,7 @@ export default async function TopicPage({
     chapter: {
       titleEn: string;
       titleHi: string | null;
-      subject: { nameEn: string };
+      subject: { id: string; nameEn: string };
       topics: { id: string; titleEn: string; titleHi: string | null }[];
     };
   };
@@ -94,6 +95,7 @@ export default async function TopicPage({
 
   return (
     <div>
+      <SetActiveSubject subjectId={topic.chapter.subject.id} />
       <div className="mb-1 text-xs font-semibold" style={{ color: "var(--color-text-muted)" }}>
         {chapterTitle}
       </div>

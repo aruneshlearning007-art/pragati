@@ -5,6 +5,7 @@ import { getCurrentStudent } from "@/lib/session-server";
 import { getChapterStatusesByIds, getRevisionReminders, type TopicStatus, type RevisionReminder } from "@/lib/agents/diagnostic";
 import { UI, STATUS_STYLES, type Language } from "@/lib/i18n";
 import { ErrorCard } from "@/components/ErrorCard";
+import { SetActiveSubject } from "@/components/SetActiveSubject";
 
 type ChapterWithTopics = Prisma.ChapterGetPayload<{ include: { topics: true } }>;
 
@@ -76,6 +77,7 @@ export default async function StudentHomePage({
 
   return (
     <div>
+      <SetActiveSubject subjectId={activeSubject.id} />
       {reminders.length > 0 && (
         <div
           className="p-5 rounded-card mb-6"

@@ -13,6 +13,7 @@ import {
 } from "@/lib/agents/diagnostic";
 import { UI, STATUS_STYLES, type Language } from "@/lib/i18n";
 import { ErrorCard } from "@/components/ErrorCard";
+import { SetActiveSubject } from "@/components/SetActiveSubject";
 
 const NOTE_COLORS = 6;
 
@@ -72,6 +73,7 @@ export default async function StudentProgressPage() {
   if (subjects.length === 0) {
     return (
       <div>
+        <SetActiveSubject subjectId={null} />
         <h1 className="font-heading text-[28px] font-semibold mb-6">{t.progressTitle}</h1>
         <div
           className="text-center py-14 px-6 rounded-card"
@@ -85,6 +87,7 @@ export default async function StudentProgressPage() {
 
   return (
     <div className="max-w-3xl">
+      <SetActiveSubject subjectId={null} />
       <h1 className="font-heading text-[28px] font-semibold mb-6">{t.progressTitle}</h1>
 
       <div
