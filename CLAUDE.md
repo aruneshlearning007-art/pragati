@@ -1266,6 +1266,40 @@ machine. Feel free to use them normally instead of the workarounds above.
   clean single column with no overlap (per the standing lesson from
   earlier features to verify responsive layouts at an actual narrow
   preset, not just desktop).
+- **Landing page animation + custom illustration pass** ✅ done
+  (verified live 2026-08-24), direct follow-up to the parent-focused
+  redesign above, founder-requested: the rebuilt problem/solution page
+  was still visually static — flat text and cards, no motion, no
+  imagery. Added a hand-drawn inline-SVG hero illustration (a simple
+  flat-style child reading a book, with floating sparkles) instead of
+  stock photography — confirmed with the founder beforehand, since the
+  app had zero image assets/photo pipeline and real photos of children
+  carry licensing/rights sensitivity this pass deliberately avoided.
+  A local `Reveal` helper (`apps/web/components/LandingPage.tsx`, one
+  `IntersectionObserver` per instance, no new dependency) fades+slides
+  every section and card up the first time it scrolls into view, with
+  each card in a grid staggered by `i * 80ms` so a section's cards
+  animate in one after another rather than all at once. Every card
+  (`InfoCard` and `RoleCard`) also got a hover lift+shadow+icon-scale
+  micro-interaction. `globals.css` gained the `.reveal`/`.reveal-visible`
+  transition pair, a `float-bob` keyframe for the sparkles, and a
+  `prefers-reduced-motion` override that disables all of it — not
+  optional, accessibility baseline. No Framer Motion/GSAP or any new
+  npm dependency; local build confirmed `/`'s First Load JS grew by
+  only ~1kB.
+  Verified live: hero illustration renders correctly and its content
+  (illustration, headline, subhead) is visible immediately since it's
+  above the fold on load; scrolling down shows each problem/solution/
+  role card genuinely starting hidden and fading in as it enters the
+  viewport, not all at once; confirmed via a live DOM/stylesheet check
+  that the hover transition classes and all four new CSS rules
+  (`.reveal`, `.reveal-visible`, `prefers-reduced-motion`, `float-bob`)
+  actually shipped in the deployed stylesheet, not just compiled
+  locally; हिं toggle renders the Hindi copy correctly with the
+  illustration unaffected; at a real 375px mobile width the
+  illustration scales down cleanly and cards still stack single-column
+  with no overflow, matching the standing lesson to verify responsive
+  behavior at an actual narrow preset.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
