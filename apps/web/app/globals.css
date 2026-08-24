@@ -87,6 +87,27 @@ body {
   animation: float-bob 3s ease-in-out infinite;
 }
 
+/* Cursor-following 3D tilt (landing hero illustration) — the JS wrapper
+   (Tilt in LandingPage.tsx) sets `transform` inline on every mousemove;
+   this class only supplies the two properties it can't set inline:
+   transform-style (so translateZ'd child layers actually separate in
+   depth as this rotates) and a short transition so the rotation eases
+   rather than snapping frame-to-frame. */
+.tilt-scene {
+  transform-style: preserve-3d;
+  transition: transform 0.15s ease-out;
+}
+
+/* 3D "pop toward the viewer" on hover — replaces a flat translateY lift
+   with perspective+rotateX so a card reads as tilting, not just sliding. */
+.tilt-card {
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+.tilt-card:hover {
+  transform: perspective(600px) rotateX(4deg) translateY(-4px);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.09);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal {
     opacity: 1;
@@ -95,5 +116,15 @@ body {
   }
   .float-bob {
     animation: none;
+  }
+  .tilt-scene {
+    transform: none !important;
+    transition: none;
+  }
+  .tilt-card {
+    transition: none;
+  }
+  .tilt-card:hover {
+    transform: none;
   }
 }

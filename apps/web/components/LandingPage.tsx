@@ -171,25 +171,82 @@ function Reveal({ children, delayMs = 0 }: { children: React.ReactNode; delayMs?
   );
 }
 
+/**
+ * Cursor-following 3D tilt — tracks mousemove over the wrapped element and
+ * applies perspective(rotateX/rotateY) based on cursor position relative to
+ * center, springing back to neutral on mouseleave. Never fires on touch
+ * devices (no mousemove event there), so mobile just gets the static
+ * illustration underneath — no special-casing needed. The child must have
+ * `transform-style: preserve-3d` set on itself (done via the `.tilt-scene`
+ * class) so any translateZ'd layers inside it actually separate in depth as
+ * this container rotates, instead of just rotating as one flat image.
+ */
+function Tilt({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [transform, setTransform] = useState("perspective(700px) rotateX(0deg) rotateY(0deg)");
+
+  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width - 0.5;
+    const py = (e.clientY - rect.top) / rect.height - 0.5;
+    const maxDeg = 14;
+    setTransform(`perspective(700px) rotateX(${(-py * maxDeg).toFixed(2)}deg) rotateY(${(px * maxDeg).toFixed(2)}deg)`);
+  }
+
+  function handleMouseLeave() {
+    setTransform("perspective(700px) rotateX(0deg) rotateY(0deg)");
+  }
+
+  return (
+    <div
+      ref={ref}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className="tilt-scene"
+      style={{ transform }}
+    >
+      {children}
+    </div>
+  );
+}
+
 /** A simple flat-illustration child reading a book, with a few floating
  * "it clicked" sparkles — hand-drawn shapes, not a photo, so there's no
- * licensing question and it matches the app's existing green/warm palette. */
+ * licensing question and it matches the app's existing green/warm palette.
+ * Split into three depth layers (back shadow, character, front sparkles)
+ * so the Tilt wrapper's rotation makes them visibly separate in 3D instead
+ * of just rotating one flat image. */
 function HeroIllustration() {
   return (
-    <svg width="220" height="190" viewBox="0 0 220 190" fill="none" xmlns="http://www.w3.org/2000/svg" className="mb-6" role="presentation">
+    <Tilt>
+      <div className="relative mb-6" style={{ width: 220, height: 190 }}>
+        <div className="absolute inset-0" style={{ transform: "translateZ(-24px)" }}>
+          <HeroBackLayer />
+        </div>
+        <div className="absolute inset-0" style={{ transform: "translateZ(0px)" }}>
+          <HeroCharacterLayer />
+        </div>
+        <div className="absolute inset-0" style={{ transform: "translateZ(36px)" }}>
+          <HeroSparkleLayer />
+        </div>
+      </div>
+    </Tilt>
+  );
+}
+
+function HeroBackLayer() {
+  return (
+    <svg width="220" height="190" viewBox="0 0 220 190" fill="none" xmlns="http://www.w3.org/2000/svg" role="presentation">
       <ellipse cx="110" cy="172" rx="62" ry="9" fill="var(--color-border)" opacity="0.6" />
+    </svg>
+  );
+}
 
-      {/* sparkles */}
-      <g className="float-bob" style={{ animationDelay: "0s" }}>
-        <path d="M52 44 L56 54 L66 58 L56 62 L52 72 L48 62 L38 58 L48 54 Z" fill="var(--color-revision-dot)" />
-      </g>
-      <g className="float-bob" style={{ animationDelay: "0.6s" }}>
-        <path d="M172 34 L175 41 L182 44 L175 47 L172 54 L169 47 L162 44 L169 41 Z" fill="var(--color-revision-dot)" />
-      </g>
-      <g className="float-bob" style={{ animationDelay: "1.1s" }}>
-        <circle cx="168" cy="70" r="5" fill="var(--color-mastered-dot)" />
-      </g>
-
+function HeroCharacterLayer() {
+  return (
+    <svg width="220" height="190" viewBox="0 0 220 190" fill="none" xmlns="http://www.w3.org/2000/svg" role="presentation">
       {/* sitting body */}
       <ellipse cx="110" cy="140" rx="54" ry="36" fill="var(--color-primary)" />
       <rect x="80" y="82" width="60" height="62" rx="24" fill="var(--color-primary)" />
@@ -220,6 +277,22 @@ function HeroIllustration() {
   );
 }
 
+function HeroSparkleLayer() {
+  return (
+    <svg width="220" height="190" viewBox="0 0 220 190" fill="none" xmlns="http://www.w3.org/2000/svg" role="presentation">
+      <g className="float-bob" style={{ animationDelay: "0s" }}>
+        <path d="M52 44 L56 54 L66 58 L56 62 L52 72 L48 62 L38 58 L48 54 Z" fill="var(--color-revision-dot)" />
+      </g>
+      <g className="float-bob" style={{ animationDelay: "0.6s" }}>
+        <path d="M172 34 L175 41 L182 44 L175 47 L172 54 L169 47 L162 44 L169 41 Z" fill="var(--color-revision-dot)" />
+      </g>
+      <g className="float-bob" style={{ animationDelay: "1.1s" }}>
+        <circle cx="168" cy="70" r="5" fill="var(--color-mastered-dot)" />
+      </g>
+    </svg>
+  );
+}
+
 function InfoCard({
   tone,
   icon,
@@ -236,10 +309,7 @@ function InfoCard({
       ? { background: "var(--color-mastered-bg)", color: "var(--color-mastered-fg)", border: "1px solid transparent" }
       : { background: "var(--color-surface)", color: "var(--color-text)", border: "1px solid var(--color-border)" };
   return (
-    <div
-      className="group flex flex-col items-start text-left gap-2 p-6 rounded-card transition-transform duration-150 hover:-translate-y-1 hover:shadow-md"
-      style={style}
-    >
+    <div className="group tilt-card flex flex-col items-start text-left gap-2 p-6 rounded-card" style={style}>
       <div className="text-3xl transition-transform duration-150 group-hover:scale-110">{icon}</div>
       <div className="font-heading text-base font-semibold">{title}</div>
       <div className="text-sm leading-relaxed" style={{ color: tone === "positive" ? "var(--color-mastered-fg)" : "var(--color-text-muted)" }}>
@@ -265,7 +335,7 @@ function RoleCard({
   return (
     <Link
       href={href}
-      className="group flex flex-col items-center text-center p-8 rounded-card transition-transform duration-150 hover:-translate-y-1 hover:shadow-md"
+      className="group tilt-card flex flex-col items-center text-center p-8 rounded-card"
       style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
     >
       <div className="text-4xl mb-3 transition-transform duration-150 group-hover:scale-110">{icon}</div>
