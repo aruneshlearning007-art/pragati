@@ -59,13 +59,19 @@ export function RichText({
   className,
   style,
 }: {
-  text: string;
+  text: string | null | undefined;
   keyTerms?: KeyTerm[];
   className?: string;
   style?: React.CSSProperties;
 }) {
-  const trimmed = (text ?? "").trim();
-  const segments = BARE_LATEX_REGEX.test(trimmed) ? [{ type: "math" as const, value: trimmed, display: false }] : splitSegments(text);
+  // Normalize once — text crosses an LLM/JSON boundary at runtime, so it can
+  // be undefined/null despite the prop type saying otherwise (a still-live
+  // example: the same worked-example step object below the fold on this
+  // page can validly omit "work"). Every downstream use (here, and
+  // splitSegments' own text.length/text.slice) must see a real string.
+  const safeText = text ?? "";
+  const trimmed = safeText.trim();
+  const segments = BARE_LATEX_REGEX.test(trimmed) ? [{ type: "math" as const, value: trimmed, display: false }] : splitSegments(safeText);
   return (
     <div className={className} style={style}>
       {segments.map((seg, i) => {
