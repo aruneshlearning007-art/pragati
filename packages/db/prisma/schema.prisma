@@ -314,6 +314,12 @@ model Explanation {
   // graph genuinely clarifies the concept (null otherwise). Null for the
   // other five modes.
   graph Json?
+  // Structured content for the "story"/"realworld"/"gofurther" modes: an
+  // ordered array of {label, text} beats (2-3 items), rendered like Notes'
+  // numbered sections instead of one flat paragraph. Null for the other
+  // three modes, and null on rows generated before this column existed —
+  // those fall back to rendering `body` (their full paragraph) as before.
+  beats Json?
   // Same review-workflow role as Chapter.status: system-generated content
   // defaults to published (immediately live); teacher-upload-triggered
   // generation is created awaiting_review and flips to published only when

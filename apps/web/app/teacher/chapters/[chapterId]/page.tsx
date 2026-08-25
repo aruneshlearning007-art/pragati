@@ -152,6 +152,12 @@ export default async function ChapterReviewPage({ params }: { params: Promise<{ 
                     className="text-[13.5px] leading-relaxed whitespace-pre-wrap mb-2"
                     style={{ color: "var(--color-text-muted)" }}
                   />
+                  {(e.beats as unknown as { label: string; text: string }[] | null)?.map((beat, bi) => (
+                    <div key={bi} className="mb-1.5">
+                      <span className="text-[12.5px] font-bold">{beat.label}: </span>
+                      <RichText text={beat.text} className="text-[13.5px] leading-relaxed inline" />
+                    </div>
+                  ))}
                   {e.mode === "worked" && e.workedExample && (
                     <WorkedExampleView example={e.workedExample as unknown as WorkedExample} language={language} />
                   )}

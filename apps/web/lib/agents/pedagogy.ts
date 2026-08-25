@@ -13,6 +13,11 @@ export interface PictureDiagram {
   connectors: string[];
 }
 
+export interface ExplainBeat {
+  label: string;
+  text: string;
+}
+
 export interface WorkedExampleStep {
   explanation: string;
   work: string;
@@ -81,6 +86,7 @@ export type MathVisual = FunctionVisual | NumberLineVisual | FractionBarVisual |
 export interface ExplainVariant {
   mode: ExplainMode;
   body: string;
+  beats: ExplainBeat[] | null;
   diagram: PictureDiagram | null;
   workedExample: WorkedExample | null;
   visual: MathVisual | null;
@@ -149,6 +155,7 @@ export async function getOrGenerateExplanations(
     return existing.map((e) => ({
       mode: e.mode,
       body: e.body,
+      beats: e.beats as unknown as ExplainBeat[] | null,
       diagram: e.diagram as unknown as PictureDiagram | null,
       workedExample: e.workedExample as unknown as WorkedExample | null,
       visual: e.graph as unknown as MathVisual | null,
@@ -159,7 +166,13 @@ export async function getOrGenerateExplanations(
 
   const system = withBaseInstructions(
     "You are the Pedagogy Agent. Explain the same topic several different ways so every kind of learner finds " +
-      "one that clicks — never just rewordings of the same explanation. There is no real diagram image, so the " +
+      "one that clicks — never just rewordings of the same explanation. " +
+      "For the story, real-world, and go-further modes, structure the explanation as 2-3 short labeled beats " +
+      "rather than one long paragraph — each beat has a short label (2-4 words, like a mini-heading) and 1-2 " +
+      "sentences of text, building on each other in order (e.g. for story: an opening hook, then the core idea, " +
+      "then the payoff/resolution). Also write one short sentence introducing each of these three modes, the " +
+      "same way the picture/worked modes already have their own short intro sentence. " +
+      "There is no real diagram image, so the " +
       "picture mode instead breaks the idea into an ordered sequence of 2-5 steps (like a flow diagram) — each " +
       "step has one emoji icon, a short label, and a one-sentence description, and each arrow between " +
       "consecutive steps has a short label describing that transition (e.g. \"blocks light\", \"heats up\"). " +
@@ -191,11 +204,16 @@ export async function getOrGenerateExplanations(
           "otherwise not genuinely clarified by any of these (the worked example already covers it), set " +
           "visual to null rather than forcing an irrelevant one. "
         : "") +
-      'Respond ONLY with strict JSON, no markdown, no code fences. Shape: {"story":"a short relatable narrative ' +
-      'that introduces the idea","picture":"one short sentence introducing what the diagram below shows",' +
+      'Respond ONLY with strict JSON, no markdown, no code fences. Shape: {"story":"one short sentence ' +
+      'introducing the story below","storyBeats":[{"label":"short 2-4 word label","text":"1-2 sentences"}, ' +
+      '...2 to 3, building on each other: hook, then idea, then payoff],' +
+      '"picture":"one short sentence introducing what the diagram below shows",' +
       '"pictureSteps":[{"icon":"single emoji","label":"short label","description":"one sentence"}, ...2 to 5],' +
       '"pictureConnectors":["short arrow label", ... exactly one fewer than pictureSteps],' +
-      '"realworld":"how the concept shows up in daily life","gofurther":"a deeper insight for curious minds",' +
+      '"realworld":"one short sentence introducing the real-world examples below",' +
+      '"realworldBeats":[{"label":"short 2-4 word label","text":"1-2 sentences"}, ...2 to 3],' +
+      '"gofurther":"one short sentence introducing the deeper insight below",' +
+      '"gofurtherBeats":[{"label":"short 2-4 word label","text":"1-2 sentences"}, ...2 to 3],' +
       '"worked":"one short sentence introducing the example problem below",' +
       '"workedProblem":"the example problem statement, may include $...$ math",' +
       '"workedSteps":[{"explanation":"string","work":"string, may include $...$ math"}, ...3 to 6],' +
@@ -238,11 +256,14 @@ export async function getOrGenerateExplanations(
 
   const parsed = extractJson<{
     story?: string;
+    storyBeats?: ExplainBeat[];
     picture?: string;
     pictureSteps?: DiagramStep[];
     pictureConnectors?: string[];
     realworld?: string;
+    realworldBeats?: ExplainBeat[];
     gofurther?: string;
+    gofurtherBeats?: ExplainBeat[];
     worked?: string;
     workedProblem?: string;
     workedSteps?: WorkedExampleStep[];
@@ -259,6 +280,12 @@ export async function getOrGenerateExplanations(
     gofurther: parsed.gofurther ?? "",
     worked: parsed.worked ?? "",
     graph: "",
+  };
+
+  const beatsByMode: Partial<Record<ExplainMode, ExplainBeat[]>> = {
+    story: parsed.storyBeats ?? [],
+    realworld: parsed.realworldBeats ?? [],
+    gofurther: parsed.gofurtherBeats ?? [],
   };
 
   const diagram: PictureDiagram = { steps: parsed.pictureSteps ?? [], connectors: parsed.pictureConnectors ?? [] };
@@ -280,6 +307,7 @@ export async function getOrGenerateExplanations(
           language,
           mode,
           body: bodies[mode],
+          beats: beatsByMode[mode] && beatsByMode[mode]!.length > 0 ? (beatsByMode[mode] as unknown as object) : undefined,
           diagram: mode === "picture" ? (diagram as unknown as object) : undefined,
           workedExample: mode === "worked" ? (workedExample as unknown as object) : undefined,
           graph: mode === "graph" && visual ? (visual as unknown as object) : undefined,
@@ -292,6 +320,7 @@ export async function getOrGenerateExplanations(
   return created.map((e) => ({
     mode: e.mode,
     body: e.body,
+    beats: e.beats as unknown as ExplainBeat[] | null,
     diagram: e.diagram as unknown as PictureDiagram | null,
     workedExample: e.workedExample as unknown as WorkedExample | null,
     visual: e.graph as unknown as MathVisual | null,

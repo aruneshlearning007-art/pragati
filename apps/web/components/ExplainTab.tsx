@@ -34,13 +34,32 @@ interface PictureDiagram {
 
 type MathVisual = FunctionVisual | NumberLineVisual | FractionBarVisual | GeometryVisual;
 
+interface ExplainBeat {
+  label: string;
+  text: string;
+}
+
 interface ExplainVariant {
   mode: string;
   body: string;
+  beats: ExplainBeat[] | null;
   diagram: PictureDiagram | null;
   workedExample: WorkedExample | null;
   visual: MathVisual | null;
 }
+
+const NOTE_COLORS = 6;
+// Fixed order (not the subset of modes a given topic happens to have) so a
+// mode's accent color stays stable across topics instead of shifting with
+// whatever else is present.
+const MODE_COLOR_INDEX: Record<string, number> = {
+  story: 0,
+  picture: 1,
+  realworld: 2,
+  gofurther: 3,
+  worked: 4,
+  graph: 5,
+};
 
 function DiagramView({ diagram }: { diagram: PictureDiagram }) {
   return (
@@ -83,16 +102,48 @@ const MODE_LABEL: Record<string, { en: string; hi: string }> = {
 };
 
 function VariantCard({ variant, keyTerms, language }: { variant: ExplainVariant; keyTerms: KeyTerm[]; language: Language }) {
+  const colorIndex = MODE_COLOR_INDEX[variant.mode] ?? 0;
+  const accent = `var(--color-note-${(colorIndex % NOTE_COLORS) + 1}-fg)`;
+  const accentBg = `var(--color-note-${(colorIndex % NOTE_COLORS) + 1}-bg)`;
+  const hasBeats = variant.beats && variant.beats.length > 0;
+
   return (
-    <div className="p-5.5 rounded-card" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-      <div className="text-[11px] font-bold uppercase tracking-wide mb-3" style={{ color: "var(--color-primary)" }}>
+    <div className="p-5.5 rounded-card" style={{ background: accentBg, border: `1px solid ${accent}22` }}>
+      <div className="text-[11px] font-bold uppercase tracking-wide mb-3" style={{ color: accent }}>
         {MODE_LABEL[variant.mode]?.[language] ?? variant.mode}
       </div>
-      <RichText
-        text={variant.body}
-        keyTerms={keyTerms}
-        className="text-[14.5px] leading-relaxed whitespace-pre-wrap mb-3.5"
-      />
+      {variant.body && (
+        <RichText
+          text={variant.body}
+          keyTerms={keyTerms}
+          className={`text-[14.5px] leading-relaxed whitespace-pre-wrap ${hasBeats ? "mb-3" : "mb-3.5"}`}
+        />
+      )}
+      {hasBeats && (
+        <div className="flex flex-col gap-3 mb-1">
+          {variant.beats!.map((beat, i) => (
+            <div key={i} className="flex gap-3">
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                style={{ background: "white", color: accent }}
+              >
+                {i + 1}
+              </div>
+              <div>
+                <div className="font-heading font-semibold text-[13.5px] mb-0.5" style={{ color: accent }}>
+                  {beat.label}
+                </div>
+                <RichText
+                  text={beat.text}
+                  keyTerms={keyTerms}
+                  className="text-[14.5px] leading-relaxed whitespace-pre-wrap"
+                  style={{ color: "var(--color-text)" }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       {variant.mode === "picture" && variant.diagram && variant.diagram.steps.length > 0 && (
         <div className="overflow-x-auto">
           <DiagramView diagram={variant.diagram} />

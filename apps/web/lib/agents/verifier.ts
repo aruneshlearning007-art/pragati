@@ -1,7 +1,7 @@
 import { prisma } from "@pragati/db";
 import { generate, extractJson, withBaseInstructions } from "@pragati/shared";
 import type { NotesSection } from "./notes";
-import type { ExplainVariant, DiagramStep } from "./pedagogy";
+import type { ExplainVariant, ExplainBeat, DiagramStep } from "./pedagogy";
 import { checkArithmetic } from "./arithmetic-checker";
 
 export interface VerifierFlagView {
@@ -57,13 +57,17 @@ export async function verifyExplanations(
 ): Promise<{ variants: ExplainVariant[]; flags: VerifierFlagView[] }> {
   const system = withBaseInstructions(
     VERIFIER_TASK +
-      " The picture-mode entry has a \"diagram\" with ordered steps and connector labels between them instead " +
-      "of a body paragraph — check and correct the steps/connectors the same way you would body text. The " +
+      " The story/real-world/go-further entries have a \"beats\" array (each with a short label and 1-2 " +
+      "sentences of text) instead of one body paragraph — check and correct each beat's text the same way you " +
+      "would body text, keeping the same labels unless a label itself is wrong. The picture-mode entry has a " +
+      "\"diagram\" with ordered steps and connector labels between them instead of a body paragraph — check and " +
+      "correct the steps/connectors the same way you would body text. The " +
       "worked-mode entry has a \"workedExample\" with a problem, step-by-step reasoning, and calculations " +
       "instead of a body paragraph — verify each step's arithmetic actually computes to what's claimed and " +
       "that the final answer is correct, correcting exactly like body text. " +
       'Respond ONLY with strict JSON, no markdown, no code fences. Shape: {"variants":[{"mode":"story|picture|' +
-      'realworld|gofurther|worked","body":"string","diagram":{"steps":[{"icon":"emoji","label":"string",' +
+      'realworld|gofurther|worked","body":"string","beats":[{"label":"string","text":"string"}] or null unless ' +
+      'mode is story/realworld/gofurther,"diagram":{"steps":[{"icon":"emoji","label":"string",' +
       '"description":"string"}],"connectors":["string"]} or null unless mode is picture,' +
       '"workedExample":{"problem":"string","steps":[{"explanation":"string","work":"string"}],' +
       '"answer":"string"} or null unless mode is worked}],' +
@@ -188,6 +192,7 @@ export async function verifyAndCorrectChapter(
     let finalVariants: ExplainVariant[] = explanations.map((e) => ({
       mode: e.mode,
       body: e.body,
+      beats: e.beats as unknown as ExplainBeat[] | null,
       diagram: e.diagram as unknown as ExplainVariant["diagram"],
       workedExample: e.workedExample as unknown as ExplainVariant["workedExample"],
       visual: e.graph as unknown as ExplainVariant["visual"],
@@ -199,13 +204,22 @@ export async function verifyAndCorrectChapter(
       // rather than treating "no body returned" as "the body should be
       // cleared". Applied here (not just at the DB write below) so the
       // arithmetic double-check afterward never sees a null body either.
-      // The Verifier's own JSON schema doesn't ask it to re-check "visual"
-      // (a math-accuracy re-derivation isn't in scope here), so its
-      // response never carries one back — always keep the original.
+      // Same fallback for beats, since a fix to only one beat's text still
+      // needs the model to echo back the rest of the array — an empty/
+      // missing beats array is treated as "nothing to change" instead of
+      // "the beats should be cleared". The Verifier's own JSON schema
+      // doesn't ask it to re-check "visual" (a math-accuracy re-derivation
+      // isn't in scope here), so its response never carries one back —
+      // always keep the original.
       const normalized = variants.map((v) => {
         const original = explanations.find((e) => e.mode === v.mode);
         return original
-          ? { ...v, body: v.body || original.body, visual: original.graph as unknown as ExplainVariant["visual"] }
+          ? {
+              ...v,
+              body: v.body || original.body,
+              beats: v.beats && v.beats.length > 0 ? v.beats : (original.beats as unknown as ExplainBeat[] | null),
+              visual: original.graph as unknown as ExplainVariant["visual"],
+            }
           : v;
       });
       if (flags.length > 0) {
@@ -217,6 +231,7 @@ export async function verifyAndCorrectChapter(
               where: { id: original.id },
               data: {
                 body: v.body,
+                beats: v.beats ? (v.beats as unknown as object) : undefined,
                 diagram: v.diagram ? (v.diagram as unknown as object) : undefined,
                 workedExample: v.workedExample ? (v.workedExample as unknown as object) : undefined,
               },
@@ -229,12 +244,13 @@ export async function verifyAndCorrectChapter(
     } catch (err) {
       console.error("Verifier: explain check failed, keeping unverified draft", err);
     }
-    // Deterministic double-check, including worked-example steps — this is
-    // exactly where a live-tested Gemini arithmetic mistake would get
-    // caught even if the LLM verifier missed it.
+    // Deterministic double-check, including worked-example steps and beat
+    // text — this is exactly where a live-tested Gemini arithmetic mistake
+    // would get caught even if the LLM verifier missed it.
     const arithmeticFlags = finalVariants.flatMap((v) => {
       const workedText = v.workedExample ? v.workedExample.steps.map((s) => s.work).join("\n") : "";
-      return [...checkArithmetic(v.body), ...checkArithmetic(workedText)];
+      const beatsText = v.beats ? v.beats.map((b) => b.text).join("\n") : "";
+      return [...checkArithmetic(v.body), ...checkArithmetic(workedText), ...checkArithmetic(beatsText)];
     });
     allFlags.push(...arithmeticFlags.map((f) => ({ section: "explain" as const, ...f })));
   }
