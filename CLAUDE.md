@@ -1497,6 +1497,40 @@ machine. Feel free to use them normally instead of the workarounds above.
   (rather than a stale one) after navigating there from a Science
   topic page. Test chapter deleted afterward via the existing
   delete-chapter feature.
+- **Video Curator: LLM ranking pass for concept/class fit and quality**
+  ✅ done (verified live 2026-08-25), founder-reported: videos shown to
+  students weren't reliably matched to the actual class/concept, and
+  content quality wasn't being checked at all. `video.ts`'s original
+  design was pure YouTube keyword search — query
+  `{topicTitle} {subjectName} {studentClass} explanation` sent straight
+  to YouTube's search API, top 3 by YouTube's own relevance ranking
+  cached permanently, no verification the result matched the specific
+  concept or class level, and zero quality signal beyond `safeSearch`.
+  Kept the existing "no LLM ever invents a video link" principle intact
+  (a hallucinated link is worse than none) but added a ranking/filter
+  step on top of real search results: now searches a wider pool of 10
+  medium-length (4-20 min) candidates instead of 3, pulls each one's
+  channel name, description, and view count (`statistics` part added to
+  the existing `videos` details call), and one Gemini call picks the
+  best 3 by three explicit criteria — genuinely on-topic for this exact
+  concept (not just the broader subject), pitched at the right class/
+  grade depth, and looking like real educational content by title/
+  channel/description rather than a song, prank, or clickbait video.
+  The model only selects ids from the provided candidate list (never
+  generates a new one); if the ranking call fails or returns something
+  unusable, falls back to plain relevance order rather than ever
+  leaving the Videos tab blank over an optional quality pass — same
+  best-effort precedent as the Verifier's per-section error handling.
+  Also threads the student's board into the search query (wasn't
+  passed before) as an extra curriculum-alignment signal.
+  Verified live end-to-end: uploaded and published a real "Photosynthesis
+  Basics" Class 6 Science test chapter; opened the first concept's
+  Videos tab and confirmed all 3 curated videos were genuinely on-topic
+  and kid-appropriate (two explicitly kids'-education-channel titles,
+  one explicitly labeled "Class 6 | Science" in its own title) with
+  correct durations and working embeds — no irrelevant or low-quality
+  results. Test chapter deleted afterward via the existing delete-
+  chapter feature.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
