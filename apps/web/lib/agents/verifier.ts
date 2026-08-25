@@ -216,11 +216,18 @@ export async function verifyAndCorrectChapter(
         // Same defensive filter pedagogy.ts applies at generation time — a
         // corrected beat missing text would otherwise crash the render.
         const sanitizedBeats = (v.beats ?? []).filter((b) => b?.text?.trim());
+        // Same idea for workedExample: the model occasionally echoes back
+        // {problem, answer} with no steps array when it only fixed a
+        // different mode and had nothing to change here — a workedExample
+        // with an empty/missing steps array is worse than keeping the
+        // original, since WorkedExampleView renders it unconditionally.
+        const hasSteps = (v.workedExample?.steps?.length ?? 0) > 0;
         return original
           ? {
               ...v,
               body: v.body || original.body,
               beats: sanitizedBeats.length > 0 ? sanitizedBeats : (original.beats as unknown as ExplainBeat[] | null),
+              workedExample: hasSteps ? v.workedExample : (original.workedExample as unknown as ExplainVariant["workedExample"]),
               visual: original.graph as unknown as ExplainVariant["visual"],
             }
           : v;

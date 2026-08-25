@@ -24,7 +24,11 @@ export interface WorkedExample {
  */
 export function WorkedExampleView({ example, language }: { example: WorkedExample; language: Language }) {
   const t = UI[language];
-  const [revealed, setRevealed] = useState(example.steps.length > 0 ? 1 : 0);
+  // Defensive: a Verifier response occasionally echoes back a worked example
+  // with no steps array at all — never trust it's present just because
+  // TypeScript says so, since this crosses an LLM/JSON boundary at runtime.
+  const steps = example.steps ?? [];
+  const [revealed, setRevealed] = useState(steps.length > 0 ? 1 : 0);
 
   return (
     <div className="flex flex-col gap-3">
@@ -33,7 +37,7 @@ export function WorkedExampleView({ example, language }: { example: WorkedExampl
       </div>
 
       <div className="flex flex-col gap-2.5">
-        {example.steps.slice(0, revealed).map((step, i) => (
+        {steps.slice(0, revealed).map((step, i) => (
           <div key={i} className="flex gap-3">
             <div
               className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
@@ -52,7 +56,7 @@ export function WorkedExampleView({ example, language }: { example: WorkedExampl
         ))}
       </div>
 
-      {revealed < example.steps.length ? (
+      {revealed < steps.length ? (
         <button
           onClick={() => setRevealed((r) => r + 1)}
           className="self-start px-3.5 py-1.5 rounded-lg text-xs font-bold"
