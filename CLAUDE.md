@@ -1531,6 +1531,69 @@ machine. Feel free to use them normally instead of the workarounds above.
   correct durations and working embeds — no irrelevant or low-quality
   results. Test chapter deleted afterward via the existing delete-
   chapter feature.
+- **Explain tab: structured Story/Real-world/Go-further beats** ✅ done
+  (verified live 2026-08-25), founder-reported: the Notes tab looked
+  properly organized (numbered, colored section cards) while the other
+  tabs didn't. Root cause traced to `pedagogy.ts`: Notes generates a
+  real *array* of `{heading, body}` sections, but Story/Real-world/
+  Go-further were each just one flat free-text paragraph with no
+  internal structure at all — Picture/Worked/Visual modes already
+  looked fine because those *do* have structured data (diagram steps,
+  worked-example steps, a graph).
+  Added a nullable `Explanation.beats` JSONB column (same per-mode-only
+  pattern as the existing `diagram`/`workedExample`/`graph` columns,
+  hand-written migration since `DATABASE_URL`/`DIRECT_URL` are
+  Vercel-Sensitive) holding an ordered array of `{label, text}` beats
+  (2-3 per mode: hook → idea → payoff for story; similarly for
+  real-world/go-further) — `body` keeps holding just a short one-line
+  intro, matching how picture/worked already work. `ExplainTab.tsx`
+  renders beats as numbered, labeled mini-sections (same visual
+  language as Notes) instead of one wall of text, and every mode card
+  now gets a distinct, stable accent color from the same note-color
+  rotation Notes uses, so switching tabs feels visually distinct rather
+  than same-card-different-text. Old cached Explanation rows have no
+  beats and fall back to the full flat paragraph exactly as before —
+  nothing already generated broke. Threaded beats through the Verifier
+  (hallucination/age-fit checks now see the real beat content, not just
+  the intro sentence) and the teacher review page.
+  **Three real bugs found live-testing this immediately after
+  deploying, each fixed same session — a good example of why every
+  feature in this app gets live-tested with a real generation, not just
+  a clean build**: (1) `RichText.tsx` called `text.trim()`
+  unconditionally; a beat missing its `text` key (valid JSON doesn't
+  guarantee every expected key is present — the same class of issue
+  hardened elsewhere in this app) crashed the whole chapter review
+  page. First fix attempt only normalized the *trimmed* copy, missing
+  that the original possibly-undefined `text` was still passed into
+  `splitSegments(text)`, whose own `text.length` check crashes the same
+  way — found via a temporary debug route that dumped the actual stored
+  JSON rather than guessing a third time, confirming a live
+  `workedExample` step really did omit `work` sometimes. Fixed by
+  normalizing to a real string once and using that value everywhere
+  downstream, and widening `RichText`'s prop type to
+  `string | null | undefined` to be honest that data crossing an LLM/
+  JSON boundary doesn't reliably match what TypeScript promises. (2) A
+  separate, pre-existing latent bug surfaced by the same test:
+  `verifyAndCorrectChapter`'s write-back only checked that the
+  Verifier's returned `workedExample` was a truthy object, not that it
+  still had a non-empty `steps` array — when the Verifier fixed a
+  different mode and had nothing to change about "worked", it sometimes
+  echoed back `{problem, answer}` with no steps, overwriting the good
+  original and crashing `WorkedExampleView` (which read
+  `example.steps.length` unconditionally) on every future render.
+  Fixed with the same belt-and-suspenders approach: `verifier.ts` now
+  falls back to the original `workedExample` when the corrected one has
+  no steps, and `WorkedExampleView` defends itself with
+  `example.steps ?? []`. (3) Also sanitizes malformed beats (missing
+  `text`) at generation time in `pedagogy.ts` and at the Verifier's
+  write-back in `verifier.ts`, so bad data doesn't reach the database
+  in the first place, not just get tolerated at render time.
+  Verified live end-to-end on a real "The Water Cycle" Class 6 Science
+  chapter: Story mode rendered 3 correctly labeled, numbered beats on a
+  pink accent card; Real-world mode rendered 2 beats on a distinct teal
+  accent card — confirming both the beat structure and the per-mode
+  color rotation work correctly and distinctly. Test chapter and the
+  temporary debug route were both cleaned up afterward.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
