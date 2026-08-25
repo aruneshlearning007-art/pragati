@@ -159,6 +159,7 @@ export default async function TopicPage({
           subjectName={topic.chapter.subject.nameEn}
           topicTitle={topic.titleEn}
           studentClass={student.class ?? "Class 6"}
+          board={student.board ?? undefined}
           language={language}
         />
       )}
@@ -275,17 +276,19 @@ async function VideosPane({
   subjectName,
   topicTitle,
   studentClass,
+  board,
   language,
 }: {
   topicId: string;
   subjectName: string;
   topicTitle: string;
   studentClass: string;
+  board?: string;
   language: Language;
 }) {
   let videos: Awaited<ReturnType<typeof getOrCurateVideos>>;
   try {
-    videos = await getOrCurateVideos(topicId, subjectName, topicTitle, studentClass);
+    videos = await getOrCurateVideos(topicId, subjectName, topicTitle, studentClass, board);
   } catch (err) {
     return <ErrorCard title="Could not load videos for this topic" error={err} />;
   }
