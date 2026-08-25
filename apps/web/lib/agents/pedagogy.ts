@@ -282,10 +282,17 @@ export async function getOrGenerateExplanations(
     graph: "",
   };
 
+  // Same defensive fallback as the bodies above, one level deeper: valid
+  // JSON doesn't guarantee every beat object actually has both keys, so a
+  // beat missing text (or with only whitespace) is dropped entirely rather
+  // than stored and crashing the render later.
+  const sanitizeBeats = (beats?: ExplainBeat[]): ExplainBeat[] =>
+    (beats ?? []).filter((b) => b?.text?.trim()).map((b) => ({ label: b.label ?? "", text: b.text }));
+
   const beatsByMode: Partial<Record<ExplainMode, ExplainBeat[]>> = {
-    story: parsed.storyBeats ?? [],
-    realworld: parsed.realworldBeats ?? [],
-    gofurther: parsed.gofurtherBeats ?? [],
+    story: sanitizeBeats(parsed.storyBeats),
+    realworld: sanitizeBeats(parsed.realworldBeats),
+    gofurther: sanitizeBeats(parsed.gofurtherBeats),
   };
 
   const diagram: PictureDiagram = { steps: parsed.pictureSteps ?? [], connectors: parsed.pictureConnectors ?? [] };

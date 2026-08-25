@@ -213,11 +213,14 @@ export async function verifyAndCorrectChapter(
       // always keep the original.
       const normalized = variants.map((v) => {
         const original = explanations.find((e) => e.mode === v.mode);
+        // Same defensive filter pedagogy.ts applies at generation time — a
+        // corrected beat missing text would otherwise crash the render.
+        const sanitizedBeats = (v.beats ?? []).filter((b) => b?.text?.trim());
         return original
           ? {
               ...v,
               body: v.body || original.body,
-              beats: v.beats && v.beats.length > 0 ? v.beats : (original.beats as unknown as ExplainBeat[] | null),
+              beats: sanitizedBeats.length > 0 ? sanitizedBeats : (original.beats as unknown as ExplainBeat[] | null),
               visual: original.graph as unknown as ExplainVariant["visual"],
             }
           : v;

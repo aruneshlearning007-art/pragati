@@ -64,7 +64,7 @@ export function RichText({
   className?: string;
   style?: React.CSSProperties;
 }) {
-  const trimmed = text.trim();
+  const trimmed = (text ?? "").trim();
   const segments = BARE_LATEX_REGEX.test(trimmed) ? [{ type: "math" as const, value: trimmed, display: false }] : splitSegments(text);
   return (
     <div className={className} style={style}>
