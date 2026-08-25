@@ -1459,6 +1459,44 @@ machine. Feel free to use them normally instead of the workarounds above.
   done.** The one known, deliberately-deferred gap remains: the sidebar
   layout still isn't responsive at mobile widths (flagged after slice
   one, not yet addressed).
+- **Bug fix: sidebar highlighted the wrong subject on topic/chapter
+  pages** ✅ done (verified live 2026-08-24), founder-reported: "when
+  student study science then it should selected science subject but
+  but it getting highlighted to other." Root cause:
+  `SidebarSubjectList.tsx` (added in the first UI-polish slice above)
+  determined the active subject purely from the `?subject=` URL query
+  param, falling back to the alphabetically-first subject
+  (`subjects[0]`) whenever that param was absent — `/student` is the
+  only student page that actually carries `?subject=` in its URL;
+  `/student/topics/[topicId]` and `/student/chapters/[chapterId]` are
+  keyed by their own dynamic route param instead, so the sidebar always
+  fell back to whichever subject sorts first (e.g. Mathematics),
+  regardless of which subject the student was actually studying.
+  Next.js layouts never receive a child page's params/searchParams
+  directly (the same constraint documented in the "Session bootstrap"
+  section), so the fix adds a tiny client-side store
+  (`apps/web/lib/activeSubjectStore.ts`, a module-level value +
+  `useSyncExternalStore`) that pages announce their own subject to via
+  a `<SetActiveSubject subjectId={...} />` component
+  (`apps/web/components/SetActiveSubject.tsx`), using the subject each
+  page already fetches server-side (`topic.chapter.subject.id` on the
+  topic page; added `include: { subject: true }` to the chapter query
+  on the chapter-overview page, which didn't fetch it before;
+  `activeSubject.id` on the student home page). `SidebarSubjectList`
+  now reads only this store, with no URL-param fallback at all — a
+  page with no natural subject (Progress) explicitly sets `null`, so
+  the sidebar shows no highlight there rather than a misleading one
+  left over from whatever page was visited previously.
+  Verified live end-to-end: uploaded and published a real 2-concept
+  "States of Matter" Science test chapter; confirmed the Science
+  subject page (`?subject=` present) still highlighted correctly as
+  before; then confirmed both previously-buggy page types — the
+  chapter overview page and the topic page (neither has `?subject=` in
+  its URL) — now correctly highlight Science instead of Mathematics;
+  confirmed the Progress page shows no subject highlighted at all
+  (rather than a stale one) after navigating there from a Science
+  topic page. Test chapter deleted afterward via the existing
+  delete-chapter feature.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
