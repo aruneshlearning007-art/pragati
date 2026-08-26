@@ -1594,6 +1594,44 @@ machine. Feel free to use them normally instead of the workarounds above.
   accent card — confirming both the beat structure and the per-mode
   color rotation work correctly and distinctly. Test chapter and the
   temporary debug route were both cleaned up afterward.
+- **Difficulty-tagged word problems in Math Practice** ✅ done (verified
+  live 2026-08-26), founder-requested after discussing a real gap:
+  students who understand a concept still get stuck translating a
+  word/real-world problem into the right operation — a different
+  skill from recall, and the existing Practice mix didn't call it out
+  or let a student deliberately drill on it. Deliberately chose the
+  smaller of two options discussed (tagging within the existing
+  Practice pipeline vs. a whole separate word-problem content type/
+  section) — reuses everything already built (per-class generation via
+  `ContentScope`, the Verifier, misconception tagging) instead of a
+  new agent or schema surface.
+  `QuizQuestion` gained `isWordProblem` (boolean) and `difficulty`
+  (new `Difficulty` enum: easy/medium/hard). `practice.ts` now asks
+  for exactly 3 word problems within the same 6-8 question set for
+  Math topics — one genuinely calibrated to each difficulty tier for
+  the student's actual class (also now passes `Class: ${scope.class}`
+  into the prompt at all, which it never did before — difficulty had
+  been relying only on the generic child-audience base instruction).
+  `PracticeTab.tsx` gained a third "Word Problems" mode (next to Quiz/
+  Quick Drill, shown only for Math topics that actually have any)
+  that filters to just those questions with a colored difficulty
+  badge, reusing existing tokens (mastered=easy, revision=medium,
+  note-1's red-orange hue=hard) rather than a new palette. Submission
+  is scoped to only the currently visible mode's question ids (not the
+  whole `answers` state), so switching modes never mixes an
+  in-progress Quiz attempt with a Word Problems one — `submitQuizAnswers`
+  already derives its own `total`/scoring from whatever keys are in the
+  posted `answers` object, so this needed no backend change at all.
+  Verified live end-to-end on a real "Multiplication and Division"
+  Class 6 Math chapter: the Word Problems view showed exactly 3
+  questions with correct आसान/मध्यम/कठिन (Easy/Medium/Hard) badges in
+  the right colors, each genuinely calibrated (one-step "5 baskets × 8
+  apples", two-step flower-bed problem, multi-step nested "6 grades ×
+  4 classes × 8 groups"); submitting only those 3 (leaving the other 3
+  regular questions unanswered) correctly scored 3/3 and updated
+  mastery — confirming the scoped-submission logic works, not just
+  that the UI renders. Test chapter deleted afterward via the existing
+  delete-chapter feature.
 - **Phase 5 — Parent dashboard** — not started.
 - **Phase 6 — Landing page + paywall stub** — not started.
 - **Phase 7 — Responsive polish + full manual QA** — not started.
