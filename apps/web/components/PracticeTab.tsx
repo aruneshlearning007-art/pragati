@@ -11,6 +11,8 @@ interface QuizQuestionView {
   text: string;
   options: string[];
   imageLabel: string | null;
+  isWordProblem: boolean;
+  difficulty: string | null;
 }
 
 const KIND_LABEL: Record<string, string> = {
@@ -20,9 +22,19 @@ const KIND_LABEL: Record<string, string> = {
   numeric: "Numeric answer",
 };
 
+// Reuses existing tokens rather than adding a dedicated "difficulty" palette
+// — mastered/revision already read as an easy→harder progression, and
+// note-1's warm red-orange hue is the closest thing to a "hard" accent
+// already in the app.
+const DIFFICULTY_STYLE: Record<string, { bg: string; fg: string }> = {
+  easy: { bg: "var(--color-mastered-bg)", fg: "var(--color-mastered-fg)" },
+  medium: { bg: "var(--color-revision-bg)", fg: "var(--color-revision-fg)" },
+  hard: { bg: "var(--color-note-1-bg)", fg: "var(--color-note-1-fg)" },
+};
+
 export function PracticeTab({ topicId, subjectName, language }: { topicId: string; subjectName?: string; language: Language }) {
   const t = UI[language];
-  const [mode, setMode] = useState<"quiz" | "drill">("quiz");
+  const [mode, setMode] = useState<"quiz" | "drill" | "wordproblems">("quiz");
   const [questions, setQuestions] = useState<QuizQuestionView[] | null>(null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -51,11 +63,12 @@ export function PracticeTab({ topicId, subjectName, language }: { topicId: strin
     };
   }, [topicId]);
 
-  async function handleSubmit() {
+  async function handleSubmit(questionIds: string[]) {
+    const scopedAnswers = Object.fromEntries(Object.entries(answers).filter(([id]) => questionIds.includes(id)));
     const res = await fetch(`/api/topics/${topicId}/quiz`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ answers }),
+      body: JSON.stringify({ answers: scopedAnswers }),
     });
     const data = await res.json();
     setResult(data);
@@ -68,12 +81,19 @@ export function PracticeTab({ topicId, subjectName, language }: { topicId: strin
     setResult(null);
   }
 
+  function switchMode(m: "quiz" | "drill" | "wordproblems") {
+    setMode(m);
+    retry();
+  }
+
+  const hasWordProblems = (questions ?? []).some((q) => q.isWordProblem);
+  const modes = isMath ? (["quiz", "drill", ...(hasWordProblems ? (["wordproblems"] as const) : [])] as const) : [];
   const modeToggle = isMath && (
-    <div className="flex gap-2 mb-4">
-      {(["quiz", "drill"] as const).map((m) => (
+    <div className="flex gap-2 mb-4 flex-wrap">
+      {modes.map((m) => (
         <button
           key={m}
-          onClick={() => setMode(m)}
+          onClick={() => switchMode(m)}
           className="px-3.5 py-1.5 rounded-lg text-xs font-bold"
           style={{
             background: mode === m ? "var(--color-primary)" : "var(--color-surface)",
@@ -81,7 +101,7 @@ export function PracticeTab({ topicId, subjectName, language }: { topicId: strin
             border: "1px solid var(--color-border)",
           }}
         >
-          {m === "quiz" ? t.practiceModeQuiz : t.practiceModeDrill}
+          {m === "quiz" ? t.practiceModeQuiz : m === "drill" ? t.practiceModeDrill : t.practiceModeWordProblems}
         </button>
       ))}
     </div>
@@ -110,6 +130,8 @@ export function PracticeTab({ topicId, subjectName, language }: { topicId: strin
     );
   }
 
+  const visibleQuestions = mode === "wordproblems" ? questions.filter((q) => q.isWordProblem) : questions;
+
   if (submitted && result) {
     const pct = result.total ? result.score / result.total : 0;
     const message =
@@ -120,7 +142,7 @@ export function PracticeTab({ topicId, subjectName, language }: { topicId: strin
         : language === "hi"
           ? "अच्छी कोशिश। कुछ हिस्से अभी दोहराने लायक हैं।"
           : "Good attempt. A few parts are still worth revisiting.";
-    const wrongQuestions = questions.filter((q) => result.correctByQuestionId[q.id] === false);
+    const wrongQuestions = visibleQuestions.filter((q) => result.correctByQuestionId[q.id] === false);
     return (
       <div className="max-w-md flex flex-col gap-4">
         <div
@@ -182,15 +204,25 @@ export function PracticeTab({ topicId, subjectName, language }: { topicId: strin
     );
   }
 
-  const answeredCount = Object.keys(answers).length;
+  const answeredCount = visibleQuestions.filter((q) => answers[q.id] !== undefined).length;
 
   return (
     <div className="flex flex-col gap-4 max-w-2xl">
       {modeToggle}
-      {questions.map((q) => (
+      {visibleQuestions.map((q) => (
         <div key={q.id} className="p-5.5 rounded-card" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-          <div className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--color-text-muted)" }}>
-            {KIND_LABEL[q.kind] ?? q.kind}
+          <div className="flex items-center gap-2 mb-2">
+            <div className="text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>
+              {KIND_LABEL[q.kind] ?? q.kind}
+            </div>
+            {q.difficulty && (
+              <div
+                className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
+                style={{ background: DIFFICULTY_STYLE[q.difficulty]?.bg, color: DIFFICULTY_STYLE[q.difficulty]?.fg }}
+              >
+                {q.difficulty === "easy" ? t.difficultyEasy : q.difficulty === "medium" ? t.difficultyMedium : t.difficultyHard}
+              </div>
+            )}
           </div>
           <RichText text={q.text} className="text-[15px] font-semibold mb-3.5 leading-snug" />
           {q.kind === "picture" && q.imageLabel && (
@@ -231,8 +263,8 @@ export function PracticeTab({ topicId, subjectName, language }: { topicId: strin
         </div>
       ))}
       <button
-        onClick={handleSubmit}
-        disabled={answeredCount < questions.length}
+        onClick={() => handleSubmit(visibleQuestions.map((q) => q.id))}
+        disabled={answeredCount < visibleQuestions.length}
         className="self-start px-6 py-3 rounded-xl text-white font-bold text-sm disabled:opacity-40"
         style={{ background: "var(--color-primary)" }}
       >

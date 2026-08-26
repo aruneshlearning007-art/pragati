@@ -50,6 +50,12 @@ enum QuestionKind {
   numeric
 }
 
+enum Difficulty {
+  easy
+  medium
+  hard
+}
+
 enum ExplainMode {
   story
   picture
@@ -356,6 +362,13 @@ model QuizQuestion {
   correctValue Float?
   tolerance    Float @default(0)
   imageLabel   String?
+  // Math-only: marks this question as an application/word problem (vs a
+  // plain recall or procedural one) and its difficulty tier, so the
+  // Practice tab can offer a dedicated Word Problems view where a student
+  // picks a level instead of getting whatever mix the quiz generated.
+  // False/null for every non-Math or non-word-problem question.
+  isWordProblem Boolean    @default(false)
+  difficulty    Difficulty?
   // Same review-workflow role as Chapter.status — see Explanation.status.
   status       ContentStatus @default(published)
   createdAt    DateTime     @default(now())

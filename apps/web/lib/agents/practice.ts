@@ -1,4 +1,4 @@
-import { prisma, QuestionKind, ContentStatus } from "@pragati/db";
+import { prisma, QuestionKind, ContentStatus, Difficulty } from "@pragati/db";
 import { generate, extractJson, withBaseInstructions, type ContentScope } from "@pragati/shared";
 
 export interface QuizQuestionView {
@@ -7,6 +7,8 @@ export interface QuizQuestionView {
   text: string;
   options: string[];
   imageLabel: string | null;
+  isWordProblem: boolean;
+  difficulty: Difficulty | null;
 }
 
 /**
@@ -59,7 +61,14 @@ export async function getOrGenerateQuiz(
         ? "Since this is a Math topic, include at least 2 numeric free-response questions (kind: \"numeric\") " +
           "per quiz — typed numeric answers reduce guessing far more than multiple choice for calculation-style " +
           "questions. Wrap math in $...$ even when an option is ENTIRELY a math expression (e.g. an option must " +
-          "be \"$\\\\frac{1}{4}$\", not bare \"\\\\frac{1}{4}\" with no dollar signs). "
+          "be \"$\\\\frac{1}{4}$\", not bare \"\\\\frac{1}{4}\" with no dollar signs). " +
+          "Additionally, include exactly 3 word problems within this same set (real-world scenarios the student " +
+          "must translate into the right operation/equation before solving, not just a bare calculation) — one " +
+          "genuinely calibrated to each difficulty for the given class: \"easy\" (one clear step, obvious which " +
+          "operation to use), \"medium\" (two steps, or the operation isn't immediately obvious from the " +
+          "wording), and \"hard\" (multiple steps, or requires combining two sub-concepts from this topic). Mark " +
+          "each with isWordProblem:true and its difficulty; every other question gets isWordProblem:false and " +
+          "difficulty:null. "
         : "") +
       'Respond ONLY with strict JSON, no markdown, no code fences. Shape: {"questions":[{"kind":"mcq or ' +
       'assertion_reason or picture or numeric","text":"string","options":["a","b","c","d"],"correctIndex":' +
@@ -69,14 +78,15 @@ export async function getOrGenerateQuiz(
       'option holds, or null for the correct option — one entry per option, same order as options, empty ' +
       'array if kind is numeric"],' +
       '"subConceptName":"the closest matching sub-concept name from the list given, or null",' +
-      '"imageLabel":"a short placeholder caption if kind is picture, else null"}]} with 6-8 items. ' +
+      '"imageLabel":"a short placeholder caption if kind is picture, else null",' +
+      '"isWordProblem":boolean,"difficulty":"easy" or "medium" or "hard" or null}]} with 6-8 items. ' +
       "Use kind \"picture\" for at most one question, and only if it genuinely helps (the imageLabel describes " +
       "what a diagram/photo placeholder would show).",
   );
 
   const userContent = options?.sourceText
-    ? `Topic: ${topic.titleEn}\nSub-concepts (id:name): ${subConceptList || "(none)"}\n\nSource chapter text:\n${options.sourceText.slice(0, 30000)}`
-    : `Topic: ${topic.titleEn}\nSub-concepts (id:name): ${subConceptList || "(none)"}`;
+    ? `Topic: ${topic.titleEn}\nClass: ${scope.class}\nSub-concepts (id:name): ${subConceptList || "(none)"}\n\nSource chapter text:\n${options.sourceText.slice(0, 30000)}`
+    : `Topic: ${topic.titleEn}\nClass: ${scope.class}\nSub-concepts (id:name): ${subConceptList || "(none)"}`;
 
   const raw = await generate({
     system,
@@ -95,6 +105,8 @@ export async function getOrGenerateQuiz(
       optionMisconceptions?: (string | null)[];
       subConceptName: string | null;
       imageLabel: string | null;
+      isWordProblem?: boolean;
+      difficulty?: string | null;
     }[];
   }>(raw);
 
@@ -105,6 +117,7 @@ export async function getOrGenerateQuiz(
     picture: "picture",
     numeric: "numeric",
   };
+  const difficultyMap: Record<string, Difficulty> = { easy: "easy", medium: "medium", hard: "hard" };
 
   const created = await Promise.all(
     (parsed.questions ?? []).map((q) =>
@@ -123,6 +136,8 @@ export async function getOrGenerateQuiz(
           tolerance: q.tolerance ?? 0,
           optionMisconceptions: q.optionMisconceptions ? (q.optionMisconceptions as unknown as object) : undefined,
           imageLabel: q.imageLabel,
+          isWordProblem: q.isWordProblem ?? false,
+          difficulty: q.difficulty ? difficultyMap[q.difficulty] ?? null : null,
           status: options?.status ?? "published",
         },
       }),
@@ -138,6 +153,8 @@ function toView(q: {
   text: string;
   options: unknown;
   imageLabel: string | null;
+  isWordProblem: boolean;
+  difficulty: Difficulty | null;
 }): QuizQuestionView {
   return {
     id: q.id,
@@ -145,5 +162,7 @@ function toView(q: {
     text: q.text,
     options: q.options as string[],
     imageLabel: q.imageLabel,
+    isWordProblem: q.isWordProblem,
+    difficulty: q.difficulty,
   };
 }
