@@ -12,6 +12,7 @@
   "dependencies": {
     "@pragati/db": "workspace:*",
     "@pragati/shared": "workspace:*",
+    "@react-pdf/renderer": "^4.9.0",
     "@vercel/blob": "^2.8.0",
     "katex": "^0.16.11",
     "mafs": "^0.21.0",

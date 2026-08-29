@@ -56,6 +56,15 @@ enum Difficulty {
   hard
 }
 
+enum ExamQuestionKind {
+  fill_blank
+  true_false
+  mcq
+  // Covers both "very short answer" and "short/long answer" - differentiated
+  // by the `marks` field and prompt depth, not a separate kind.
+  subjective
+}
+
 enum ExplainMode {
   story
   picture
@@ -87,6 +96,7 @@ model School {
   explanations    Explanation[]
   quizQuestions   QuizQuestion[]
   chapters        Chapter[]
+  examTemplates   ExamTemplate[]
 
   @@unique([name, state, city])
   @@index([state, city])
@@ -118,6 +128,7 @@ model User {
   doubtMessages     DoubtMessage[]
   safetyIncidents   SafetyIncident[]
   selfExplanations  SelfExplanation[]
+  examTemplates     ExamTemplate[]
 
   @@index([schoolId])
 }
@@ -140,7 +151,8 @@ model Subject {
   nameHi    String?
   createdAt DateTime @default(now())
 
-  chapters Chapter[]
+  chapters      Chapter[]
+  examTemplates ExamTemplate[]
 
   @@unique([nameEn])
 }
@@ -172,6 +184,7 @@ model Chapter {
   teacher User?   @relation(fields: [teacherId], references: [id])
   topics  Topic[]
   flags   VerifierFlag[]
+  examPapers ExamPaper[]
 
   @@index([subjectId, class, board])
   @@index([teacherId])
@@ -509,4 +522,74 @@ model SafetyIncident {
   student User @relation(fields: [studentId], references: [id])
 
   @@index([studentId])
+}
+
+// Teacher-defined exam structure (duration + sections), set once per
+// subject+class+board+school and reused across every chapter in that
+// subject/class - matches a school's own real exam pattern instead of one
+// fixed format. Only a published template can generate exam papers.
+model ExamTemplate {
+  id              String   @id @default(cuid())
+  teacherId       String
+  subjectId       String
+  schoolId        String?
+  board           String
+  class           String
+  durationMinutes Int
+  // Ordered array of {label, kind, count, marksEach}, e.g.
+  // [{label:"Fill in the Blanks", kind:"fill_blank", count:5, marksEach:1}, ...]
+  sections        Json
+  isPublished     Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  teacher User    @relation(fields: [teacherId], references: [id])
+  subject Subject @relation(fields: [subjectId], references: [id])
+  school  School? @relation(fields: [schoolId], references: [id])
+  papers  ExamPaper[]
+
+  @@unique([subjectId, class, board, schoolId])
+}
+
+// One generated set (Beginner/Intermediate/Advance, via the existing
+// Difficulty enum) for a specific chapter, matching its template's exact
+// section structure. Cached per (chapter, template, difficulty) - PDF-only,
+// no online answer-taking or auto-grading in this pass.
+model ExamPaper {
+  id         String     @id @default(cuid())
+  chapterId  String
+  templateId String
+  difficulty Difficulty
+  // Generated question content follows this language (same as Notes/
+  // Explanation/QuizQuestion); the template's own section labels are
+  // stored as the teacher typed them and are not re-translated per paper.
+  language   String
+  createdAt  DateTime   @default(now())
+
+  chapter   Chapter      @relation(fields: [chapterId], references: [id])
+  template  ExamTemplate @relation(fields: [templateId], references: [id])
+  questions ExamQuestion[]
+
+  @@unique([chapterId, templateId, difficulty, language])
+}
+
+model ExamQuestion {
+  id           String           @id @default(cuid())
+  examPaperId  String
+  // "A", "B", ... - matches the template's section order.
+  section      String
+  kind         ExamQuestionKind
+  text         String
+  // mcq only - true_false is rendered as a fixed True/False choice, no
+  // options needed.
+  options      Json?
+  correctIndex Int?    // mcq/true_false
+  correctText  String? // fill_blank - printed in the answer key only, never auto-graded
+  modelAnswer  String? // subjective - printed in the answer key only
+  marks        Int
+  order        Int
+
+  examPaper ExamPaper @relation(fields: [examPaperId], references: [id])
+
+  @@index([examPaperId])
 }

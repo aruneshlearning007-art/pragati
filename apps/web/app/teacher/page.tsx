@@ -25,13 +25,22 @@ export default async function TeacherPanelPage() {
             Upload a chapter, then generate, verify and review it before it reaches students.
           </p>
         </div>
-        <Link
-          href="/teacher/upload"
-          className="px-5 py-3 rounded-xl text-white font-bold text-sm flex-none"
-          style={{ background: "var(--color-primary)" }}
-        >
-          {t.uploadChapterCta}
-        </Link>
+        <div className="flex items-center gap-2.5 flex-none">
+          <Link
+            href="/teacher/exam-format"
+            className="px-5 py-3 rounded-xl font-bold text-sm"
+            style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}
+          >
+            {t.examFormatCta}
+          </Link>
+          <Link
+            href="/teacher/upload"
+            className="px-5 py-3 rounded-xl text-white font-bold text-sm"
+            style={{ background: "var(--color-primary)" }}
+          >
+            {t.uploadChapterCta}
+          </Link>
+        </div>
       </div>
 
       {chapters.length === 0 ? (

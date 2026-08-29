@@ -15,6 +15,7 @@ import { getTopicStatus } from "@/lib/agents/diagnostic";
 import { UI, STATUS_STYLES, type Language } from "@/lib/i18n";
 import { ErrorCard } from "@/components/ErrorCard";
 import { SetActiveSubject } from "@/components/SetActiveSubject";
+import { MockExamCard } from "@/components/MockExamCard";
 
 type Tab = "notes" | "explain" | "self-explain" | "practice" | "videos";
 
@@ -47,8 +48,12 @@ export default async function TopicPage({
 
   let topic: Awaited<ReturnType<typeof prisma.topic.findUnique>> & {
     chapter: {
+      id: string;
       titleEn: string;
       titleHi: string | null;
+      class: string;
+      board: string;
+      schoolId: string | null;
       subject: { id: string; nameEn: string };
       topics: { id: string; titleEn: string; titleHi: string | null }[];
     };
@@ -130,6 +135,17 @@ export default async function TopicPage({
             );
           })}
         </div>
+      )}
+
+      {topic.chapter.topics.length === 1 && (
+        <MockExamCard
+          chapterId={topic.chapter.id}
+          subjectId={topic.chapter.subject.id}
+          cls={topic.chapter.class}
+          board={topic.chapter.board}
+          schoolId={topic.chapter.schoolId}
+          language={language}
+        />
       )}
 
       <div className="flex gap-2 mb-6 border-b" style={{ borderColor: "var(--color-border)" }}>

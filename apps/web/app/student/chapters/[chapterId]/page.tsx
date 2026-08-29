@@ -6,6 +6,7 @@ import { UI, type Language } from "@/lib/i18n";
 import { ErrorCard } from "@/components/ErrorCard";
 import { ConceptMapView } from "@/components/ConceptMapView";
 import { SetActiveSubject } from "@/components/SetActiveSubject";
+import { MockExamCard } from "@/components/MockExamCard";
 
 export default async function ChapterOverviewPage({ params }: { params: Promise<{ chapterId: string }> }) {
   const student = await getCurrentStudent();
@@ -58,6 +59,15 @@ export default async function ChapterOverviewPage({ params }: { params: Promise<
       <p className="text-sm mb-6" style={{ color: "var(--color-text-muted)" }}>
         {topicCards.filter((c) => c.status === "mastered").length} / {topicCards.length} {t.conceptsMasteredSuffix}
       </p>
+
+      <MockExamCard
+        chapterId={chapterId}
+        subjectId={chapter.subject.id}
+        cls={chapter.class}
+        board={chapter.board}
+        schoolId={chapter.schoolId}
+        language={language}
+      />
 
       <ConceptMapView nodes={topicCards.map((t) => ({ id: t.id, title: t.title, status: t.status }))} language={language} />
     </div>
