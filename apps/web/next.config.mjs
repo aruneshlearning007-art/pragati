@@ -12,11 +12,18 @@ const nextConfig = {
   // require() the same way Prisma's query engine does above — Next's
   // tracer can't see through it and silently drops them, failing at
   // runtime with "Cannot find module .../standard-fonts/Helvetica.cjs"
-  // even though the build succeeds.
+  // even though the build succeeds. A first attempt globbed
+  // "**/node_modules/pdfkit/..." broadly, which also matched the SAME
+  // files through @react-pdf/font's own node_modules/pdfkit — a pnpm
+  // symlink pointing back at this exact package — and Vercel's deploy
+  // step failed with "ENOTDIR: not a directory, mkdir .../pdfkit" trying
+  // to materialize both. Scoped to only pdfkit's own real (non-symlinked)
+  // package folder instead; Node follows the symlink fine at runtime
+  // regardless of which physical path the files were bundled from.
   outputFileTracingIncludes: {
     "/**/*": [
       "../../node_modules/.pnpm/**/node_modules/.prisma/client/*.node",
-      "../../node_modules/.pnpm/**/node_modules/pdfkit/js/standard-fonts/**/*",
+      "../../node_modules/.pnpm/pdfkit@*/node_modules/pdfkit/js/standard-fonts/**/*",
     ],
   },
 };
