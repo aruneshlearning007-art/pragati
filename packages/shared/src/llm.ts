@@ -17,6 +17,14 @@ export interface GenerateOptions {
   messages: LlmMessage[];
   /** Ask the provider to constrain output to valid JSON. */
   json?: boolean;
+  /**
+   * Overrides the default output budget (see the comment below) for a call
+   * whose response is genuinely proportional to its input rather than a
+   * bounded schema — e.g. transcribing a real multi-page document, where a
+   * long chapter can legitimately need far more room than any generated
+   * JSON content (Notes/Explain/Practice/beats) ever does.
+   */
+  maxOutputTokens?: number;
 }
 
 // gemini-3.6-flash's free tier is capped at 20 requests/DAY (a hard wall
@@ -67,7 +75,7 @@ export async function generate(options: GenerateOptions): Promise<string> {
   // responses (a chapter's worth of Notes/Explain/Practice, or a handful of
   // concept names) should ever need anywhere near this much room; set high
   // enough that hitting it is a real signal something is wrong, not routine.
-  const generationConfig: Record<string, unknown> = { maxOutputTokens: 8192 };
+  const generationConfig: Record<string, unknown> = { maxOutputTokens: options.maxOutputTokens ?? 8192 };
   if (options.json) {
     generationConfig.responseMimeType = "application/json";
   }
